@@ -9,6 +9,10 @@ on:
   workflow_dispatch:
 
 jobs:
+
+
+
+
   test:
     runs-on: ubuntu-latest
 
@@ -45,7 +49,10 @@ jobs:
           pytest -ra -v @specs
 
 
-  version-bump:
+
+
+  bump-and-release:
+    name: Bump version and release from master
     needs: test
     runs-on: ubuntu-latest
     outputs:
@@ -64,14 +71,15 @@ jobs:
       - name: Set up identity
         working-directory: datapie
         run: |
+          git switch develop
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
-      - name: Install dependencies for version bumping
+      - name: Install dependencies for version bump
         run: |
           pip install toml
 
@@ -79,6 +87,7 @@ jobs:
         id: bump-version
         working-directory: datapie
         run: |
+          git switch develop
           if ! [[ -e ./.release_type ]]; then
             echo "Cannot release without .release_type"
             exit 1
@@ -86,7 +95,7 @@ jobs:
           RELEASE_TYPE=$(< ./.release_type)
           python ./.github/workflows/bump_version.py --release-type=$RELEASE_TYPE
           NEW_VERSION=$(python ./.github/workflows/print_version.py)
-          echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT 
+          echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit and push new version to develop
         env:
@@ -97,8 +106,17 @@ jobs:
           git add ./pyproject.toml
           git rm .release_type
           git commit -m "Bump version to $version"
+          git push origin develop
+
+      - name: Merge develop into master and tag
+        env:
+            version: ${{ steps.bump-version.outputs.new-version }}
+        working-directory: datapie
+        run: |
+          git switch master
+          git merge develop
           git tag $version
-          git push origin develop --tags
+          git push origin master --tags
 
       - name: Create release
         id: create-release
@@ -108,12 +126,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
         working-directory: datapie
         run: |
-            gh release create "$version" \
-              --title "Release $version" \
-              --notes ""
+          git switch master
+          gh release create "$version" \
+            --title "Release $version" \
+            --notes ""
+
+
+
+
 
   deploy-to-pypi:
-    needs: version-bump
+    needs: bump-and-release
     runs-on: ubuntu-latest
 
     steps:

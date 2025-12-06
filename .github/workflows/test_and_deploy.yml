@@ -3,7 +3,7 @@
 # repositories
 #
 
-name: Test and version
+name: Test and deploy to PYPI
 
 on:
   workflow_dispatch:

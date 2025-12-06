@@ -1,0 +1,32 @@
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project]
+name = "datapie"
+version = "0.0.0"
+description = "Time series and data management for macroeconomic modeling"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [ "Programming Language :: Python :: 3",  "License :: OSI Approved :: MIT License", "Operating System :: OS Independent",]
+keywords = [ "data", "time series", "dates", "charts", ]
+dependencies = [ "numpy >= 2.1", "scipy >= 1.14.1", "plotly >= 6.3", "documark >= 0.4.0", "daqp >= 0.6.0",]
+
+[[project.authors]]
+name = "Jaromir Benes"
+email = "jaromir.benes@gmail.com"
+
+[project.license]
+text = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/iris-solutions-team/datapie"
+Documentation = "https://iris-solutions-team.github.io/datapie-pages"
+"Bug Tracker" = "https://github.com/iris-solutions-team/datapie/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/datapie",]
+
+[tool.hatch.build.targets.sdist]
+include = [ "src/datapie", "README.md", "LICENSE", ]
+

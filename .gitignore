@@ -1,0 +1,14 @@
+__pycache__
+.pytype
+
+.DS_Store
+.idea/
+dist/
+
+.ipynb*
+*.zip
+.obsidian
+sandbox
+session
+issues/
+

@@ -1,0 +1,35 @@
+{
+    "xaxis": {
+        "type": "date",
+        "showticklabels": true,
+        "tickformat": null,
+        "ticklabelmode": "period"
+    },
+    "yaxis": {
+        "zeroline": true,
+        "zerolinecolor": "#9aa"
+    },
+    "legend": {
+        "yanchor": "bottom",
+        "yref": "container",
+        "y": 0.02,
+        "xanchor": "center",
+        "xref": "paper",
+        "x": 0.5,
+        "orientation": "h"
+    },
+    "title": {
+        "yanchor": "top",
+        "yref": "container",
+        "y": 0.98,
+        "xanchor": "center",
+        "xref": "paper",
+        "x": 0.5
+    },
+    "modebar": {
+        "add": "hovercompare"
+    },
+    "hovermode": "x",
+    "plot_bgcolor": "#D8E3EC"
+}
+

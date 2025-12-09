@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Self, Callable
 from numbers import Real
 import numpy as _np
+import textwrap as _tw
 import documark as _dm
 
 from ..dates import Span
@@ -17,12 +18,12 @@ from ._categories import CATEGORIES
 #]
 
 
-FUNCTIONAL_FORMS = []
+#-------------------------------------------------------------------------------
+# Mixin methodsFunctions to be mixed in
+#-------------------------------------------------------------------------------
 
 
-class Inlay:
-    """
-    """
+class Mixin:
     #[
 
     @_dm.reference(
@@ -132,29 +133,29 @@ self.aroc()
 ### Input arguments ###
 
 ???+ input "self"
-    Time series on whose data a temporal change function is calculated (see
-    the overview table above).
+Time series on whose data a temporal change function is calculated (see
+the overview table above).
 
 ???+ input "shift"
-    A negative integer or a string determining a time lag at which the temporal change
-    function is calculated. If `shift=None` (or not specified), `shift` is
-    set to `-1`. If `shift` is a string, it must be one of the following:
+A negative integer or a string determining a time lag at which the temporal change
+function is calculated. If `shift=None` (or not specified), `shift` is
+set to `-1`. If `shift` is a string, it must be one of the following:
 
-    * `"yoy"`: year-on-year change
-    * `"soy"`: change over the start of the current year
-    * `"eopy"`: change over the end of the previous year
-    * `"tty"`: change throughout the year
+* `"yoy"`: year-on-year change
+* `"soy"`: change over the start of the current year
+* `"eopy"`: change over the end of the previous year
+* `"tty"`: change throughout the year
 
 
 ### Returns ###
 
 ???+ returns "new"
-    New time series with data calculated as a temporal change function of
-    the original data.
+New time series with data calculated as a temporal change function of
+the original data.
 
 ???+ returns "self"
-    Time series with data replaced by a temporal change function of the
-    original data.
+Time series with data replaced by a temporal change function of the
+original data.
 
 ................................................................................
         """
@@ -162,6 +163,7 @@ self.aroc()
         other = self.copy()
         other.shift(by, **kwargs, )
         self._binop(other, func, new=self, )
+
 
     @_dm.reference(
         category=None,
@@ -207,6 +209,7 @@ self.roc_from_aroc()
         """
         pass
 
+
     @_dm.reference(category="temporal_change", )
     def diff(
         self,
@@ -224,6 +227,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         """
         self.temporal_change(shift, lambda x, y: x - y, neutral_value=0, )
 
+
     @_dm.reference(category="temporal_change", )
     def adiff(self, ) -> None:
         r"""
@@ -239,6 +243,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         shift = -1
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: factor*(x - y), neutral_value=0, )
+
 
     @_dm.reference(category="temporal_change", )
     def diff_log(
@@ -257,6 +262,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         """
         self.temporal_change(shift, lambda x, y: _np.log(x) - _np.log(y), neutral_value=0, )
 
+
     @_dm.reference(category="temporal_change", )
     def adiff_log(self, ) -> None:
         r"""
@@ -272,6 +278,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         shift = -1
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: factor*(_np.log(x) - _np.log(y)), neutral_value=0, )
+
 
     @_dm.reference(category="temporal_change", )
     def roc(
@@ -289,6 +296,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
 ................................................................................
         """
         self.temporal_change(shift, lambda x, y: x/y, neutral_value=1, )
+
 
     @_dm.reference(category="temporal_change", )
     def aroc(
@@ -308,6 +316,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: (x/y)**factor, neutral_value=1, )
 
+
     @_dm.reference(category="temporal_change", )
     def pct(
         self,
@@ -324,6 +333,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
 ................................................................................
         """
         self.temporal_change(shift, lambda x, y: 100*(x/y - 1), neutral_value=None, )
+
 
     @_dm.reference(category="temporal_change", )
     def apct(
@@ -343,6 +353,7 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: 100*((x/y)**factor - 1), neutral_value=None, )
 
+
     @_dm.reference(category="temporal_change_conversion", )
     def roc_from_pct(
         self,
@@ -359,6 +370,7 @@ change](#temporal-change-conversion).
         """
         self.data = 1 + self.data/100
 
+
     @_dm.reference(category="temporal_change_conversion", )
     def pct_from_roc(
         self,
@@ -374,6 +386,7 @@ change](#temporal-change-conversion).
 ................................................................................
         """
         self.data = 100*(self.data - 1)
+
 
     @_dm.reference(category="temporal_change_conversion", )
     def pct_from_apct(
@@ -392,6 +405,7 @@ change](#temporal-change-conversion).
         factor = self.frequency.value or 1
         self.data = 100*((1 + self.data/100)**(1/factor) - 1)
 
+
     @_dm.reference(category="temporal_change_conversion", )
     def roc_from_apct(
         self,
@@ -408,6 +422,7 @@ change](#temporal-change-conversion).
         """
         factor = self.frequency.value or 1
         self.data = (1 + self.data/100)**(1/factor)
+
 
     @_dm.reference(category="temporal_change_conversion", )
     def roc_from_aroc(
@@ -426,6 +441,7 @@ change](#temporal-change-conversion).
         factor = self.frequency.value or 1
         self.data = self.data**factor
 
+
     @_dm.reference(category="temporal_cumulation", )
     def cum_diff(self, *args, **kwargs, ) -> None:
         r"""
@@ -439,6 +455,7 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
 ................................................................................
         """
         self.temporal_cumulation("diff", *args, **kwargs, )
+
 
     @_dm.reference(category="temporal_cumulation", )
     def cum_diff_log(self, *args, **kwargs, ) -> None:
@@ -454,6 +471,7 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
         """
         self.temporal_cumulation("diff_log", *args, **kwargs, )
 
+
     @_dm.reference(category="temporal_cumulation", )
     def cum_pct(self, *args, **kwargs, ) -> None:
         r"""
@@ -468,6 +486,7 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
         """
         self.temporal_cumulation("pct", *args, **kwargs, )
 
+
     @_dm.reference(category="temporal_cumulation", )
     def cum_roc(self, *args, **kwargs, ) -> None:
         r"""
@@ -481,6 +500,7 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
 ................................................................................
         """
         self.temporal_cumulation("roc", *args, **kwargs, )
+
 
     @_dm.reference(
         category=None,
@@ -537,34 +557,34 @@ self.cum_roc(shift=-1, initial=None, span=None)
 ### Input arguments ###
 
 ???+ input "self"
-    Time series on whose data a temporal cumulation is calculated (see the
-    overview table above).
+Time series on whose data a temporal cumulation is calculated (see the
+overview table above).
 
 ???+ input "shift"
-    A negative integer determining a time lag at which the temporal
-    cumulation is calculated. If `shift=None` (or not specified), `shift`
-    is set to `-1`.
+A negative integer determining a time lag at which the temporal
+cumulation is calculated. If `shift=None` (or not specified), `shift`
+is set to `-1`.
 
 ???+ input "initial"
-    Initial value of the cumulative series. If `initial=None` (or not specified),
-    the initial value is set to `0` for `diff` and `diff_log`, and to
-    `1` for `pct` and `roc`.
+Initial value of the cumulative series. If `initial=None` (or not specified),
+the initial value is set to `0` for `diff` and `diff_log`, and to
+`1` for `pct` and `roc`.
 
 ???+ input "span"
-    Time span on which the values from the original series are cumulated.
-    If `span=None` (or not specified), the time span is set to the entire
-    time series.
+Time span on which the values from the original series are cumulated.
+If `span=None` (or not specified), the time span is set to the entire
+time series.
 
 
 ### Returns ###
 
 ???+ returns "new"
-    New time series with data calculated as temporal cumulation of the
-    original data.
+New time series with data calculated as temporal cumulation of the
+original data.
 
 ???+ returns "self"
-    Time series with data replaced by temporal cumulation of the original
-    data.
+Time series with data replaced by temporal cumulation of the original
+data.
 
 ................................................................................
         """
@@ -575,48 +595,85 @@ self.cum_roc(shift=-1, initial=None, span=None)
         factory = _CUMULATIVE_FACTORY[func_name]
         cum_func = factory[direction]
         initial = factory["initial"] if initial is None else initial
+        #
         if direction == "forward":
-            self._cumulate_forward(shift, cum_func, initial, span, )
+            _cumulate_forward(self, shift, cum_func, initial, span, )
+        #
         elif direction == "backward":
-            self._cumulate_backward(shift, cum_func, initial, span, )
-
-    def _cumulate_forward(self, shift, cum_func, initial, span, ) -> None:
-        """
-        """
-        zipped_span = tuple((t, t.shift(shift, )) for t in span)
-        zipped_span = tuple((t, sh) for t, sh in zipped_span if sh is not None)
-        min_period = min((sh for t, sh in zipped_span), default=span.start_date, )
-        initial_span = Span(min_period, span.end_date, )
-        change = self.copy()
-        self.empty()
-        self.set_data(initial_span, initial)
-        for t, sh in zipped_span:
-            new_data = cum_func(self.get_data(sh, ), change.get_data(t, ), )
-            self.set_data(t, new_data)
-
-    def _cumulate_backward(self, shift, cum_func, initial, shifted_backward_range, ) -> None:
-        """
-        """
-        orig_range_shifted = Span(self.start_date, self.end_date, -1, )
-        orig_range_shifted.shift(shift, )
-        shifted_backward_range = shifted_backward_range.resolve(orig_range_shifted, )
-        backward_range = shifted_backward_range.copy()
-        backward_range.shift(-shift, )
-        initial_span = Span(min(shifted_backward_range), backward_range.start_date, )
-        orig = self.copy()
-        self.empty()
-        self.set_data(initial_span, initial, )
-        for t, sh in zip(backward_range, shifted_backward_range, ):
-            new_data = cum_func(self.get_data(t, ), orig.get_data(t, ), )
-            self.set_data(sh, new_data, )
+            _cumulate_backward(self, shift, cum_func, initial, span, )
 
     #]
 
 
-attributes = (n for n in dir(Inlay) if not n.startswith("_"))
-for n in attributes:
-    exec(FUNC_STRING.format(n=n, ), globals(), locals(), )
-    FUNCTIONAL_FORMS.append(n)
+#-------------------------------------------------------------------------------
+# Functional forms
+#-------------------------------------------------------------------------------
+
+
+_functional_forms = {
+    "temporal_change",
+    "diff",
+    "adiff",
+    "diff_log",
+    "adiff_log",
+    "pct",
+    "apct",
+    "roc",
+    "aroc",
+    "temporal_change_conversion",
+    "roc_from_pct",
+    "pct_from_roc",
+    "pct_from_apct",
+    "roc_from_apct",
+    "roc_from_aroc",
+    "temporal_cumulation",
+    "cum_diff",
+    "cum_diff_log",
+    "cum_pct",
+    "cum_roc",
+}
+
+for n in _functional_forms:
+    code = FUNC_STRING.format(n=n, )
+    exec(_tw.dedent(code, ), )
+
+__all__ = tuple(_functional_forms)
+
+
+#-------------------------------------------------------------------------------
+
+
+def _cumulate_forward(self, shift, cum_func, initial, span, ) -> None:
+    """
+    """
+    zipped_span = tuple((t, t.shift(shift, )) for t in span)
+    zipped_span = tuple((t, sh) for t, sh in zipped_span if sh is not None)
+    min_period = min((sh for t, sh in zipped_span), default=span.start_date, )
+    initial_span = Span(min_period, span.end_date, )
+    change = self.copy()
+    self.empty()
+    self.set_data(initial_span, initial)
+    for t, sh in zipped_span:
+        new_data = cum_func(self.get_data(sh, ), change.get_data(t, ), )
+        self.set_data(t, new_data)
+
+
+def _cumulate_backward(self, shift, cum_func, initial, shifted_backward_range, ) -> None:
+    """
+    """
+    orig_range_shifted = Span(self.start_date, self.end_date, -1, )
+    orig_range_shifted.shift(shift, )
+    shifted_backward_range = shifted_backward_range.resolve(orig_range_shifted, )
+    backward_range = shifted_backward_range.copy()
+    backward_range.shift(-shift, )
+    initial_span = Span(min(shifted_backward_range), backward_range.start_date, )
+    orig = self.copy()
+    self.empty()
+    self.set_data(initial_span, initial, )
+    for t, sh in zip(backward_range, shifted_backward_range, ):
+        new_data = cum_func(self.get_data(t, ), orig.get_data(t, ), )
+        self.set_data(sh, new_data, )
+
 
 
 _CUMULATIVE_FACTORY = {

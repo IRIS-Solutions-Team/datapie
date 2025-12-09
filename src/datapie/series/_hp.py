@@ -22,9 +22,6 @@ from ._functionalize import FUNC_STRING
 #]
 
 
-__all__ = ["hpf", ]
-
-
 _AUTO_SMOOTH = {
     Frequency.YEARLY: (10*1)**2,
     Frequency.HALFYEARLY: (10*2)**2,
@@ -159,21 +156,23 @@ class _ConstrainedHodrickPrescottFilter:
     #]
 
 
-class Inlay:
-    """
-    Constrained Hodrick-Prescott filter mixin for Series
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
 
     @_dm.reference(category="filtering", )
     def hpf(self, ):
         r"""
-················································································
+    ················································································
 
-==Constrained Hodrick-Prescott filter==
+    ==Constrained Hodrick-Prescott filter==
 
 
-### Functional form creating a new time `Series` object ###
+    ### Functional form creating a new time `Series` object ###
 
 
     trend, gap = irispie.hpf(
@@ -186,7 +185,7 @@ class Inlay:
     )
 
 
-### Class method changing an existing time `Series` objects in-place ###
+    ### Class method changing an existing time `Series` objects in-place ###
 
 
     self.hpf_trend(
@@ -207,22 +206,22 @@ class Inlay:
     )
 
 
-### Input arguments ###
+    ### Input arguments ###
 
 
-???+ input "self"
+    ???+ input "self"
     A time `Series` object whose data are filtered. All the
     observations contained in the input time series are used in the
     Hodrick-Prescott filter calculations no matter the time `span`
     specified; the time `span` only determines the time span of the output
     series.
 
-???+ input "span"
+    ???+ input "span"
     Time span on which the trend component of the Hodrick-Prescott filter
     is calculated. If `span=None`, the results are returned on
     the time span of the original series, `self`.
 
-???+ input "smooth"
+    ???+ input "smooth"
     Smoothing parameter (also known as $\lambda$) for the Hodrick-Prescott filter. If `smooth=None`,
     a default value is used based on the frequency of the input series `self`:
 
@@ -234,18 +233,18 @@ class Inlay:
     | `MONTHLY`      |                     144,000
     | Otherwise      |                       1,600
 
-???+ input "log"
+    ???+ input "log"
     If `log=True`, the Hodrick-Prescott filter is calculated on the logarithm
     of the input data, and the results are delogarithmized back to the original
     scale.
 
-???+ input "level"
+    ???+ input "level"
     A `Series` object with the level constraints for the Hodrick-Prescott
     filter (aka judgmental adjustments). If `level=None`, no level
     constraints are imposed. If `log=True`, the level constraints are
     logarithmized first before entering the calculations.
 
-???+ input "change"
+    ???+ input "change"
     A `Series` object with the change constraints for the Hodrick-Prescott
     filter (aka judgmental adjustments). If `change=None`, no change
     constraints are imposed. If `log=True`, the change constraints are
@@ -254,15 +253,15 @@ class Inlay:
     expressed as gross rates of change (period on period).
 
 
-### Returns ###
+    ### Returns ###
 
 
-???+ returns "trend"
+    ???+ returns "trend"
     A new `Series` object with the trend component of the Hodrick-Prescott
     filter. The trend component is always returned on the entier time `span`
     specified regardless of the actual time span of the original series.
 
-???+ returns "gap"
+    ???+ returns "gap"
     A new `Series` object with the trend component of the Hodrick-Prescott
     filter. The gap component is calculated on the time `span` as the
     difference between the actual observations and the trend component;
@@ -270,15 +269,15 @@ class Inlay:
     in time periods where the actual observations are available in the
     original series.
 
-???+ returns "self"
+    ???+ returns "self"
     The existing `Series` object with its values replaced in-place by the trend
     component of the Hodrick-Prescott filter.
 
 
-### Details ###
+    ### Details ###
 
 
-???+ abstract "Time span of HP filter calculations"
+    ???+ abstract "Time span of HP filter calculations"
 
     The Hodrick-Prescott filter is calculated on a time span starting in
     the period that is the first common period of
@@ -295,7 +294,7 @@ class Inlay:
     `span` argument if necessary.
 
 
-???+ abstract "Algorithm"
+    ???+ abstract "Algorithm"
 
     The constrained Hodrick-Prescott filter is a method for decomposing a
     time series into a lower-frequency (trend) component and a
@@ -338,7 +337,7 @@ class Inlay:
     \widehat{y}_t \equiv y_t - \overline{y}_t
     $$
 
-················································································
+    ················································································
         """
         raise NotImplementedError
 
@@ -355,6 +354,35 @@ class Inlay:
         self._replace_start_and_values(start_date, gap_data, )
 
     #]
+
+
+#-------------------------------------------------------------------------------
+# Functional forms
+#-------------------------------------------------------------------------------
+
+
+def hpf(self, *args, **kwargs, ) -> tuple[_series.Series, _series.Series]:
+    """
+    Constrained Hodrick-Prescott filter
+    """
+    start_date, trend_data, gap_data = _data_hpf(self, *args, **kwargs, )
+    trend = type(self)(start_date=start_date, values=trend_data, )
+    gap = type(self)(start_date=start_date, values=gap_data, )
+    return trend, gap
+
+
+_functional_forms = {"hpf", }
+
+
+for n in ("hpf_trend", "hpf_gap", ):
+    exec(FUNC_STRING.format(n=n, ), globals(), locals(), )
+    _functional_forms.add(n, )
+
+
+__all__ = tuple(_functional_forms)
+
+
+#-------------------------------------------------------------------------------
 
 
 def _data_hpf(
@@ -416,22 +444,6 @@ def _data_hpf(
     #
     return new_start_date, trend_data, gap_data
     #]
-
-
-def hpf(self, *args, **kwargs, ) -> tuple[_series.Series, _series.Series]:
-    """
-    Constrained Hodrick-Prescott filter
-    """
-    start_date, trend_data, gap_data = _data_hpf(self, *args, **kwargs, )
-    trend = type(self)(start_date=start_date, values=trend_data, )
-    gap = type(self)(start_date=start_date, values=gap_data, )
-    return trend, gap
-
-
-for n in ("hpf_trend", "hpf_gap", ):
-    exec(FUNC_STRING.format(n=n, ), globals(), locals(), )
-    __all__.append(n)
-
 
 
 def _prepare_constraints(

@@ -20,26 +20,27 @@ from .. import iterators as _iterators
 from .. import dates as _dates
 from .. import wrongdoings as _wrongdoings
 from .. import has_variants as _has_variants
-from ..dates import Period, Span, Frequency, EmptyRanger
-
-from . import _indexing
-from . import _plotly
-from . import _views
-from . import _temporal
-from . import _filling
-from . import _conversions
-from . import _hp
-from . import _extrapolate
-from . import _x13
-from . import _moving
-from . import _elementwise
-from . import _statistics
-from . import _jsonables
-from . import _lays
-from . import _broadcasts
+from ..dates import Period, Span, Frequency, EmptySpan
 
 from ._categories import CATEGORIES
 from ._functionalize import FUNC_STRING
+
+from . import _broadcasts
+from . import _conversions
+from . import _elementwise
+from . import _extrapolate
+from . import _filling
+from . import _hp
+from . import _indexing
+from . import _jsonables
+from . import _lays
+from . import _moving
+from . import _plotly
+from . import _statistics
+from . import _temporal
+from . import _timing
+from . import _views
+from . import _x13
 
 #]
 
@@ -75,28 +76,28 @@ def _get_date_positions(dates, base, num_periods, ):
     return pos_adjusted, add_before, add_after
 
 
-@_lays.mixin
-@_filling.mixin
-@_broadcasts.mixin
-@_jsonables.mixin
 @_dm.reference(
     path=("data_management", "time_series.md", ),
     categories=CATEGORIES,
 )
 class Series(
-    _indexing.Inlay,
-    _conversions.Inlay,
-    _temporal.Inlay,
-    _hp.Inlay,
-    _extrapolate.Inlay,
-    _moving.Inlay,
-    _x13.Inlay,
-    _plotly.Inlay,
-    _views.Inlay,
-    _elementwise.Inlay,
-    _statistics.Inlay,
-    #
-    _descriptions.DescriptionMixin,
+    _indexing.Mixin,
+    _elementwise.Mixin,
+    _statistics.Mixin,
+    _timing.Mixin,
+    _lays.Mixin,
+    _filling.Mixin,
+    _temporal.Mixin,
+    _conversions.Mixin,
+    _extrapolate.Mixin,
+    _moving.Mixin,
+    _hp.Mixin,
+    _x13.Mixin,
+    _plotly.Mixin,
+    _broadcasts.Mixin,
+    _jsonables.Mixin,
+    _descriptions.Mixin,
+    _views.Mixin,
 ):
     r"""
 ················································································
@@ -629,7 +630,7 @@ variants of the data, stored as mutliple columns.
         if periods is ... and self.start is not None:
             periods = Span(None, None, )
         if periods is ... and self.start is None:
-            periods = EmptyRanger()
+            periods = EmptySpan()
         if hasattr(periods, "needs_resolve") and periods.needs_resolve:
             periods = periods.resolve(self, )
         return tuple(
@@ -651,44 +652,6 @@ variants of the data, stored as mutliple columns.
         if not isinstance(variants, Iterable):
             variants = (variants, )
         return variants
-
-    def shift(
-        self,
-        by: ShiftType = -1,
-        **kwargs,
-    ) -> None:
-        r"""
-................................................................................
-
-==Shift the time series start date==
-
-Shift the start date of the time series by a number of periods or to a specific
-date.
-
-    self.shift(by=-1, )
-
-### Input arguments ###
-
-???+ input "self"
-    The current time series object that will be shifted.
-
-???+ input "by"
-    The number of periods to shift the observations by. If `by` is a string,
-    the observations are manipulated as follows:
-
-    * `"yoy"`: Shift all observations by one year back.
-
-    * `"soy"`: Shift to the start of the year.
-
-    * `"eopy"`: Shift to the end of the previous year.
-
-................................................................................
-        """
-        if isinstance(by, int):
-            self._shift_by_number(by, **kwargs, )
-        else:
-            method_name = f"_shift_{by}"
-            getattr(self, method_name)(**kwargs, )
 
     def _shift_by_number(self, by: int, **kwargs, ) -> None:
         r"""
@@ -816,18 +779,6 @@ date.
     ) -> None:
         num_variants = num_variants if num_variants is not None else self.num_variants
         self.data = _np.empty((0, num_variants), dtype=self.data_type)
-
-    def redate(
-        self,
-        new_date: Period,
-        old_date: Period | None = None,
-    ) -> None:
-        """
-        """
-        if old_data is None:
-            self.start = new_date
-        else:
-            self.start = new_date - (old_date - self.start)
 
     @_dm.reference(category="manipulation", )
     def replace_where(
@@ -1130,7 +1081,7 @@ This method modifies `self` in place and returns `None`.
         elif axis == 0 and new_data.shape == (self.data.shape[1], ):
             return new_data
         else:
-            raise _wrongdoings.IrisPieError(
+            raise _wrongdoings.Error(
                 "Function applied on a time series resulted"
                 " in a data array with an unexpected shape"
             )
@@ -1331,7 +1282,7 @@ def _invalid_constructor(
     self,
     **kwargs,
 ) -> NoReturn:
-    raise _wrongdoings.IrisPieError("Invalid Series object constructor")
+    raise _wrongdoings.Error("Invalid Series object constructor")
 
 
 _SERIES_POPULATOR = {
@@ -1340,10 +1291,4 @@ _SERIES_POPULATOR = {
     (False, True, True, False): _from_periods_and_values,
     (False, True, False, True): _from_periods_and_func,
 }
-
-
-FUNCTIONAL_FORMS = (
-    "shift",
-    "redate",
-)
 

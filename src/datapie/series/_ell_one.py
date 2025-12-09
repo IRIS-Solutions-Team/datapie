@@ -19,12 +19,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from numbers import Real
-    from typing import Any, Callable
+    from typing import Any, Callable, Self
 
 #]
-
-
-__all__ = ("lonf", )
 
 
 OrderType = Literal[1, 2]
@@ -36,11 +33,11 @@ def lonf(
     smooth: Real,
     #
     span: Iterable[Period] | None = None,
-) -> tuple[Any, Any]:
+) -> tuple[Self, Self]:
     r"""
 ................................................................................
 
-==L1 norm based filter==
+==L1-norm filter==
 
 ................................................................................
     """
@@ -76,6 +73,10 @@ def lonf(
     return trend_series, gap_series,
 
 
+_functional_forms = {"lonf", }
+__all__ = tuple(_functional_forms)
+
+
 def _lonf_for_variant(
     solve: Callable,
     data: _np.ndarray,
@@ -92,8 +93,6 @@ def _lonf_for_variant(
     trend_data = tuple(trend_data.flatten().tolist())
     gap_data = tuple(gap_data.flatten().tolist())
     return trend_data, gap_data,
-
-#]
 
 
 def _first_order_matrix_setup(
@@ -125,4 +124,7 @@ _MATRIX_SETUP_DISPATCH = {
     1: _first_order_matrix_setup,
     2: _second_order_matrix_setup,
 }
+
+
+FUNCTIONAL_FORMS = ("lonf", )
 

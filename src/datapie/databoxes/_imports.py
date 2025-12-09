@@ -7,8 +7,8 @@ Databox imports
 
 from __future__ import annotations
 
-from typing import (Self, )
-from collections.abc import (Iterable, Callable, )
+from typing import Self
+from collections.abc import Iterable, Callable
 import csv as _cs
 import numpy as _np
 import dataclasses as _dc
@@ -16,8 +16,8 @@ import pickle as _pickle
 import warnings as _wa
 import documark as _dm
 
-from ..dates import (Period, Frequency, Span, )
-from ..series.main import (Series, )
+from ..dates import Period, Frequency, Span
+from ..series.main import Series
 
 #]
 
@@ -37,8 +37,8 @@ class _ImportBlock:
     names: Iterable[str] | None = None,
     descriptions: Iterable[str] | None = None,
 
-    def column_iterator(self, /, ):
-        """
+    def column_iterator(self, ):
+        r"""
         """
         status = False
         names = self.names + [""]
@@ -60,10 +60,14 @@ class _ImportBlock:
     #]
 
 
-class Inlay:
-    """
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
+
     @classmethod
     @_dm.reference(
         category="constructor",
@@ -91,58 +95,58 @@ class Inlay:
 ==Create a new Databox by reading time series from a CSV file==
 
 
-    self = Databox.from_csv_file(
-        file_name,
-        *,
-        period_from_string=None,
-        start_period_only=False,
-        description_row=False,
-        delimiter=",",
-        csv_reader_settings={},
-        numpy_reader_settings={},
-        name_row_transform=None,
-    )
+self = Databox.from_csv_file(
+    file_name,
+    *,
+    period_from_string=None,
+    start_period_only=False,
+    description_row=False,
+    delimiter=",",
+    csv_reader_settings={},
+    numpy_reader_settings={},
+    name_row_transform=None,
+)
 
 
 ### Input arguments ###
 
 
 ???+ input "file_name"
-    Path to the CSV file to be read.
+Path to the CSV file to be read.
 
 ???+ input "period_from_string"
-    A callable for creating date objects from string representations. If `None`,
-    a default method expecting the SDMX string format is used.
+A callable for creating date objects from string representations. If `None`,
+a default method expecting the SDMX string format is used.
 
 ???+ input "start_period_only"
-    If `True`, only the start date of each time series is parsed from the CSV;
-    subsequent periods are inferred based on frequency.
+If `True`, only the start date of each time series is parsed from the CSV;
+subsequent periods are inferred based on frequency.
 
 ???+ input "description_row"
-    Indicates if the CSV contains a row for descriptions of the time series.
-    Defaults to `False`.
+Indicates if the CSV contains a row for descriptions of the time series.
+Defaults to `False`.
 
 ???+ input "delimiter"
-    Character used to separate values in the CSV file.
+Character used to separate values in the CSV file.
 
 ???+ input "name_row_transform"
-    A function to transform names in the name row of the CSV.
+A function to transform names in the name row of the CSV.
 
 ???+ input "csv_reader_settings"
-    Additional settings for the CSV reader.
+Additional settings for the CSV reader.
 
 ???+ input "numpy_reader_settings"
-    Settings for reading data into numpy arrays.
+Settings for reading data into numpy arrays.
 
 ???+ input "databox_settings"
-    Settings for the Databox constructor.
+Settings for the Databox constructor.
 
 
 ### Returns ###
 
 
 ???+ returns "self"
-    An `Databox` populated with time series from the CSV file.
+An `Databox` populated with time series from the CSV file.
 
 ················································································
         """
@@ -195,7 +199,6 @@ class Inlay:
     def from_pickle_file(
         klass,
         file_name: str,
-        /,
         **kwargs,
     ) -> Self:
         r"""
@@ -203,35 +206,39 @@ class Inlay:
 
 ==Read a Databox from a pickled file==
 
-    self = Databox.from_pickle(
-        file_name,
-        **kwargs,
-    )
+self = Databox.from_pickle(
+    file_name,
+    **kwargs,
+)
 
 ### Input arguments ###
 
 ???+ input "file_name"
-    Path to the pickled file to be read.
+Path to the pickled file to be read.
 
 ???+ input "kwargs"
-    Additional keyword arguments to pass to the `pickle.load` function.
+Additional keyword arguments to pass to the `pickle.load` function.
 
 ### Returns ###
 
 ???+ returns "self"
-    A `Databox` object read from the pickled file.
+A `Databox` object read from the pickled file.
 
 ................................................................................
         """
         with open(file_name, "rb") as fid:
             return _pickle.load(fid, **kwargs, )
 
+
     from_pickle = from_pickle_file
 
     #]
 
 
-def _read_csv(file_name, num_header_rows, /, delimiter=",", **kwargs, ):
+#-------------------------------------------------------------------------------
+
+
+def _read_csv(file_name, num_header_rows, delimiter=",", **kwargs, ):
     """
     Read CSV cells into a list of lists
     """
@@ -242,7 +249,7 @@ def _read_csv(file_name, num_header_rows, /, delimiter=",", **kwargs, ):
     #]
 
 
-def _remove_nonascii_from_start(string, /, ):
+def _remove_nonascii_from_start(string, ):
     """
     Remove non-ascii characters from the start of a string
     """
@@ -259,15 +266,14 @@ def _block_iterator(
     data_rows,
     period_from_string,
     start_period_only,
-    /,
 ):
     """
     """
     #[
-    def _is_end(cell, /, ) -> bool:
+    def _is_end(cell, ) -> bool:
         return cell.startswith("__")
     #
-    def _is_start(cell, /, ) -> bool:
+    def _is_start(cell, ) -> bool:
         if not cell.startswith("__"):
             return False
         try:
@@ -312,7 +318,6 @@ def _extract_periods_from_data_rows(
     column: int,
     period_from_string: Callable,
     start_period_only: bool,
-    /,
 ) -> tuple[tuple[int], tuple[Period]]:
     """
     """
@@ -331,7 +336,7 @@ def _extract_periods_from_data_rows(
     #]
 
 
-def _read_array_for_block(file_name, block, num_header_rows, /, delimiter=",", **kwargs, ):
+def _read_array_for_block(file_name, block, num_header_rows, delimiter=",", **kwargs, ):
     #[
     skip_header = num_header_rows
     usecols = [ c for c in range(block.column_start, block.column_start+block.num_columns) ]
@@ -339,7 +344,7 @@ def _read_array_for_block(file_name, block, num_header_rows, /, delimiter=",", *
     #]
 
 
-def _add_series_for_block(self, block, array, /, ):
+def _add_series_for_block(self, block, array, ):
     """
     """
     #[
@@ -353,7 +358,6 @@ def _add_series_for_block(self, block, array, /, ):
 def _apply_name_row_transform(
     name_row: list[str],
     name_row_transform: Callable,
-    /,
 ) -> list[str]:
     """
     """

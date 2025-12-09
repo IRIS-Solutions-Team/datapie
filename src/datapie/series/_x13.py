@@ -30,9 +30,6 @@ if TYPE_CHECKING:
 #]
 
 
-__all__ = []
-
-
 ModeType = Literal[
     "mult",
     "add",
@@ -51,9 +48,7 @@ OutputType = Literal[
 ]
 
 
-class Inlay:
-    """
-    """
+class Mixin:
     #[
 
     @_dm.reference(category="filtering", )
@@ -74,16 +69,16 @@ class Inlay:
         add_to_specs: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         r"""
-................................................................................
+    ................................................................................
 
-==X13-ARIMA-TRAMO-SEATS seasonal adjustment procedure==
-
-
-### Function for creating new Series objects ###
+    ==X13-ARIMA-TRAMO-SEATS seasonal adjustment procedure==
 
 
-```
-new = irispie.x13(
+    ### Function for creating new Series objects ###
+
+
+    ```
+    new = irispie.x13(
     self,
 
     span=None,
@@ -99,23 +94,23 @@ new = irispie.x13(
 
     unpack_singleton=True,
     return_info=False,
-)
-```
+    )
+    ```
 
-```
-new, info = irispie.x13(
+    ```
+    new, info = irispie.x13(
     ...,
     return_info=True,
     ...,
-)
-```
+    )
+    ```
 
 
-### Class method for changing existing time `Series` objects in-place ###
+    ### Class method for changing existing time `Series` objects in-place ###
 
 
-```
-self.x13(
+    ```
+    self.x13(
     self,
 
     span=None,
@@ -131,31 +126,31 @@ self.x13(
 
     unpack_singleton=True,
     return_info=False,
-)
-```
+    )
+    ```
 
-```
-info = self.x13(
+    ```
+    info = self.x13(
     ...,
     return_info=True,
     ...,
-)
-```
+    )
+    ```
 
 
-### Input arguments ###
+    ### Input arguments ###
 
 
-???+ input "self"
+    ???+ input "self"
     A time `Series` object whose data will be run through the
     X13-ARIMA-TRAMO-SEATS procedure.
 
-???+ input "span"
+    ???+ input "span"
     A time span be specified as a `Span` object. If `span=None` or `span=...`,
     the time span goes from the first observed period to the last observed
     period in the input time series.
 
-???+ input "output"
+    ???+ input "output"
     The type of output to be returned by X13. The following options are
     available at the moment:
 
@@ -168,11 +163,11 @@ info = self.x13(
     | `"seasonal_and_td"`     | `d16`     | Combined seasonal and trading day factors
     | `"holiday_and_td"`      | `d18`     | Combined holiday and trading day factors
 
-???+ input "specs_template"
+    ???+ input "specs_template"
     A dictionary with a specs template for the X13 run; if `None`, a default
     specs template is used (see below for the structure of the default template).
 
-???+ input "mode"
+    ???+ input "mode"
     The mode to be used for the X13 run. The following options are available (see the
     [X13 documentation](https://www.census.gov/srd/www/x13as/)):
 
@@ -188,15 +183,15 @@ info = self.x13(
     strictly positive or strictly negative, the multiplicative mode is used, otherwise
     the additive mode is used.
 
-???+ input "allow_missing"
+    ???+ input "allow_missing"
     If `True`, allow missing values in the input time series and automatically
     add an empty `automdl` spec if no ARIMA model is specified.
 
-???+ input "add_to_specs"
+    ???+ input "add_to_specs"
     A dictionary with additional settings to be added to the `specs_template` (or
     the default templated).
 
-???+ input "when_error"
+    ???+ input "when_error"
     The action to be taken when an error occurs. The following options are
     available:
 
@@ -205,25 +200,25 @@ info = self.x13(
     | `"warning"` | Issue a warning
     | `"error"`   | Raise an error
 
-???+ input "unpack_singleton"
+    ???+ input "unpack_singleton"
     If `True`, unpack `info` into a plain dictionary for models with a
     single variant.
 
-???+ input "return_info"
+    ???+ input "return_info"
     If `True`, return a dictionary with information about the X13 run as another
     output argument.
 
 
-### Returns ###
+    ### Returns ###
 
 
-???+ returns "self"
+    ???+ returns "self"
     The `Series` object with the output data.
 
-???+ returns "new"
+    ???+ returns "new"
     A new `Series` object with the output data.
 
-???+ returns "info"
+    ???+ returns "info"
     (Only returned if `return_info=True` which is not the default behavior)
     Dictionary with information about the X13 run; `info` contains the
     following items:
@@ -240,10 +235,10 @@ info = self.x13(
     | `*` | Any other output file written by X13
 
 
-### Details ###
+    ### Details ###
 
 
-???+ abstract "Default SPC template structure"
+    ???+ abstract "Default SPC template structure"
 
     The default specs template is a dictionary equivalent to the following SPC
     file:
@@ -270,7 +265,7 @@ info = self.x13(
 
     ```
 
-................................................................................
+    ................................................................................
         """
         span = self.resolve_periods(span)
         base_start, base_end = span[0], span[-1]
@@ -326,14 +321,18 @@ info = self.x13(
             return out_info
         else:
             return
+
     #]
 
 
-attributes = (n for n in dir(Inlay) if not n.startswith("_"))
-for n in attributes:
-    code = FUNC_STRING.format(n=n, )
-    exec(code, globals(), locals(), )
-    __all__.append(n)
+_functional_forms = {"x13", }
+
+
+for n in _functional_forms:
+    exec(FUNC_STRING.format(n=n, ), globals(), locals(), )
+
+
+__all__ = tuple(_functional_forms)
 
 
 def _x13_data(

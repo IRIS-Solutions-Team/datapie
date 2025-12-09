@@ -1,4 +1,4 @@
-"""
+r"""
 Handle exceptions and warnings
 """
 
@@ -7,10 +7,13 @@ Handle exceptions and warnings
 
 from __future__ import annotations
 
-from typing import Literal, Callable, NoReturn
-from collections.abc import Iterable
+# Standard library imports
 import warnings as _wa
 import os as _os
+
+# Typing imports
+from typing import Literal, NoReturn
+from collections.abc import Iterable, Callable
 
 #]
 
@@ -24,7 +27,7 @@ _BLANK_LINE = "⏐"
 _LIST_PREFIX = "⏐ * "
 
 
-class IrisPieError(Exception, ):
+class Error(Exception, ):
     """
     """
     #[
@@ -34,13 +37,13 @@ class IrisPieError(Exception, ):
     #]
 
 
-class IrisPieCritical(IrisPieError, ):
+class Critical(Error, ):
     r"""
     """
     pass
 
 
-class IrisPieWarning(UserWarning, ):
+class Warning(UserWarning, ):
     r"""
     """
     pass
@@ -50,7 +53,7 @@ def raise_as(
     how: HOW,
     message: str | Iterable[str],
 ) -> None:
-    """
+    r"""
     """
     #[
     _RESOLVE_HOW[how](message)
@@ -78,7 +81,7 @@ def _raise_as_error(
     """
     """
     #[
-    raise IrisPieError(message, )
+    raise Error(message, )
     #]
 
 
@@ -89,11 +92,11 @@ def _raise_as_warning(
     """
     #[
     message = _prepare_message(message, )
-    message = "\nIrisPieWarning: " + message
+    message = "\nWarning: " + message
     try:
-        _wa.warn(message, IrisPieWarning, skip_file_prefixes=_WARN_SKIPS, )
+        _wa.warn(message, Warning, skip_file_prefixes=_WARN_SKIPS, )
     except TypeError:
-        _wa.warn(message, IrisPieWarning, )
+        _wa.warn(message, Warning, )
     #]
 
 
@@ -107,20 +110,6 @@ def _raise_as_silent(
     """
     #[
     pass
-    #]
-
-
-def obsolete(func):
-    """
-    """
-    #[
-    def wrapper(*args, **kwargs, ):
-        message = (
-            f"Function {func.__name__} is obsolete and will be removed in a future version of IrisPie. "
-        )
-        _raise_as_warning(message)
-        return func(*args, **kwargs)
-    return wrapper
     #]
 
 
@@ -181,7 +170,7 @@ class CriticalStream(Stream):
         """
         """
         self.messages += (message, )
-        raise IrisPieCritical(self.final_message, )
+        raise Critical(self.final_message, )
 
     def _raise(self, *args, **kwargs, ) -> None:
         pass
@@ -251,8 +240,12 @@ STREAM_FACTORY = {
 }
 
 
-def create_stream(kind: str, title: str, /, when_no_stream=None, ) -> Stream:
-    """
+def create_stream(
+    kind: str,
+    title: str,
+    when_no_stream=None,
+) -> Stream:
+    r"""
     """
     #[
     if kind not in STREAM_FACTORY and when_no_stream:

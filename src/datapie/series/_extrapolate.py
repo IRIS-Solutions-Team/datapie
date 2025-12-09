@@ -13,7 +13,6 @@ import numpy as _np
 import scipy as _sp
 import documark as _dm
 
-from .. import dates as _dates
 from ._functionalize import FUNC_STRING
 
 if TYPE_CHECKING:
@@ -24,12 +23,12 @@ if TYPE_CHECKING:
 #]
 
 
-__all__ = []
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
 
 
-class Inlay:
-    """
-    """
+class Mixin:
     #[
 
     @_dm.reference(category="homogenizing", )
@@ -50,58 +49,58 @@ class Inlay:
 ### Functional forms creating a new time `Series` object ###
 
 
-    new = extrapolate(
-        self,
-        ar_coeffs,
-        span,
-        *,
-        intercept=0,
-        log=False,
-    )
+new = extrapolate(
+    self,
+    ar_coeffs,
+    span,
+    *,
+    intercept=0,
+    log=False,
+)
 
 
 ### Class method changing an existing time `Series` object in-place ###
 
 
-    self.extrapolate(
-        ar_coeffs,
-        span,
-        *,
-        intercept=0,
-        log=False,
-    )
+self.extrapolate(
+    ar_coeffs,
+    span,
+    *,
+    intercept=0,
+    log=False,
+)
 
 
 ### Input arguments ###
 
 
 ???+ input "self"
-    The time `Series` object to be extrapolated by an autoregressive process.
+The time `Series` object to be extrapolated by an autoregressive process.
 
 ???+ input "ar_coeffs"
-    The autoregressive coefficients to be used in the extrapolation, entered as
-    a tuple of AR_1, AR_2, ..., AR_p coefficients as if on the RHS of the AR
-    process definition; see Details below.
+The autoregressive coefficients to be used in the extrapolation, entered as
+a tuple of AR_1, AR_2, ..., AR_p coefficients as if on the RHS of the AR
+process definition; see Details below.
 
 ???+ input "span"
-    The time span on which the time series will be extrapolated.
+The time span on which the time series will be extrapolated.
 
 ???+ input "intercept"
-    The intercept in the autorergressive process.
+The intercept in the autorergressive process.
 
 ???+ input "log"
-    If `log=True`, the time series will be logarithmized before the
-    extrapolation and then delogarithmized back.
+If `log=True`, the time series will be logarithmized before the
+extrapolation and then delogarithmized back.
 
 
 ### Returns ###
 
 
 ???+ returns "self"
-    The existing time `Series` object with its values replaced in-place.
+The existing time `Series` object with its values replaced in-place.
 
 ???+ returns "new"
-    A new time `Series` object.
+A new time `Series` object.
 
 
 ### Details ###
@@ -151,11 +150,21 @@ $\rho_1,\ \rho_2,\ \dots,\ \rho_p$ given by the input argument `ar_coeff`
     #]
 
 
-attributes = (n for n in dir(Inlay) if not n.startswith("_"))
-for n in attributes:
+#-------------------------------------------------------------------------------
+# Functional forms
+#-------------------------------------------------------------------------------
+
+
+_functional_forms = {"extrapolate", }
+
+for n in _functional_forms:
     code = FUNC_STRING.format(n=n, )
     exec(code, globals(), locals(), )
-    __all__.append(n)
+
+__all__ = tuple(_functional_forms)
+
+
+#-------------------------------------------------------------------------------
 
 
 def _extrapolate_data(

@@ -11,6 +11,7 @@ from typing import (Self, Callable, )
 from types import (EllipsisType, )
 import numpy as _np
 import functools as _ft
+import textwrap as _tw
 import operator as _op
 import statistics as _st
 import documark as _dm
@@ -22,12 +23,6 @@ from ._functionalize import FUNC_STRING
 #]
 
 
-__all__ = [
-    "convert_roc",
-    "convert_pct",
-]
-
-
 _builtin_min = min
 _builtin_max = max
 _builtin_sum = sum
@@ -37,9 +32,12 @@ _DEFAULT_METHOD = "mean"
 _DEFAULT_DISCARD_MISSING = False
 
 
-class Inlay:
-    """
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
 
     @_dm.reference(category="conversion", )
@@ -52,73 +50,73 @@ class Inlay:
         # Do not include the following in the docstring
         remove_missing: bool | None = None, # Legacy
     ) -> None:
-        """
-················································································
+        r"""
+................................................................................
 
 ==Aggregate time series to a lower frequency==
 
 
 ### Function form for creating new time `Series` objects ###
 
-    new = irispie.aggregate(
-        self,
-        target_freq,
+new = irispie.aggregate(
+    self,
+    target_freq,
 
-        method="mean",
-        discard_missing=False,
-        select=None,
-    )
+    method="mean",
+    discard_missing=False,
+    select=None,
+)
 
 
 ### Class method changing an existing Series object in-place ###
 
-    self.aggregate(
-        target_freq,
+self.aggregate(
+    target_freq,
 
-        method="mean",
-        discard_missing=False,
-        select=None,
-    )
+    method="mean",
+    discard_missing=False,
+    select=None,
+)
 
 
 ### Input arguments ###
 
 
 ???+ input "target_freq"
-    The new frequency to which the original time series will be diaggregated.
+The new frequency to which the original time series will be diaggregated.
 
 ???+ input "method"
-    Aggregation method, i.e. a function applied to the high-frequency
-    values within each low-frequency period:
+Aggregation method, i.e. a function applied to the high-frequency
+values within each low-frequency period:
 
-    | Method    | Description
-    |-----------|-------------
-    | "mean"    | Arithmetic average of high-frequency values
-    | "sum"     | Sum of high-frequency values
-    | "prod"    | Product of high-frequency values
-    | "first"   | Value in the first high-frequency period
-    | "last"    | Value in the last high-frequency period
-    | "min"     | Minimum of high-frequency values
-    | "max"     | Maximum of high-frequency values
+| Method    | Description
+|-----------|-------------
+| "mean"    | Arithmetic average of high-frequency values
+| "sum"     | Sum of high-frequency values
+| "prod"    | Product of high-frequency values
+| "first"   | Value in the first high-frequency period
+| "last"    | Value in the last high-frequency period
+| "min"     | Minimum of high-frequency values
+| "max"     | Maximum of high-frequency values
 
 ???+ input "discard_missing"
-    Remove missing values from the high-frequency data before
-    applying the aggregation `method`.
+Remove missing values from the high-frequency data before
+applying the aggregation `method`.
 
 ???+ input "select"
-    Select only the high-frequency values at the specified indexes;
-    `select=None` means all values are used.
+Select only the high-frequency values at the specified indexes;
+`select=None` means all values are used.
 
 
 ### Returns ###
 
 ???+ returns "self"
-    The original time `Series` object with the aggregated data.
+The original time `Series` object with the aggregated data.
 
 ???+ returns "new"
-    A new time `Series` object with the aggregated data.
+A new time `Series` object with the aggregated data.
 
-················································································
+................................................................................
         """
         # Resolve legacy options
         if remove_missing is not None and discard_missing is None:
@@ -163,55 +161,55 @@ class Inlay:
         **kwargs,
     ) -> Self:
         r"""
-················································································
+................................................................................
 
 ==Disaggregate time series to a higher frequency==
 
 
 ### Function form for creating new time `Series` objects ###
 
-    new = irispie.disaggregate(
-        self,
-        target_freq,
+new = irispie.disaggregate(
+    self,
+    target_freq,
 
-        method="flat",
-    )
+    method="flat",
+)
 
 
 ### Class method form for changing existing time `Series` objects in-place ###
 
-    self.disaggregate(
-        target_freq,
+self.disaggregate(
+    target_freq,
 
-        method="flat",
-        model=None,
-    )
+    method="flat",
+    model=None,
+)
 
 
 ### Input arguments ###
 
 
 ???+ input "target_freq"
-    The new frequency to which the original time series will be aggregated.
+The new frequency to which the original time series will be aggregated.
 
 ???+ input "method"
-    Aggregation method, i.e. a function applied to the high-frequency
-    values within each low-frequency period:
+Aggregation method, i.e. a function applied to the high-frequency
+values within each low-frequency period:
 
-    | Method    | Description
-    |-----------|-------------
-    | "flat"    | Repeat the high-frequency values
-    | "first"   | Place the low-frequency value in the first high-frequency period
-    | "middle"  | Place the low-frequency value in the middle high-frequency period
-    | "last"    | Place the low-frequency value in the last high-frequency period
-    | "arip"    | Interpolate using a smooth autoregressive process
+| Method    | Description
+|-----------|-------------
+| "flat"    | Repeat the high-frequency values
+| "first"   | Place the low-frequency value in the first high-frequency period
+| "middle"  | Place the low-frequency value in the middle high-frequency period
+| "last"    | Place the low-frequency value in the last high-frequency period
+| "arip"    | Interpolate using a smooth autoregressive process
 
 
 ### Returns ###
 
 
 ???+ returns "new"
-    A new time `Series` object with the disaggregated data.
+A new time `Series` object with the disaggregated data.
 
 
 
@@ -219,55 +217,55 @@ class Inlay:
 
 ???+ details "ARIP algorithm"
 
-    The `method="arip" setting invokes an interpolation method that assumes the
-    underlying high-frequency process to be an autoregression. The method can be
-    described in its state-space recursive form, although the numerical
-    implementation is stacked-time.
+The `method="arip" setting invokes an interpolation method that assumes the
+underlying high-frequency process to be an autoregression. The method can be
+described in its state-space recursive form, although the numerical
+implementation is stacked-time.
 
-    The `"rate"` model:
+The `"rate"` model:
 
-    $$
-    \begin{gathered}
-    x_t = \rho \, x_{t-1} + \epsilon_t \\[10pt]
-    y_t = Z \, x_t \\[10pt]
-    \epsilon_t \sim N(0, \sigma_t^2)
-    \end{gathered}
-    $$
+$$
+\begin{gathered}
+x_t = \rho \, x_{t-1} + \epsilon_t \\[10pt]
+y_t = Z \, x_t \\[10pt]
+\epsilon_t \sim N(0, \sigma_t^2)
+\end{gathered}
+$$
 
-    The `"diff"` model:
+The `"diff"` model:
 
-    $$
-    \begin{gathered}
-    x_t = x_{t-1} + c + \epsilon_t \\[10pt]
-    y_t = Z \, x_t \\[10pt]
-    \epsilon_t \sim N(0, 1)
-    \end{gathered}
-    $$
+$$
+\begin{gathered}
+x_t = x_{t-1} + c + \epsilon_t \\[10pt]
+y_t = Z \, x_t \\[10pt]
+\epsilon_t \sim N(0, 1)
+\end{gathered}
+$$
 
-    where
+where
 
-    * $x_t$ is the underlying high-frequency process;
+* $x_t$ is the underlying high-frequency process;
 
-    * $y_t$ is the observed low-frequency time series;
+* $y_t$ is the observed low-frequency time series;
 
-    * $Z$ is an aggregation vector depending on the `aggregation` specification,
+* $Z$ is an aggregation vector depending on the `aggregation` specification,
 
-    | Aggregation | $Z$ vector
-    |-------------|-----------
-    | "sum"       | $(1, 1, \ldots, 1)$
-    | "mean"      | $\tfrac{1}{n}\,(1, 1, \ldots, 1)$
-    | "first"     | $(1, 0, \ldots, 0)$
-    | "last"      | $(0, 0, \ldots, 1)$
+| Aggregation | $Z$ vector
+|-------------|-----------
+| "sum"       | $(1, 1, \ldots, 1)$
+| "mean"      | $\tfrac{1}{n}\,(1, 1, \ldots, 1)$
+| "first"     | $(1, 0, \ldots, 0)$
+| "last"      | $(0, 0, \ldots, 1)$
 
-    * $\rho$ is a gross rate of change estimated as the average rate of change
-    in the observed series, $y_t$, and converted to high frequency;
+* $\rho$ is a gross rate of change estimated as the average rate of change
+in the observed series, $y_t$, and converted to high frequency;
 
-    * $c$ is a constant estimated as the average difference in the observed
-    series, $y_t$, and converted to high frequency;
+* $c$ is a constant estimated as the average difference in the observed
+series, $y_t$, and converted to high frequency;
 
-    * $\sigma_t$ is a time-varying standard deviation of the high-frequency process, set to $\sigma_0 = 1$, and $\sigma_t = \rho \, \sigma_{t-1}$.
+* $\sigma_t$ is a time-varying standard deviation of the high-frequency process, set to $\sigma_0 = 1$, and $\sigma_t = \rho \, \sigma_{t-1}$.
 
-················································································
+................................................................................
         """
         method_func = _CHOOSE_DISAGGREGATION_METHOD[method]
         #
@@ -278,7 +276,7 @@ class Inlay:
             or target_freq is _dates.Frequency.UNKNOWN \
             or self.frequency is _dates.Frequency.UNKNOWN:
             #
-            raise _wrongdoings.IrisPieCritical(
+            raise _wrongdoings.Critical(
                 f"Cannot disaggregate from {self.frequency} frequency to {target_freq} frequency"
             )
         #
@@ -289,11 +287,25 @@ class Inlay:
     #]
 
 
-attributes = (n for n in dir(Inlay) if not n.startswith("_"))
-for n in attributes:
+#-------------------------------------------------------------------------------
+# Functional forms
+#-------------------------------------------------------------------------------
+
+
+_functional_forms = {
+    "convert_roc",
+    "convert_pct",
+}
+
+for n in ("aggregate", "disaggregate", ):
     code = FUNC_STRING.format(n=n, )
-    exec(code, globals(), locals(), )
-    __all__.append(n)
+    exec(_tw.dedent(code, ), )
+    _functional_forms.add(n, )
+
+__all__ = tuple(_functional_forms)
+
+
+#-------------------------------------------------------------------------------
 
 
 def _aggregate_daily_to_regular(

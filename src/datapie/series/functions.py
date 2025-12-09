@@ -7,60 +7,56 @@ Create a namespace for functional forms of Series methods
 
 from __future__ import annotations
 
-from ._conversions import __all__ as __all__conversions
-from ._conversions import *
-
-from ._hp import __all__ as __all__hp
-from ._hp import *
-
-from ._extrapolate import __all__ as __all__extrapolate
-from ._extrapolate import *
-
-from ._x13 import __all__ as __all__x13
-from ._x13 import *
-
-from ._moving import __all__ as __all__moving
-from ._moving import *
-
-from ._statistics import __all__ as __all__statistics
-from ._statistics import *
-
-from ._elementwise import __all__ as __all__elementwise
-from ._elementwise import *
-
-from ._ell_one import __all__ as __all__ell_one
-from ._ell_one import *
-
 #]
 
+from ._extrapolate import *
+from ._extrapolate import __all__ as _all_extrapolate
 
-__all__ = []
-__all__.extend(__all__conversions)
-__all__.extend(__all__hp)
-__all__.extend(__all__extrapolate)
-__all__.extend(__all__x13)
-__all__.extend(__all__moving)
-__all__.extend(__all__statistics)
-__all__.extend(__all__elementwise)
-__all__.extend(__all__ell_one)
+from ._temporal import *
+from ._temporal import __all__ as _all_temporal
 
+from ._conversions import *
+from ._conversions import __all__ as _all_conversions
 
-from ._functionalize import FUNC_STRING
+from ._filling import __all__ as _all_filling
+from ._filling import *
 
-from .main import FUNCTIONAL_FORMS as _main_FUNCTIONAL_FORMS
-from ._lays import FUNCTIONAL_FORMS as _lays_FUNCTIONAL_FORMS
-from ._temporal import FUNCTIONAL_FORMS as _temporal_FUNCTIONAL_FORMS
-from ._filling import FUNCTIONAL_FORMS as _filling_FUNCTIONAL_FORMS
+from ._lays import __all__ as _all_lays
+from ._lays import *
 
-FUNCTIONAL_FORMS = []
-FUNCTIONAL_FORMS.extend(_main_FUNCTIONAL_FORMS)
-FUNCTIONAL_FORMS.extend(_lays_FUNCTIONAL_FORMS)
-FUNCTIONAL_FORMS.extend(_temporal_FUNCTIONAL_FORMS)
-FUNCTIONAL_FORMS.extend(_filling_FUNCTIONAL_FORMS)
+from ._hp import __all__ as _all_hp
+from ._hp import *
 
-for n in FUNCTIONAL_FORMS:
-   code = FUNC_STRING.format(n=n, )
-   exec(code, globals(), locals(), )
+from ._x13 import __all__ as _all_x13
+from ._x13 import *
 
-__all__.extend(FUNCTIONAL_FORMS, )
+from ._timing import *
+from ._timing import __all__ as _all_timing
+
+from ._moving import *
+from ._moving import __all__ as _all_moving
+
+from ._ell_one import __all__ as _all_ell_one
+from ._ell_one import *
+
+from ._statistics import *
+from ._statistics import __all__ as _statistics_all
+
+from ._elementwise import *
+from ._elementwise import __all__ as _elementwise_all
+
+__all__ = (
+    *_all_extrapolate,
+    *_all_temporal,
+    *_all_conversions,
+    *_all_filling,
+    *_all_lays,
+    *_all_hp,
+    *_all_x13,
+    *_all_timing,
+    *_all_moving,
+    *_all_ell_one,
+    *_statistics_all,
+    *_elementwise_all,
+)
 

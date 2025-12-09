@@ -1,4 +1,4 @@
-"""
+r"""
 Plotly interface to time series objects
 """
 
@@ -96,10 +96,15 @@ _COLOR_ORDER = [
 ]
 
 
-class Inlay:
-    """
-    """
-    #[
+__all__ = ()
+
+
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
 
     def plot(
         self,
@@ -134,7 +139,7 @@ class Inlay:
         #
         return_info: bool = False,
     ) -> dict[str, Any] | None:
-        """
+        r"""
         """
         if type is not None:
             _wa.warn("Use 'chart_type' instead of the deprecated 'type'", )
@@ -265,7 +270,10 @@ class Inlay:
     #]
 
 
-# def _get_traces_dates(series: Series, /, ) -> tuple[tuple[Period, ...], str]:
+#-------------------------------------------------------------------------------
+
+
+# def _get_traces_dates(series: Series, ) -> tuple[tuple[Period, ...], str]:
 #     """
 #     """
 #     #[
@@ -337,4 +345,5 @@ def _create_transform_function(
 
     return transform
     #]
+
 

@@ -18,31 +18,26 @@ if TYPE_CHECKING:
 #]
 
 
-def mixin(klass: type, ) -> type:
-    r"""
-    Inlay the broadcast methods in the class
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
-    klass.broadcast_variants = broadcast_variants
-    return klass
+
+    def broadcast_variants(self, num_variants, ) -> None:
+        """
+        Broadcast variants to match the specified number of variants
+        """
+        if self.data.shape[1] == num_variants:
+            return
+        if self.data.shape[1] == 1:
+            self.data = _np.repeat(self.data, num_variants, axis=1, )
+            return
+        raise _wrongdoings.Error("Cannot broadcast variants")
+
     #]
-
-
-#-------------------------------------------------------------------------------
-# Functions to be used as methods in Series class
-#-------------------------------------------------------------------------------
-
-
-def broadcast_variants(self, num_variants, ) -> None:
-    """
-    Broadcast variants to match the specified number of variants
-    """
-    if self.data.shape[1] == num_variants:
-        return
-    if self.data.shape[1] == 1:
-        self.data = _np.repeat(self.data, num_variants, axis=1, )
-        return
-    raise _wrongdoings.IrisPieError("Cannot broadcast variants")
 
 
 #-------------------------------------------------------------------------------
@@ -66,9 +61,6 @@ def broadcast_variants_when_needed(
     if other.num_variants == 1:
         other.broadcast_variants(self.num_variants, )
         return
-    raise _wrongdoings.IrisPieError("Cannot broadcast time series variants")
+    raise _wrongdoings.Error("Cannot broadcast time series variants")
     #]
-
-
-#-------------------------------------------------------------------------------
 

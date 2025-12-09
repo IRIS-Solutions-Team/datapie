@@ -7,25 +7,23 @@ Time series mixin for moving sum, average, product
 
 from __future__ import annotations
 
-from collections.abc import (Iterable, )
-from typing import (Self, Callable, )
+from collections.abc import Iterable
+from typing import Callable
 import numpy as _np
-import functools as _ft
+import textwrap as _tw
 import documark as _dm
 
-from .. import dates as _dates
 from ._functionalize import FUNC_STRING
 
 #]
 
 
-__all__ = []
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
 
 
-class Inlay:
-    """
-    Time series mixin for moving sum, average, product
-    """
+class Mixin:
     #[
 
     @_dm.reference(
@@ -37,59 +35,58 @@ class Inlay:
     def moving_window(
         self,
         func: Callable,
-        /,
         window: int | None = None,
-    ) -> Self:
+    ) -> None:
         r"""
-················································································
+    ················································································
 
 
-Overview of moving window functions:
+    Overview of moving window functions:
 
-| Function | Description
-|----------|-------------
-| `mov_sum` | Moving sum, $y_t = \sum_{i=0}^{k-1} x_{t-i}$
-| `mov_avg` | Moving average, $y_t = \frac{1}{k} \sum_{i=0}^{k-1} x_{t-i}$
-| `mov_mean` | Same as `mov_avg`
-| `mov_prod` | Moving product, $y_t = \prod_{i=0}^{k-1} x_{t-i}$
+    | Function | Description
+    |----------|-------------
+    | `mov_sum` | Moving sum, $y_t = \sum_{i=0}^{k-1} x_{t-i}$
+    | `mov_avg` | Moving average, $y_t = \frac{1}{k} \sum_{i=0}^{k-1} x_{t-i}$
+    | `mov_mean` | Same as `mov_avg`
+    | `mov_prod` | Moving product, $y_t = \prod_{i=0}^{k-1} x_{t-i}$
 
-where
+    where
 
-* $k$ is the window length determined by the `window` input argument
-(note that $k$ above is a positive integer while `window` needs to be
-entered as a negative integer).
-
-
-
-### Function for creating new Series objects ###
-
-```
-new = irispie.mov_sum(self, window=None, )
-new = irispie.mov_avg(self, window=None, )
-new = irispie.mov_mean(self, window=None, )
-new = irispie.mov_prod(self, window=None, )
-```
+    * $k$ is the window length determined by the `window` input argument
+    (note that $k$ above is a positive integer while `window` needs to be
+    entered as a negative integer).
 
 
-### Methods for changing existing Series objects in-place ###
+
+    ### Function for creating new Series objects ###
+
+    ```
+    new = irispie.mov_sum(self, window=None, )
+    new = irispie.mov_avg(self, window=None, )
+    new = irispie.mov_mean(self, window=None, )
+    new = irispie.mov_prod(self, window=None, )
+    ```
 
 
-```
-self.mov_sum(window=None, )
-self.mov_avg(window=None, )
-self.mov_mean(window=None, )
-self.mov_prod(window=None, )
-```
+    ### Methods for changing existing Series objects in-place ###
 
 
-### Input arguments ###
+    ```
+    self.mov_sum(window=None, )
+    self.mov_avg(window=None, )
+    self.mov_mean(window=None, )
+    self.mov_prod(window=None, )
+    ```
 
 
-???+ input "self"
+    ### Input arguments ###
+
+
+    ???+ input "self"
     Time series on whose data a moving function is calculated (see the
     overview table above).
 
-???+ input "window"
+    ???+ input "window"
     A negative interger determining the number of observations to include
     in the moving window, counting from the current time period backwards
     (the minus sign is a convention to indicate that the window goes
@@ -110,23 +107,22 @@ self.mov_prod(window=None, )
     calendar year or the actual number of weeks in a calendar year.
 
 
-### Returns ###
+    ### Returns ###
 
 
-???+ returns "new"
+    ???+ returns "new"
     New time series with data calculated as a moving window function of the
     original data.
 
-???+ returns "self"
+    ???+ returns "self"
     Time series with data replaced by the moving window function of the
     original data.
 
-················································································
+    ················································································
         """
         window = (
-            window
-            if window is not None
-            else self._get_default_moving_window()
+            window if window is not None
+            else _get_default_moving_window(self, )
         )
         window_length = -window
         data = _np.pad(
@@ -144,52 +140,52 @@ self.mov_prod(window=None, )
         self._replace_data(new_data, )
 
     @_dm.reference(category="moving", )
-    def mov_sum(self, window: int | None = None, ) -> Self:
+    def mov_sum(self, window: int | None = None, ) -> None:
         r"""
-................................................................................
+    ................................................................................
 
-==Moving sum==
+    ==Moving sum==
 
 
-See documentation of [moving window calculations](#moving-window-calculations) or
-`help(irispie.Series.moving_window)`.
+    See documentation of [moving window calculations](#moving-window-calculations) or
+    `help(irispie.Series.moving_window)`.
 
-................................................................................
+    ................................................................................
         """
-        return self.moving_window(_np.sum, window=window, )
+        self.moving_window(_np.sum, window=window, )
 
     @_dm.reference(category="moving", )
-    def mov_avg(self, window: int | None = None, ) -> Self:
+    def mov_avg(self, window: int | None = None, ) -> None:
         r"""
-................................................................................
+    ................................................................................
 
-==Moving average==
+    ==Moving average==
 
 
-See documentation of [moving window calculations](#moving-window-calculations) or
-`help(irispie.Series.moving_window)`.
+    See documentation of [moving window calculations](#moving-window-calculations) or
+    `help(irispie.Series.moving_window)`.
 
-................................................................................
+    ................................................................................
         """
-        return self.moving_window(_np.mean, window=window, )
+        self.moving_window(_np.mean, window=window, )
 
     @_dm.reference(category="moving", )
-    def mov_mean(self, window: int | None = None, ) -> Self:
+    def mov_mean(self, window: int | None = None, ) -> None:
         r"""
-................................................................................
+    ................................................................................
 
-==Moving average==
+    ==Moving average==
 
 
-See documentation of [moving window calculations](#moving-window-calculations) or
-`help(irispie.Series.moving_window)`.
+    See documentation of [moving window calculations](#moving-window-calculations) or
+    `help(irispie.Series.moving_window)`.
 
-................................................................................
+    ................................................................................
         """
-        return self.moving_window(_np.mean, window=window, )
+        self.moving_window(_np.mean, window=window, )
 
     @_dm.reference(category="moving", )
-    def mov_prod(self, window: int | None = None, ) -> Self:
+    def mov_prod(self, window: int | None = None, ) -> None:
         r"""
 ................................................................................
 
@@ -201,24 +197,42 @@ See documentation of [moving window calculations](#moving-window-calculations) o
 
 ................................................................................
         """
-        return self.moving_window(_np.prod, window=window, )
+        self.moving_window(_np.prod, window=window, )
 
-    def _get_default_moving_window(self, /, ) -> int:
-        r"""
-        Derive default moving window from time series frequency
-        """
-        return (
-            -self.frequency.value
-            if self.frequency is not None and self.frequency.value > 0
-            else -4
-        )
 
     #]
 
 
-attributes = (n for n in dir(Inlay) if not n.startswith("_"))
-for n in attributes:
+#-------------------------------------------------------------------------------
+# Functional forms
+#-------------------------------------------------------------------------------
+
+
+_functional_forms = {
+    "moving_window",
+    "mov_sum",
+    "mov_avg",
+    "mov_mean",
+    "mov_prod",
+}
+
+for n in _functional_forms:
     code = FUNC_STRING.format(n=n, )
-    exec(code, globals(), locals(), )
-    __all__.append(n)
+    exec(_tw.dedent(code, ), globals(), )
+
+__all__ = tuple(_functional_forms)
+
+
+#-------------------------------------------------------------------------------
+
+
+def _get_default_moving_window(self, ) -> int:
+    r"""
+    Derive default moving window from time series frequency
+    """
+    return (
+        -self.frequency.value
+        if self.frequency is not None and self.frequency.value > 0
+        else -4
+    )
 

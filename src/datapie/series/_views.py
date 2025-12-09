@@ -12,9 +12,15 @@ from .. import dates as _dates
 #]
 
 
-class Inlay(_views.Mixin, ):
-    """
-    """
+__all__ = ()
+
+
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin(_views.Mixin, ):
     #[
 
     def _get_first_line_view(self, /, ):
@@ -49,6 +55,8 @@ class Inlay(_views.Mixin, ):
         return date_str + data_str
 
     #]
+
+#-------------------------------------------------------------------------------
 
 
 def _get_series_row_str_(date, data, date_str_format, numeric_format, missing_str: str):

@@ -1,5 +1,5 @@
 r"""
-Merge inlay
+Merge mixin
 """
 
 
@@ -39,38 +39,35 @@ MergeStrategyType = Literal[
 ]
 
 
-def mixin(klass, ):
-    r"""
-    Mix the by_merging and merge methods into the class
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
-    klass.by_merging = classmethod(by_merging, )
-    klass.merge = merge
-    return klass
-    #]
 
+    @classmethod
+    def by_merging(
+        klass,
+        databoxes: Iterable[Self],
+        *args, **kwargs,
+    ) -> Self:
+        r"""
+        """
+        self = klass()
+        self.merge(databoxes, *args, **kwargs, )
+        return self
 
-def by_merging(
-    klass,
-    databoxes: Iterable[Self],
-    *args, **kwargs,
-) -> Self:
-    r"""
-    """
-    self = klass()
-    self.merge(databoxes, *args, **kwargs, )
-    return self
-
-
-@_dm.reference(category="multiple", )
-def merge(
-    self: Self,
-    other: Self | Iterable[Self],
-    strategy: MergeStrategyType = "stack",
-    # Legacy argument
-    merge_strategy: MergeStrategyType | None = None,
-) -> None:
-    r"""
+    @_dm.reference(category="multiple", )
+    def merge(
+        self: Self,
+        other: Self | Iterable[Self],
+        strategy: MergeStrategyType = "stack",
+        # Legacy argument
+        merge_strategy: MergeStrategyType | None = None,
+    ) -> None:
+        r"""
 ................................................................................
 
 ==Merge Databoxes==
@@ -114,26 +111,29 @@ self.merge(
     This method modifies the databox in place and returns `None`.
 
 ................................................................................
-    """
-    if merge_strategy is not None:
-        strategy = merge_strategy
-    strategy_func = _MERGE_STRATEGY_DISPATCH[strategy]
-    stream = _wrongdoings.create_stream(
-        strategy,
-        "Duplicate keys when merging databoxes",
-        when_no_stream="silent",
-    )
-    if hasattr(other, "items", ):
-        other = (other, )
-    for t in other:
-        for key, value in t.items():
-            if key in self:
-                strategy_func(self, key, value, stream, )
-            else:
-                self[key] = value
-    stream._raise()
+        """
+        if merge_strategy is not None:
+            strategy = merge_strategy
+        strategy_func = _MERGE_STRATEGY_DISPATCH[strategy]
+        stream = _wrongdoings.create_stream(
+            strategy,
+            "Duplicate keys when merging databoxes",
+            when_no_stream="silent",
+        )
+        if hasattr(other, "items", ):
+            other = (other, )
+        for t in other:
+            for key, value in t.items():
+                if key in self:
+                    strategy_func(self, key, value, stream, )
+                else:
+                    self[key] = value
+        stream._raise()
 
     #]
+
+
+#-------------------------------------------------------------------------------
 
 
 def _merge_stack(

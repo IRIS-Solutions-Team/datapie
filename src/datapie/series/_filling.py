@@ -7,13 +7,14 @@
 from __future__ import annotations
 
 import functools as _ft
+import textwrap as _tw
 import numpy as _np
 import documark as _dm
 from typing import Literal
 
 from ._functionalize import FUNC_STRING
 
-from typing import (TYPE_CHECKING, )
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Callable, EllipsisType
     from collections.abc import Iterable
@@ -40,103 +41,112 @@ Method = Literal[
 ]
 
 
-def mixin(klass: type, ) -> type:
-    r"""
-    Inlay the filling methods in the class
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
-    klass.fill_missing = fill_missing
-    return klass
+
+    @_dm.reference(category="homogenizing", )
+    def fill_missing(
+        self,
+        method: Method,
+        method_args: Any | None = None,
+        span: Iterable[Period] | EllipsisType | None = None,
+    ) -> None:
+        r"""
+    ················································································
+
+    ==Fill missing observations==
+
+
+    ### Function form for creating new time `Series` objects ###
+
+        new = irispie.fill_missing(
+            self,
+            method,
+            *args,
+            span=None,
+        )
+
+
+    ### Class method form changing existing `Series` objects in-place ###
+
+        self.fill_missing(
+            method,
+            *args,
+            span=None,
+        )
+
+
+    ### Input arguments ###
+
+
+    ???+ input "self"
+        The time `Series` object to be filled.
+
+    ???+ input "method"
+        The method to be used for filling missing observations. The following methods are available:
+
+        | Method         | Description
+        |----------------|-------------
+        | "constant"     | Fill with a constant value
+        | "next"         | Next available observation
+        | "previous"     | Previous available observation
+        | "nearest"      | Nearest available observation
+        | "linear"       | Linear interpolation or extrapolation
+        | "log_linear"   | Log-linear interpolation or extrapolation
+        | "from_series"  | Fill with values from another time series object
+
+    ???+ input "*args"
+        Additional arguments to be passed to the filling method. The following methods require additional arguments:
+
+        | Method         | Additional argument(s)
+        |----------------|-----------------------
+        | "constant"     | A single constant value
+        | "from_series"  | A time `Series` object
+
+
+    ???+ input "span"
+        The time span to be filled. If `None`, the time span of the input time `Series` is filled.
+
+
+    ### Returns ###
+
+
+    ???+ returns "self"
+        The time `Series` object with missing observations filled.
+
+    ???+ returns "new"
+        A new time `Series` object with missing observations filled.
+
+    ················································································
+        """
+        fill_func = _FILL_METHOD_DISPATCH[method]
+        data, span, = self.get_data_and_periods(span, )
+        new_data = [
+            fill_func(variant, method_args, span=span, ).T
+            for variant in data.T
+        ]
+        self.set_data(span, new_data, )
+
     #]
 
 
 #-------------------------------------------------------------------------------
-# Functions to be used as methods in Series class
+# Functional forms
 #-------------------------------------------------------------------------------
 
 
-@_dm.reference(category="homogenizing", )
-def fill_missing(
-    self,
-    method: Method,
-    method_args: Any | None = None,
-    span: Iterable[Period] | EllipsisType | None = None,
-) -> None:
-    r"""
-················································································
+_functional_forms = {"fill_missing", }
 
-==Fill missing observations==
+for n in _functional_forms:
+    code = FUNC_STRING.format(n=n, )
+    exec(_tw.dedent(code, ), )
 
-
-### Function form for creating new time `Series` objects ###
-
-    new = irispie.fill_missing(
-        self,
-        method,
-        *args,
-        span=None,
-    )
-
-
-### Class method form changing existing `Series` objects in-place ###
-
-    self.fill_missing(
-        method,
-        *args,
-        span=None,
-    )
-
-
-### Input arguments ###
-
-
-???+ input "self"
-    The time `Series` object to be filled.
-
-???+ input "method"
-    The method to be used for filling missing observations. The following methods are available:
-
-    | Method         | Description
-    |----------------|-------------
-    | "constant"     | Fill with a constant value
-    | "next"         | Next available observation
-    | "previous"     | Previous available observation
-    | "nearest"      | Nearest available observation
-    | "linear"       | Linear interpolation or extrapolation
-    | "log_linear"   | Log-linear interpolation or extrapolation
-    | "from_series"  | Fill with values from another time series object
-
-???+ input "*args"
-    Additional arguments to be passed to the filling method. The following methods require additional arguments:
-
-    | Method         | Additional argument(s)
-    |----------------|-----------------------
-    | "constant"     | A single constant value
-    | "from_series"  | A time `Series` object
-
-
-???+ input "span"
-    The time span to be filled. If `None`, the time span of the input time `Series` is filled.
-
-
-### Returns ###
-
-
-???+ returns "self"
-    The time `Series` object with missing observations filled.
-
-???+ returns "new"
-    A new time `Series` object with missing observations filled.
-
-················································································
-    """
-    fill_func = _FILL_METHOD_DISPATCH[method]
-    data, span, = self.get_data_and_periods(span, )
-    new_data = [
-        fill_func(variant, method_args, span=span, ).T
-        for variant in data.T
-    ]
-    self.set_data(span, new_data, )
+__all__ = tuple(_functional_forms)
 
 
 #-------------------------------------------------------------------------------

@@ -48,35 +48,58 @@ _TWO_ARGS_FUNCTION_DISPATCH = {
     "minimum": "_np.minimum",
 }
 
-_FUNCTION_DISPATCH = {
+ELEMENTWISE_FUNCTION_DISPATCH = {
     **_ONE_ARG_FUNCTION_DISPATCH,
     **_TWO_ARGS_FUNCTION_DISPATCH,
 }
 
-__all__ = list(_FUNCTION_DISPATCH.keys(), )
+
+#---------------------------------------------------------------------------------
+# Mixin methods
+#---------------------------------------------------------------------------------
 
 
-_METHOD_CODE = r"""
-    def {k}(self, *args, **kwargs, ):
-        self.data = {v}(self.data, *args, **kwargs, )
+_TEMPLATE = r"""
+def {k}(self, *args, **kwargs, ):
+    self.data = {v}(self.data, *args, **kwargs, )
 """
-class Inlay:
-    for k, v in _FUNCTION_DISPATCH.items():
-        code = _tw.dedent(_METHOD_CODE.format(k=k, v=v, ))
+
+
+class Mixin:
+    #[
+
+    for k, v in ELEMENTWISE_FUNCTION_DISPATCH.items():
+        code = _tw.dedent(_TEMPLATE.format(k=k, v=v, ))
         exec(code, globals(), locals(), )
 
+    #]
 
-_FUNC_CODE = r"""
-    def {k}(object, *args, **kwargs, ):
-        if hasattr(object, '{k}'):
-            new = object.copy()
-            new.{k}(*args, **kwargs, )
-            return new
-        else:
-            return {v}(object, *args, **kwargs, )
+
+#---------------------------------------------------------------------------------
+# Functional forms
+#---------------------------------------------------------------------------------
+
+
+_TEMPLATE = r"""
+def {k}(object, *args, **kwargs, ):
+    if hasattr(object, '{k}'):
+        new = object.copy()
+        new.{k}(*args, **kwargs, )
+        return new
+    else:
+        return {v}(object, *args, **kwargs, )
 """
-for k, v in _FUNCTION_DISPATCH.items():
-    code = _tw.dedent(_FUNC_CODE.format(k=k, v=v, ))
+
+
+_functional_forms = set()
+
+
+for k, v in ELEMENTWISE_FUNCTION_DISPATCH.items():
+    code = _tw.dedent(_TEMPLATE.format(k=k, v=v, ))
     exec(code, globals(), locals(), )
+    _functional_forms.add(k, )
+
+
+__all__ = tuple(_functional_forms)
 
 

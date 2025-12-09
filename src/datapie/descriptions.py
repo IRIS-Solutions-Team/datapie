@@ -23,9 +23,12 @@ class HasDescriptionProtocol(Protocol, ):
     #]
 
 
-class DescriptionMixin:
-    r"""
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
 
     @_dm.reference(category="information", )
@@ -38,19 +41,19 @@ class DescriptionMixin:
 
 ==Get description attached to an object==
 
-    description = self.get_description()
+description = self.get_description()
 
 
 ### Input arguments ###
 
 ???+ input "self"
-    An object from which to get the description.
+An object from which to get the description.
 
 
 ### Returns ###
 
 ???+ returns "description"
-    The description attached to the object.
+The description attached to the object.
 
 
 ................................................................................
@@ -65,32 +68,33 @@ class DescriptionMixin:
         r"""
 ................................................................................
 
-
 ==Set the description for an object==
 
-    self.set_description(
-        description,
-    )
+self.set_description(
+    description,
+)
 
 
 ### Input arguments ###
 
 ???+ input "self"
-    An Iris Pie object to which to attach the description.
+An Iris Pie object to which to attach the description.
 
 
 ???+ input "description"
-    The description to attach to the Iris Pie object.
+The description to attach to the Iris Pie object.
 
 
 ### Returns ###
 
 This method modifies the Iris Pie object in place and returns `None`.
 
-
 ................................................................................
         """
         self._description = str(description or "")
 
     #]
+
+
+__all__ = {}
 

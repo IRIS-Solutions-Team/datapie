@@ -72,9 +72,9 @@ _CHART_INPUT_STRING_PATTERN = _re.compile(
     }
 )
 class Chartpack(
-    _descriptions.DescriptionMixin,
+    _descriptions.Mixin,
 ):
-    """
+    r"""
 ················································································
 
 Chartpacks
@@ -240,7 +240,7 @@ self = Chartpack(
 ················································································
         """
         figures = tuple(
-            figure.plot(input_db, **self.__dict__, )
+            figure.plot(input_db, )
             for figure in self
         )
         if show_figures:
@@ -416,8 +416,6 @@ class _Figure:
     def plot(
         self,
         input_db: _databoxes.Databox,
-        shared_xaxes: bool = False,
-        **kwargs,
     ) -> _pg.Figure:
         r"""
         """

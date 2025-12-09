@@ -146,7 +146,7 @@ custom check of time period or time series properties is needed.
                 if (length is None or len(sdmx_string) == length) and pattern.fullmatch(sdmx_string, )
             )
         except StopIteration:
-            raise _wrongdoings.IrisPieCritical(
+            raise _wrongdoings.Error(
                 f"Cannot determine time frequency from \"{sdmx_string}\"; "
                 f"probably not a valid SDMX string"
             )
@@ -341,7 +341,7 @@ def _check_periods(first, second, ) -> None:
     if str(type(first)) == str(type(second)):
         return
     message = "Cannot handle periods of different time frequencies in this context"
-    raise _wrongdoings.IrisPieError(message, )
+    raise _wrongdoings.Error(message, )
 
 
 def _check_periods_decorator(func: Callable, ) -> Callable:
@@ -1753,7 +1753,7 @@ class RegularPeriodMixin:
         try:
             return DailyPeriod.from_ymd(*self.to_ymd(position=position, ), )
         except:
-            raise IrisPieCritical("Cannot convert period to daily period.")
+            raise _wrongdoings.Error("Cannot convert period to daily period.")
 
     #]
 
@@ -2239,7 +2239,7 @@ each period within the span to the new frequency.
             new_start = self._start.refrequent(new_freq, position="end", )
             new_end = self._end.refrequent(new_freq, position="start", )
         else:
-            raise IrisPieCritical("Refrequenting time spans with steps other than 1 or -1 is not supported.")
+            raise _wrongdoings.Error("Refrequenting time spans with steps other than 1 or -1 is not supported.")
         return type(self)(new_start, new_end, self._step, )
 
     @_dm.reference(category="manipulation", )

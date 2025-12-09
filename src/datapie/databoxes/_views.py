@@ -1,4 +1,4 @@
-"""
+r"""
 """
 
 
@@ -21,48 +21,64 @@ _REPR_MAX_LEN = 50
 _REPR_CONT = "…"
 
 
-class Inlay(_views.Mixin, ):
-    """
-    """
+__all__ = ()
+
+
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin(_views.Mixin, ):
     #[
 
-    def _get_first_line_view(self, /, ):
+    def _get_first_line_view(self, ):
         """
         """
         return f"{self.__class__.__name__} with {self.num_items:g} item(s)"
 
-    def _get_header_separator(self, /, ):
-        """"
+    def _get_header_separator(self, ):
+        r"""
         """
         return _REPR_INDENT.rstrip()
 
-    def _get_content_view(self, /, ) -> tuple[str, ...]:
+    def _get_content_view(self, ) -> tuple[str, ...]:
+        r"""
         """
-        """
-        max_len = self._get_max_key_repr_len_()
+        max_len = _get_max_key_repr_len_(self, )
         return tuple(
             _REPR_INDENT + _get_key_repr(k).rjust(max_len) + _REPR_SEPARATOR + _databox_repr(self[k])
             for k in self.keys()
         )
 
-    def _get_max_key_repr_len_(self, /, ):
-        """
-        """
-        key_reprs = tuple(_get_key_repr(k) for k in self.keys())
-        return max(len(k) for k in key_reprs) if key_reprs else 0
-
     def _get_short_row_(self):
+        r"""
         """
-        """
-        max_len = self._get_max_key_repr_len_()
+        max_len = _get_max_key_repr_len_(self, )
         return _REPR_INDENT + _views._VERTICAL_ELLIPSIS.rjust(max_len) + " "*len(_REPR_SEPARATOR) + _VERTICAL_ELLIPSIS
 
-    def _get_footer_view_(self, /, ):
+    def _get_footer_view_(self, ):
+        r"""
+        """
         return (_REPR_INDENT.rstrip(), )
+
     #]
 
 
-def _databox_repr(x, /, ) -> str:
+#-------------------------------------------------------------------------------
+
+
+def _get_max_key_repr_len_(self, ):
+    r"""
+    """
+    key_reprs = tuple(_get_key_repr(k) for k in self.keys())
+    return (
+        max(len(k) for k in key_reprs)
+        if key_reprs else 0
+    )
+
+
+def _databox_repr(x, ) -> str:
     """
     String representing one item in a databox
     """
@@ -87,7 +103,7 @@ def _databox_repr(x, /, ) -> str:
     #]
 
 
-def _get_key_repr(key: Any, /, ) -> str:
+def _get_key_repr(key: Any, ) -> str:
     #[
     if isinstance(key, str):
         return f'"{key}"'

@@ -18,26 +18,17 @@ if TYPE_CHECKING:
 #]
 
 
-def mixin(klass: type, ) -> type:
-    r"""
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
-    klass.series_to_jsonable = series_to_jsonable
-    klass.series_to_json_file = series_to_json_file
-    klass.series_from_jsonable = classmethod(series_from_jsonable, )
-    klass.series_from_json_file = classmethod(series_from_json_file, )
-    return klass
-    #]
 
-
-#-------------------------------------------------------------------------------
-# Functions to be used as methods in Databox class
-#-------------------------------------------------------------------------------
-
-
-@_dm.reference(category="import_export", )
-def series_to_jsonable(self, **kwargs, ) -> dict[str, Any]:
-    r"""
+    @_dm.reference(category="import_export", )
+    def series_to_jsonable(self, **kwargs, ) -> dict[str, Any]:
+        r"""
 ................................................................................
 
 ==Convert all time series in the databox to a JSON-serializable dictionary==
@@ -66,25 +57,24 @@ JSON-serializable dictionary format.
     each value is the JSON-serializable dictionary representation of that time series.
 
 ................................................................................
-    """
-    #[
-    return {
-        key: value.to_jsonable(**kwargs, )
-        for key, value in self.items()
-        if isinstance(value, Series, )
-    }
-    #]
+        """
+        #[
+        return {
+            key: value.to_jsonable(**kwargs, )
+            for key, value in self.items()
+            if isinstance(value, Series, )
+        }
+        #]
 
-
-@_dm.reference(category="import_export", )
-def series_to_json_file(
-    self,
-    file_name: str,
-    *,
-    json_dump_settings: dict | None = None,
-    **kwargs,
-) -> None:
-    r"""
+    @_dm.reference(category="import_export", )
+    def series_to_json_file(
+        self,
+        file_name: str,
+        *,
+        json_dump_settings: dict | None = None,
+        **kwargs,
+    ) -> None:
+        r"""
 ................................................................................
 
 ==Save all time series in the databox to a JSON file==
@@ -117,25 +107,25 @@ This method saves all time series contained in the databox to a JSON file.
     See [the documentation of the `Series.to_jsonable`](time_series.html#to_jsonable).
 
 ................................................................................
-    """
-    #[
-    jsonable = self.series_to_jsonable(**kwargs, )
-    json_dump_settings = json_dump_settings or {"indent": 4, }
-    with open(file_name, "wt", encoding="utf-8") as f:
-        _js.dump(jsonable, f, **json_dump_settings, )
-    #]
+        """
+        #[
+        jsonable = self.series_to_jsonable(**kwargs, )
+        json_dump_settings = json_dump_settings or {"indent": 4, }
+        with open(file_name, "wt", encoding="utf-8") as f:
+            _js.dump(jsonable, f, **json_dump_settings, )
+        #]
 
-
-@_dm.reference(
-    category="constructor",
-    call_name="Databox.seres_from_jsonable",
-)
-def series_from_jsonable(
-    klass,
-    jsonable: dict[str, Any],
-    **kwargs,
-) -> Self:
-    r"""
+    @classmethod
+    @_dm.reference(
+        category="constructor",
+        call_name="Databox.seres_from_jsonable",
+    )
+    def series_from_jsonable(
+        klass,
+        jsonable: dict[str, Any],
+        **kwargs,
+    ) -> Self:
+        r"""
 ................................................................................
 
 ==Create a databox from a JSON-serializable dictionary of time series==
@@ -170,26 +160,26 @@ dictionary representation of that time series.
     dictionary.
 
 ................................................................................
-    """
-    #[
-    return klass({
-        key: Series.from_jsonable(value, **kwargs, )
-        for key, value in jsonable.items()
-    })
-    #]
+        """
+        #[
+        return klass({
+            key: Series.from_jsonable(value, **kwargs, )
+            for key, value in jsonable.items()
+        })
+        #]
 
-
-@_dm.reference(
-    category="constructor",
-    call_name="Databox.seres_from_json_file",
-)
-def series_from_json_file(
-    klass,
-    file_name: str,
-    json_load_settings: dict | None = None,
-    **kwargs,
-) -> Self:
-    r"""
+    @classmethod
+    @_dm.reference(
+        category="constructor",
+        call_name="Databox.seres_from_json_file",
+    )
+    def series_from_json_file(
+        klass,
+        file_name: str,
+        json_load_settings: dict | None = None,
+        **kwargs,
+    ) -> Self:
+        r"""
 ................................................................................
 
 ==Create a databox from a JSON file of time series==
@@ -225,13 +215,13 @@ each value is the JSON-serializable dictionary representation of that time serie
     A Databox object containing the time series created from the JSON file.
 
 ................................................................................
-    """
-    #[
-    json_load_settings = json_load_settings or {}
-    with open(file_name, "rt", encoding="utf-8") as f:
-        jsonable = _js.load(f, **json_load_settings, )
-    return klass.series_from_jsonable(jsonable, **kwargs, )
-    #]
+        """
+        #[
+        json_load_settings = json_load_settings or {}
+        with open(file_name, "rt", encoding="utf-8") as f:
+            jsonable = _js.load(f, **json_load_settings, )
+        return klass.series_from_jsonable(jsonable, **kwargs, )
+        #]
 
 
 #-------------------------------------------------------------------------------

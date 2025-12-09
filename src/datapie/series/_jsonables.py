@@ -17,32 +17,24 @@ if TYPE_CHECKING:
 #]
 
 
-def mixin(klass: type, ) -> type:
-    r"""
-    Inlay the steady state methods in the class
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
-    klass.to_jsonable = to_jsonable
-    klass.from_jsonable = classmethod(from_jsonable, )
-    return klass
-    #]
 
-
-#-------------------------------------------------------------------------------
-# Functions to be used as methods in Series class
-#-------------------------------------------------------------------------------
-
-
-@_dm.reference(category="serialization", )
-def to_jsonable(
-    self,
-    *,
-    period_to_string: Callable = Period.to_sdmx_string,
-    include_description: bool = True,
-    include_frequency: bool = True,
-    allow_multiple_variants: bool = False,
-) -> dict:
-    r"""
+    @_dm.reference(category="serialization", )
+    def to_jsonable(
+        self,
+        *,
+        period_to_string: Callable = Period.to_sdmx_string,
+        include_description: bool = True,
+        include_frequency: bool = True,
+        allow_multiple_variants: bool = False,
+    ) -> dict:
+        r"""
 ................................................................................
 
 ==Convert time series to a JSON-serializable dictionary==
@@ -85,47 +77,45 @@ series, as well as handling multiple variants.
     A dictionary representing the time series in a JSON-serializable format.
 
 ................................................................................
-    """
-    #[
-    if allow_multiple_variants:
-        raise NotImplementedError("allow_multiple_variants=True is not implemented yet.")
-    #
-    if self.num_variants > 1 and not allow_multiple_variants:
-        raise ValueError("The series has multiple variants. Set allow_multiple_variants=True to serialize all variants.")
-    #
-    jsonable = {}
-    #
-    if include_description:
-        jsonable["description"] = self.get_description() or ""
-    #
-    if include_frequency:
-        jsonable["frequency"] = self.frequency.to_jsonable()
-    #
-    jsonable["start"] = (
-        period_to_string(self.start)
-        if self.start is not None else None
+        """
+        if allow_multiple_variants:
+            raise NotImplementedError("allow_multiple_variants=True is not implemented yet.")
+        #
+        if self.num_variants > 1 and not allow_multiple_variants:
+            raise ValueError("The series has multiple variants. Set allow_multiple_variants=True to serialize all variants.")
+        #
+        jsonable = {}
+        #
+        if include_description:
+            jsonable["description"] = self.get_description() or ""
+        #
+        if include_frequency:
+            jsonable["frequency"] = self.frequency.to_jsonable()
+        #
+        jsonable["start"] = (
+            period_to_string(self.start)
+            if self.start is not None else None
+        )
+        #
+        jsonable["values"] = self.get_values(unpack_singleton=not allow_multiple_variants)
+        #
+        return jsonable
+
+    @classmethod
+    @_dm.reference(
+        category="constructor",
+        call_name="Series.from_jsonable",
     )
-    #
-    jsonable["values"] = self.get_values(unpack_singleton=not allow_multiple_variants)
-    #
-    return jsonable
-    #]
-
-
-@_dm.reference(
-    category="constructor",
-    call_name="Series.from_jsonable",
-)
-def from_jsonable(
-    klass,
-    jsonable: dict,
-    *,
-    period_from_string: Callable = Period.from_sdmx_string,
-    frequency_included: bool = True,
-    description_included: bool = True,
-    allow_multiple_variants: bool = False,
-) -> Self:
-    r"""
+    def from_jsonable(
+        klass,
+        jsonable: dict,
+        *,
+        period_from_string: Callable = Period.from_sdmx_string,
+        frequency_included: bool = True,
+        description_included: bool = True,
+        allow_multiple_variants: bool = False,
+    ) -> Self:
+        r"""
 ................................................................................
 
 ==Create time series from a JSON-serializable dictionary==
@@ -170,40 +160,37 @@ This class method creates a time series from a JSON-serializable dictionary.
     A time series object created from the `jsonable` dictionary.
 
 ................................................................................
-    """
-    #[
-    if allow_multiple_variants:
-        raise NotImplementedError("allow_multiple_variants=True is not implemented yet.")
-    #
-    frequency = (
-        Frequency.from_jsonable(jsonable["frequency"], )
-        if frequency_included else None
-    )
-    #
-    start = (
-        period_from_string(jsonable["start"], frequency=frequency, )
-        if jsonable["start"] else None
-    )
-    #
-    values = jsonable["values"]
-    if not allow_multiple_variants:
-        values = tuple(values)
-    #
-    description = (
-        jsonable["description"]
-        if description_included else None
-    )
-    #
-    if not start or not values:
-        return klass.as_empty(description=description, )
-    #
-    return klass(
-        start=start,
-        values=values,
-        description=description,
-    )
-    #]
+        """
+        if allow_multiple_variants:
+            raise NotImplementedError("allow_multiple_variants=True is not implemented yet.")
+        #
+        frequency = (
+            Frequency.from_jsonable(jsonable["frequency"], )
+            if frequency_included else None
+        )
+        #
+        start = (
+            period_from_string(jsonable["start"], frequency=frequency, )
+            if jsonable["start"] else None
+        )
+        #
+        values = jsonable["values"]
+        if not allow_multiple_variants:
+            values = tuple(values)
+        #
+        description = (
+            jsonable["description"]
+            if description_included else None
+        )
+        #
+        if not start or not values:
+            return klass.as_empty(description=description, )
+        #
+        return klass(
+            start=start,
+            values=values,
+            description=description,
+        )
 
-
-#-------------------------------------------------------------------------------
+        #]
 

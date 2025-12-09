@@ -302,13 +302,13 @@ def disaggregate_arip_data(
     for low_data_v in low_data_variant_iterator:
 
         if low_data_v.size != num_low_periods:
-            raise _wrongdoings.IrisPieCritical(
+            raise _wrongdoings.Critical(
                 f"Data variant has {low_data_v.size} periods, "
                 f"but {num_low_periods} are required."
             )
 
         if target_data.size != num_high_periods:
-            raise _wrongdoings.IrisPieCritical(
+            raise _wrongdoings.Critical(
                 f"Target data has {target_data.size} periods, "
                 f"but {num_high_periods} are required."
             )

@@ -97,10 +97,12 @@ class _ExportBlock:
     #]
 
 
-class Inlay:
-    """
-    Databox inlay for writing databox time series to CSV file
-    """
+#-------------------------------------------------------------------------------
+# Mixin methods
+#-------------------------------------------------------------------------------
+
+
+class Mixin:
     #[
 
     @_dm.reference(category="import_export", )
@@ -128,74 +130,74 @@ class Inlay:
 ==Write Databox time series to a CSV file==
 
 
-    self.to_csv_file(
-        file_name,
-        *,
-        frequency_span=None,
-        names=None,
-        description_row=False,
-        frequency=None,
-        numeric_format="g",
-        nan_str="",
-        delimiter=",",
-        round=None,
-        date_formatter=None,
-        csv_writer_settings={},
-        when_empty="warning",
-    )
+self.to_csv_file(
+    file_name,
+    *,
+    frequency_span=None,
+    names=None,
+    description_row=False,
+    frequency=None,
+    numeric_format="g",
+    nan_str="",
+    delimiter=",",
+    round=None,
+    date_formatter=None,
+    csv_writer_settings={},
+    when_empty="warning",
+)
 
 
 ### Input arguments ###
 
 
 ???+ input "file_name"
-    Name of the CSV file where the data will be written.
+Name of the CSV file where the data will be written.
 
 ???+ input "frequency_span"
-    Specifies the frequencies and their corresponding date ranges for exporting
-    data. If `None`, exports data for all available frequencies and their full
-    date ranges in the databox.
+Specifies the frequencies and their corresponding date ranges for exporting
+data. If `None`, exports data for all available frequencies and their full
+date ranges in the databox.
 
 ???+ input "names"
-    A list of series names to export. If `None`, exports all series for the 
-    specified frequencies.
+A list of series names to export. If `None`, exports all series for the 
+specified frequencies.
 
 ???+ input "description_row"
-    If `True`, include a row of series descriptions in the CSV.
+If `True`, include a row of series descriptions in the CSV.
 
 ???+ input "frequency"
-    Frequency of the data to export.
+Frequency of the data to export.
 
 ???+ input "numeric_format"
-    The numeric format for data values, e.g., 'g', 'f', etc.
+The numeric format for data values, e.g., 'g', 'f', etc.
 
 ???+ input "nan_str"
-    String representation for NaN values in the output.
+String representation for NaN values in the output.
 
 ???+ input "delimiter"
-    Character to separate columns in the CSV file.
+Character to separate columns in the CSV file.
 
 ???+ input "round"
-    Number of decimal places to round numeric values.
+Number of decimal places to round numeric values.
 
 ???+ input "date_formatter"
-    Function to format date values. If `None`, SDMX string formatter is used.
+Function to format date values. If `None`, SDMX string formatter is used.
 
 ???+ input "csv_writer_settings"
-    Additional settings for the CSV writer.
+Additional settings for the CSV writer.
 
 ???+ input "when_empty"
-    Behavior when no data is available for export. Can be "error", "warning", or
-    "silent".
+Behavior when no data is available for export. Can be "error", "warning", or
+"silent".
 
 
 ### Returns ###
 
 
 ???+ returns "info"
-    A dictionary with details about the export:
+A dictionary with details about the export:
 
-    * `names_exported`: Names of the series exported to the CSV file.
+* `names_exported`: Names of the series exported to the CSV file.
 
 
 ················································································
@@ -242,14 +244,17 @@ class Inlay:
         else:
             return
 
+
     @_dm.no_reference
     def to_sheet(self, *args, **kwargs, ):
         r"""
         """
         return self.to_csv_file(*args, **kwargs, )
 
+
     # Legacy alias
     to_csv = to_csv_file
+
 
     @_dm.reference(category="import_export", )
     def to_pickle_file(
@@ -262,18 +267,18 @@ class Inlay:
 
 ==Write Databox to a pickle file==
 
-    self.to_pickle(
-        file_name,
-        **kwargs, 
-    )
+self.to_pickle(
+    file_name,
+    **kwargs, 
+)
 
 ### Input arguments ###
 
 ???+ input "file_name"
-    Path to the pickle file where the data will be written.
+Path to the pickle file where the data will be written.
 
 ???+ input "kwargs"
-    Additional keyword arguments for the pickle writer.
+Additional keyword arguments for the pickle writer.
 
 ### Returns ###
 
@@ -284,9 +289,13 @@ This method returns `None`.
         with open(file_name, "wb+") as fid:
             _pk.dump(self, fid, **kwargs, )
 
+
     to_pickle = to_pickle_file
 
     #]
+
+
+#-------------------------------------------------------------------------------
 
 
 def _get_frequency_mark(frequency, ):

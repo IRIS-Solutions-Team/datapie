@@ -18,6 +18,7 @@ from .. import descriptions as _descriptions
 from .. import ez_plotly as _ez_plotly
 from ..dates import Period
 from ..databoxes import main as _databoxes
+from ..series import functional_form_context
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -86,7 +87,7 @@ Chartpacks
 
     __slots__ = (
         "title",
-        "_figures",
+        "figures",
         "_figure_settings",
         "_chart_settings",
         "_description",
@@ -100,7 +101,7 @@ Chartpacks
         """
         """
         self.title = title
-        self._figures = []
+        self.figures = []
         self._description = None
         #
         self._figure_settings = {
@@ -185,7 +186,7 @@ self = Chartpack(
         """
         new = type(self)()
         new.title = self.title
-        new._figures = [i.copy() for i in self._figures]
+        new.figures = [i.copy() for i in self.figures]
         new._figure_settings = {k: v for k, v in self._figure_settings.items()}
         new._chart_settings = {k: v for k, v in self._chart_settings.items()}
         new._description = self._description
@@ -197,7 +198,7 @@ self = Chartpack(
     ) -> None:
         r"""
         """
-        for f in self._figures:
+        for f in self.figures:
             f.set_span(span, )
 
     def set_highlight(
@@ -206,7 +207,7 @@ self = Chartpack(
     ) -> None:
         r"""
         """
-        for f in self._figures:
+        for f in self.figures:
             f.highlight = highlight
 
     def modify_figure_titles(
@@ -215,13 +216,13 @@ self = Chartpack(
     ) -> None:
         r"""
         """
-        for f in self._figures:
+        for f in self.figures:
             f.title = modifier(f.title, )
 
     def format_figure_titles(self, **kwargs, ) -> None:
         r"""
         """
-        for f in self._figures:
+        for f in self.figures:
             f.title = f.title.format(**kwargs, ) if f.title else f.title
 
     @_dm.reference(category="plot", )
@@ -263,12 +264,12 @@ self = Chartpack(
     @_dm.reference(category="property", )
     def num_figures(self, ) -> int:
         """==Total number of figures in the chartpack=="""
-        return len(self._figures, ) if self._figures else 0
+        return len(self.figures, ) if self.figures else 0
 
     def _add_figure(self, figure: _Figure, ) -> None:
         """
         """
-        self._figures.append(figure, )
+        self.figures.append(figure, )
 
     @_dm.reference(category="add", )
     def add_figure(self, figure_string: str, **kwargs, ) -> None:
@@ -300,31 +301,31 @@ self = Chartpack(
         """
         pass
 
-    def __str__(self, /, ) -> str:
+    def __str__(self, ) -> str:
         """
         """
         return repr(self, )
 
-    def __repr__(self, /, ) -> str:
+    def __repr__(self, ) -> str:
         """
         """
         return _tree_repr(self, )
 
-    def _one_liner(self, /, ) -> str:
+    def _one_liner(self, ) -> str:
         return f"Chartpack({self.title!r}, )"
 
     def __getitem__(self, item: str | int, ) -> _Figure:
         """
         """
         if isinstance(item, int, ):
-            return self._figures[item]
+            return self.figures[item]
         if isinstance(item, str, ):
-            return next(f for f in self._figures if f.title == item)
+            return next(f for f in self.figures if f.title == item)
 
     def __iter__(self, ) -> Iterator[_Figure]:
         """
         """
-        return iter(self._figures, )
+        return iter(self.figures, )
 
     #]
 
@@ -336,7 +337,7 @@ class _Figure:
 
     __slots__ = (
         "title",
-        "_charts",
+        "charts",
         "_chart_settings",
     ) + _FIGURE_SETTINGS_KEYS
 
@@ -349,7 +350,7 @@ class _Figure:
         for n in self.__slots__:
             setattr(self, n, None, )
         self.title = title
-        self._charts = []
+        self.charts = []
         self._chart_settings = {}
         if self.show_legend is None:
             self.show_legend = self.legend is not None and bool(self.legend)
@@ -357,14 +358,14 @@ class _Figure:
     @classmethod
     def from_string(
         klass,
-        input_string: str,
+        figure_title: str,
         figure_settings_cascaded: dict[str, Any] | None = None,
         chart_settings_cascaded: dict[str, Any] | None = None,
         **kwargs,
     ) -> Self:
         """
         """
-        self = klass(title=input_string, )
+        self = klass(title=figure_title, )
         figure_settings_cascaded = figure_settings_cascaded or {}
         chart_settings_cascaded = chart_settings_cascaded or {}
         #
@@ -391,7 +392,7 @@ class _Figure:
 
     @property
     def num_charts(self, ) -> int:
-        return len(self._charts, )
+        return len(self.charts, )
 
     def copy(self, ) -> Self:
         r"""
@@ -400,7 +401,7 @@ class _Figure:
         new.title = self.title
         for n in _FIGURE_SETTINGS_KEYS:
             setattr(new, n, getattr(self, n, None), )
-        new._charts = [i.copy() for i in self._charts]
+        new.charts = [i.copy() for i in self.charts]
         new._chart_settings = {k: v for k, v in self._chart_settings.items()}
         return new
 
@@ -410,7 +411,7 @@ class _Figure:
     ) -> None:
         r"""
         """
-        for ch in self._charts:
+        for ch in self.charts:
             ch.span = span
 
     def plot(
@@ -451,23 +452,23 @@ class _Figure:
         """
         self.title = self.title.format(**kwargs, )
 
-    def __str__(self, /, ) -> str:
+    def __str__(self, ) -> str:
         """
         """
         return repr(self, )
 
-    def __repr__(self, /, ) -> str:
+    def __repr__(self, ) -> str:
         """
         """
         return _tree_repr(self, )
 
-    def _one_liner(self, /, ) -> str:
+    def _one_liner(self, ) -> str:
         return f"Figure({self.title!r}, )"
 
     def _add_chart(self, chart: _Chart, ) -> None:
         """
         """
-        self._charts.append(chart, )
+        self.charts.append(chart, )
 
     def add_charts(self, chart_strings: Iterable[str], **kwargs, ) -> None:
         """
@@ -485,12 +486,17 @@ class _Figure:
         )
         self._add_chart(chart, )
 
-    def __iter__(self, /, ) -> Iterator[_Chart]:
+    def get_chart_input_strings(self, ) -> tuple[str, ...]:
         """
         """
-        return iter(self._charts, )
+        return tuple(c.input_string for c in self.charts)
 
-    def __enter__(self, /, ) -> Self:
+    def __iter__(self, ) -> Iterator[_Chart]:
+        """
+        """
+        return iter(self.charts, )
+
+    def __enter__(self, ) -> Self:
         return self
 
     def __exit__(self, *args, **kwargs, ) -> None:
@@ -507,7 +513,8 @@ class _Chart:
     __slots__ = (
         "title",
         "expression",
-        "transform"
+        "transform",
+        "input_string",
     ) + _CHART_SETTINGS_KEYS
 
     def __init__(
@@ -516,6 +523,7 @@ class _Chart:
         #
         title: str | None = None,
         transform: str | Callable | None = None,
+        input_string: str | None = None,
         chart_settings_cascaded: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:
@@ -528,6 +536,7 @@ class _Chart:
         self.transform = transform or ""
         if isinstance(transform, str):
             self.transform = self.transform.strip()
+        self.input_string = input_string
         chart_settings_cascaded = chart_settings_cascaded or {}
         for key in _CHART_SETTINGS_KEYS:
             if getattr(self, key, None) is not None:
@@ -564,7 +573,13 @@ class _Chart:
         kwargs_transform = kwargs.pop("transform", None)
         chart_settings_transform = chart_settings_cascaded.pop("transform", None) if chart_settings_cascaded else None
         transform = input_string_transform or kwargs_transform or chart_settings_transform
-        return klass(**match_dict, transform=transform, chart_settings_cascaded=chart_settings_cascaded, **kwargs, )
+        return klass(
+            **match_dict,
+            transform=transform,
+            input_string=input_string,
+            chart_settings_cascaded=chart_settings_cascaded,
+            **kwargs,
+        )
 
     @property
     def caption(self, ) -> str:
@@ -601,7 +616,7 @@ class _Chart:
     ) -> None:
         """
         """
-        series_to_plot = input_db.evaluate_expression(self.expression, )
+        series_to_plot = input_db.evaluate_expression(self.expression, context=functional_form_context, )
         series_to_plot = self._apply_transform(series_to_plot, )
         series_to_plot.plot(
             figure=figure,
@@ -630,17 +645,17 @@ class _Chart:
             return self.transform(x, )
         return x
 
-    def __str__(self, /, ) -> str:
+    def __str__(self, ) -> str:
         """
         """
         return repr(self, )
 
-    def __repr__(self, /, ) -> str:
+    def __repr__(self, ) -> str:
         """
         """
         return _tree_repr(self, )
 
-    def _one_liner(self, /, ) -> str:
+    def _one_liner(self, ) -> str:
         return f"Chart({self.title!r}, {self.expression!r}, {self.transform!r}, )"
 
     def __iter__(self, ) -> Iterable:
@@ -683,7 +698,7 @@ _TREE_INDENT = "    |"
 _TREE_BULLET = "--"
 
 
-def _tree_repr(self, /, indent: tuple[str] = (), is_last: bool = False, ) -> str:
+def _tree_repr(self, indent: tuple[str] = (), is_last: bool = False, ) -> str:
     """
     """
     #[

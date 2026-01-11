@@ -14,3 +14,5 @@ __all__ = (
     *_functions__all__,
 )
 
+from .functions import functional_form_context
+

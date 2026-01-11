@@ -22,6 +22,7 @@ import documark as _dm
 
 from .. import iterators as _iterators
 from ..series import Series
+from ..series import functional_form_context
 from ..dates import Period, Frequency, Span, EmptySpan
 from .. import dates as _times
 from .. import wrongdoings as _wrongdoings
@@ -423,7 +424,7 @@ yet to be added to the Databox.
 
 ················································································
         """
-        return tuple(name for name in names if name not in self)
+        return tuple(i for i in names if i not in self)
 
     @property
     @_dm.reference(category="property", )
@@ -778,7 +779,7 @@ callable function determining which items to retain.
 ················································································
         """
         if keep_names is None:
-            return self
+            return
         keep_names, *_ \
             = self._resolve_source_target_names(keep_names, None, strict_names, )
         remove_names = set(self.keys()) - set(keep_names)
@@ -1326,8 +1327,7 @@ are left unchanged.
             else new_end_date.frequency
         )
         value_test = lambda x: isinstance(x, Series) and x.frequency == frequency
-        names = self.filter(value_test=value_test, )
-        for n in names:
+        for n in self.get_series_names_by_frequency():
             self[n].clip(new_start_date, new_end_date, )
 
     @_dm.reference(category="multiple", )
@@ -1427,6 +1427,8 @@ Shortcut syntax:
 
 ................................................................................
         """
+        if context is None:
+            context = {}
         expression = expression.strip()
         if expression in self:
             return self[expression]
@@ -1632,10 +1634,6 @@ This method modifies the Databox in place and returns `None`.
         return source_names, target_names, context_names,
 
     #]
-
-
-# Alias for backward compatibility
-Databank = Databox
 
 
 def _reformat_eval_expression(expression: str, ) -> str:

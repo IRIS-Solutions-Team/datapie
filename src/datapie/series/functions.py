@@ -41,9 +41,12 @@ from ._ell_one import *
 
 from ._statistics import *
 from ._statistics import __all__ as _statistics_all
+from ._statistics import functional_form_context as _statistics_functional_form_context
 
 from ._elementwise import *
 from ._elementwise import __all__ as _elementwise_all
+from ._elementwise import functional_form_context as _elementwise_functional_form_context
+
 
 __all__ = (
     *_all_extrapolate,
@@ -59,4 +62,9 @@ __all__ = (
     *_statistics_all,
     *_elementwise_all,
 )
+
+
+functional_form_context = {}
+functional_form_context.update(_elementwise_functional_form_context, )
+functional_form_context.update(_statistics_functional_form_context, )
 

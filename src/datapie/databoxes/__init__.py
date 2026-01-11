@@ -3,11 +3,10 @@ Databoxes
 """
 
 
-from .main import Databox, Databank
+from .main import Databox
 
 
 __all__ = (
     "Databox",
-    "Databank",
 )
 

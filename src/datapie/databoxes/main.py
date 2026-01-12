@@ -1327,7 +1327,7 @@ are left unchanged.
             else new_end_date.frequency
         )
         value_test = lambda x: isinstance(x, Series) and x.frequency == frequency
-        for n in self.get_series_names_by_frequency():
+        for n in self.get_series_names_by_frequency(frequency, ):
             self[n].clip(new_start_date, new_end_date, )
 
     @_dm.reference(category="multiple", )

@@ -32,7 +32,7 @@ class Error(Exception, ):
     """
     #[
     def __init__(self, message, ):
-        message = _prepare_message(message, )
+        message = prepare_message(message, )
         super().__init__(message, )
     #]
 
@@ -60,7 +60,7 @@ def raise_as(
     #]
 
 
-def _prepare_message(message_in):
+def prepare_message(message_in):
     #[
     if isinstance(message_in, str):
         return _PLAIN_PREFIX + message_in
@@ -91,7 +91,7 @@ def _raise_as_warning(
     r"""
     """
     #[
-    message = _prepare_message(message, )
+    message = prepare_message(message, )
     message = "\nWarning: " + message
     try:
         _wa.warn(message, Warning, skip_file_prefixes=_WARN_SKIPS, )

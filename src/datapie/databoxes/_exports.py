@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 _DEFAULT_ROUND = 12
 _DEFAULT_DATE_FORMATTER = str
+_DESCRIPTION_ROW_HEADER = "__description__"
 
 
 @_dc.dataclass
@@ -80,7 +81,7 @@ class _ExportBlock:
                 (n, ) + ("*", )*(num_data_columns[i] - 1)
                 for i, n in enumerate(descriptions, )
             ))
-            yield ("", ) + description_row + ("", )
+            yield (_DESCRIPTION_ROW_HEADER, ) + description_row + ("", )
         #
         # Dates and data, row by row
         date_formatter = self.date_formatter or _DEFAULT_DATE_FORMATTER

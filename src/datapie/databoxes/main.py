@@ -688,7 +688,6 @@ Returns `None`; `self` is modified in place.
     @_dm.reference(category="manipulation", )
     def remove(
         self: Self,
-        #
         remove_names: SourceNames = None,
         strict_names: bool = False,
     ) -> None:

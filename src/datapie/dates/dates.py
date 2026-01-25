@@ -17,7 +17,11 @@ import datetime as _dt
 import calendar as _ca
 import documark as _dm
 
+# Application imports
 from . import wrongdoings as _wrongdoings
+
+# Local imports
+from .frequencies import Frequency
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -27,168 +31,17 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    "Frequency",
     "yy", "hh", "qq", "mm", "dd", "ii",
     "Span", "EmptySpan", "start", "end",
     "Period", "periods_from_sdmx_strings", "periods_from_iso_strings", "periods_from_python_dates", "periods_from_until", "periods_from_to",
     "period_indexes",
-    "YEARLY", "HALFYEARLY", "QUARTERLY", "MONTHLY", "WEEKLY", "DAILY",
     "PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION",
     "refrequent", "convert_to_new_freq",
     "daily_serial_from_ymd",
-
-    "daters_from_sdmx_strings", "daters_from_iso_strings", "daters_from_to",
-    "Dater", "Ranger", "EmptyRanger",
-    "DATER_CLASS_FROM_FREQUENCY_RESOLUTION",
 )
 
 
 PositionType = Literal["start", "middle", "end", ]
-
-
-@_dm.reference(
-    path=("data_management", "frequencies.md", ),
-    categories=None,
-)
-class Frequency(_en.IntEnum):
-    r"""
-................................................................................
-
-Time frequencies
-=================
-
-Time frequencies are simple integer values that represent the number of time
-periods within a year, plus two special frequencies: a so-called "integer"
-frequency (for simple numbered observations without relation to calendar time),
-and a representation for unknown or unspecified frequencies. For convenience,
-the `Frequency` enum provides a set of predefined names for all the time
-frequencies available.
-
-The `Frequencies` are classified into regular and
-irregular frequencies. Regular frequencies are those that are evenly spaced
-within a year no matter the year, while irregular frequencies are those that
-vary in the number of periods within a year due to human calendar conventions
-and irregularities.
-
-
-| Integer value | `Frequency` enum       | Regular           | Description
-|--------------:|------------------------|:-----------------:|-------------
-| 1             | `irispie.YEARLY`       | :material-check:  | Yearly frequency
-| 2             | `irispie.HALFYEARLY`   | :material-check:  | Half-yearly frequency
-| 4             | `irispie.QUARTERLY`    | :material-check:  | Quarterly frequency
-| 12            | `irispie.MONTHLY`      | :material-check:  | Monthly frequency
-| 52            | `irispie.WEEKLY`       |                   | Weekly frequency
-| 365           | `irispie.DAILY`        |                   | Daily frequency
-| 0             | `irispie.INTEGER`      |                   | Integer frequency (numbered observations)
-| -1            | `irispie.UNKNOWN`      |                   | Unknown or unspecified frequency
-
-
-The most often direct use of `Frequencies` in frequency conversion methods, such
-as `aggregate` and `disaggregate` for time [`Series`](time_series.md) and whenever a
-custom check of time period or time series properties is needed.
-
-................................................................................
-    """
-    #[
-
-    INTEGER = 0
-    YEARLY = 1
-    ANNUAL = 1
-    HALFYEARLY = 2
-    HALFANNUAL = 2
-    QUARTERLY = 4
-    MONTHLY = 12
-    WEEKLY = 52
-    DAILY = 365
-    UNKNOWN = -1
-
-    @classmethod
-    @_dm.reference(
-        category="constructor",
-        call_name="Frequency.from_letter",
-    )
-    def from_letter(
-        klass,
-        string: str,
-    ) -> Self:
-        r"""
-................................................................................
-
-==Determine frequency from a letter==
-
-................................................................................
-        """
-        letter = string.replace("_", "").upper()[0]
-        if letter == "?":
-            return klass.UNKNOWN
-        return next( x for x in klass if x.name.startswith(letter) )
-
-    @classmethod
-    @_dm.reference(
-        category="constructor",
-        call_name="Frequency.from_sdmx_string",
-    )
-    def from_sdmx_string(
-        klass,
-        sdmx_string: str,
-    ) -> Self:
-        r"""
-................................................................................
-
-==Determine frequency of an SDMX string==
-
-................................................................................
-        """
-        try:
-            sdmx_string = sdmx_string.strip()
-            return next(
-                freq for freq, (length, pattern, ) in SDMX_REXP_FORMATS.items()
-                if (length is None or len(sdmx_string) == length) and pattern.fullmatch(sdmx_string, )
-            )
-        except StopIteration:
-            raise _wrongdoings.Error(
-                f"Cannot determine time frequency from \"{sdmx_string}\"; "
-                f"probably not a valid SDMX string"
-            )
-
-    @property
-    @_dm.reference(category="property", )
-    def letter(self, ) -> str:
-        r"""==Single letter representation of time frequency=="""
-        return self.name[0] if self is not self.UNKNOWN else "?"
-
-    def to_jsonable(self, ) -> str:
-        r"""
-        """
-        return str(self.letter)
-
-    @classmethod
-    def from_jsonable(
-        klass,
-        jsonable: str,
-    ) -> Self:
-        r"""
-        """
-        return klass.from_letter(jsonable, )
-
-    @property
-    @_dm.reference(category="property", )
-    def is_regular(self, ) -> bool:
-        r"""==True for regular time frequency=="""
-        return self in REGULAR_FREQUENCIES
-
-    def __str__(self, ) -> str:
-        return self.name
-
-    #]
-
-
-REGULAR_FREQUENCIES = (
-   Frequency.YEARLY,
-   Frequency.HALFYEARLY,
-   Frequency.QUARTERLY,
-   Frequency.MONTHLY,
-)
 
 
 _COMPACT_MONTH_STRINGS = [
@@ -199,92 +52,6 @@ _COMPACT_MONTH_STRINGS = [
 
 def _get_compact_year_string(year: int, ) -> str:
     return str(year)[-2:]
-
-
-Frequency.YEARLY.__doc__ = r"""
-................................................................................
-
-==Create a yearly frequency representation==
-
-See documentation for the time [`Frequency`](frequencies.md).
-
-................................................................................
-"""
-
-
-Frequency.HALFYEARLY.__doc__ = r"""
-................................................................................
-
-==Create a half-yearly frequency representation==
-
-See documentation for the time [`Frequency`](frequencies.md).
-
-................................................................................
-"""
-
-
-Frequency.QUARTERLY.__doc__ = r"""
-................................................................................
-
-==Create a quarterly frequency representation==
-
-See documentation for the time [`Frequency`](frequencies.md).
-
-................................................................................
-"""
-
-
-Frequency.MONTHLY.__doc__ = r"""
-................................................................................
-
-==Create a monthly frequency representation==
-
-See documentation for the time [`Frequency`](frequencies.md).
-
-................................................................................
-"""
-
-
-Frequency.WEEKLY.__doc__ = r"""
-................................................................................
-
-==Create a weekly frequency representation==
-
-See documentation for the time [`Frequency`](frequencies.md).
-
-................................................................................
-"""
-
-
-Frequency.DAILY.__doc__ = r"""
-................................................................................
-
-==Create a daily frequency representation==
-
-See documentation for the time [`Frequency`](frequencies.md).
-
-................................................................................
-"""
-
-
-Frequency.INTEGER.__doc__ = r"""
-................................................................................
-
-==Create an integer frequency representation==
-
-See documentation for the time [`Frequency`](frequencies.md).
-
-................................................................................
-"""
-
-
-
-YEARLY = Frequency.YEARLY
-HALFYEARLY = Frequency.HALFYEARLY
-QUARTERLY = Frequency.QUARTERLY
-MONTHLY = Frequency.MONTHLY
-WEEKLY = Frequency.WEEKLY
-DAILY = Frequency.DAILY
 
 
 SDMX_REXP_FORMATS = {
@@ -2884,45 +2651,9 @@ def extend_span(
     """
     range_tuple = tuple(t for t in span)
     start_date, end_date, = range_tuple[0], range_tuple[-1],
-    start_date += min_shift if prepend_initial else 0
-    end_date += max_shift if append_terminal else 0
+    if prepend_initial:
+        start_date -= min_shift
+    if append_terminal:
+        end_date += max_shift
     return start_date, end_date,
-
-
-
-#
-# Legacy aliases
-#
-
-
-class Dater(Period, ):
-
-    @staticmethod
-    def from_sdmx_string(frequency, sdmx_string):
-        return Period.from_sdmx_string(sdmx_string, frequency=frequency, )
-
-    @staticmethod
-    def from_iso_string(frequency, iso_string):
-        return Period.from_iso_string(iso_string, frequency=frequency, )
-
-
-class Ranger(Span, ):
-    pass
-
-
-EmptyRanger = EmptySpan
-
-
-daters_from_to = periods_from_to
-
-
-def daters_from_iso_strings(frequency, iso_strings):
-    return periods_from_iso_strings(iso_strings, frequency=frequency, )
-
-
-def daters_from_sdmx_strings(frequency, sdmx_strings):
-    return periods_from_sdmx_strings(sdmx_strings, frequency=frequency, )
-
-
-DATER_CLASS_FROM_FREQUENCY_RESOLUTION = PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION
 

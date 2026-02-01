@@ -8,7 +8,8 @@ dist/
 .ipynb*
 *.zip
 .obsidian
-sandbox
+sandbox/
 session
 issues/
+.venv*
 

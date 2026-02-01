@@ -1,32 +1,42 @@
-"""
+r"""
 Interface to X13-ARIMA-TRAMO-SEATS
 """
 
 
 #[
+
 from __future__ import annotations
 
-from typing import (Literal, TYPE_CHECKING, )
+# Typing imports
+from typing import Literal, TYPE_CHECKING
+
+# Standard library imports
 import os as _os
 import numpy as _np
 import subprocess as _sp
-import platform as _pf
 import tempfile as _tf
 import copy as _co
 import glob as _gl
+
+# Third-party imports
 import documark as _dm
 
+# Application imports
 from .. import executables as _executables
 from .. import wrongdoings as _wrongdoings
 from .. import has_variants as _has_variants
-from ..dates import (Period, Span, Frequency, )
+from ..dates import Period, Span, Frequency
+from ..x13_runners import run_x13_executable
 
+# Local imports
 from ._functionalize import FUNC_STRING
 
+# Type checking imports
 if TYPE_CHECKING:
-    from typing import (Any, )
-    from types import (EllipsisType, )
-    from ..series import (Series, )
+    from typing import Any
+    from types import EllipsisType
+    from ..series import Series
+
 #]
 
 
@@ -353,7 +363,7 @@ def _x13_data(
     specs = specs.replace("$(series_start)", _X13_DATE_FORMAT_RESOLUTION[start_date.frequency].format(year=year, segment=segment, ), )
     specs = specs.replace("$(series_data)", _print_series_data(variant_data, ), )
     specs_file_name_without_ext = _write_specs_to_file(specs, )
-    system_output = _execute(specs_file_name_without_ext, )
+    system_output = run_x13_executable(specs_file_name_without_ext, )
     raw_output_data, update_info = _collect_outputs(specs_file_name_without_ext, system_output, x11_save, )
     info.update({"specs": specs, })
     info.update(update_info, )
@@ -379,18 +389,18 @@ def _print_series_data(
     return data_str
 
 
-def _execute(
-    specs_file_name_without_ext: str,
-) -> _sp.CompletedProcess:
-    """
-    """
-    #[
-    return _sp.run(
-        [_X13_EXECUTABLE_PATH, specs_file_name_without_ext, ],
-        stdout=_sp.PIPE,
-        check=True,
-    )
-    #]
+# def _execute(
+#     specs_file_name_without_ext: str,
+# ) -> _sp.CompletedProcess:
+#     """
+#     """
+#     #[
+#     return _sp.run(
+#         [_X13_EXECUTABLE_PATH, specs_file_name_without_ext, ],
+#         stdout=_sp.PIPE,
+#         check=True,
+#     )
+#     #]
 
 
 def _collect_outputs(
@@ -646,14 +656,4 @@ _X13_DATE_FORMAT_RESOLUTION = {
     Frequency.MONTHLY: "{year:04d}.{segment:02d}",
     Frequency.QUARTERLY: "{year:04d}.{segment:1d}",
 }
-
-_X13_EXECUTABLE_FILE = {
-    "Windows": "x13aswin.exe",
-    "Linux": "x13asunix",
-    "Darwin": "x13asmac",
-}[_pf.system()]
-
-
-_X13_EXECUTABLE_PATH = _os.path.join(_EXECUTABLES_PATH, _X13_EXECUTABLE_FILE, )
-
 

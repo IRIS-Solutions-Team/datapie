@@ -299,7 +299,7 @@ def _create_dates_for_block(
     /,
     start_date_only: bool = False,
     **kwargs,
-) -> tuple[Dater]:
+) -> tuple[Period]:
     """
     Create dates for a block
     """
@@ -315,27 +315,27 @@ def _create_dates_for_block(
 def _create_dates_from_start_date(
     freq: _dates.Frequency | None,
     date_str_vector: _DataVector | None,
-) -> tuple[Dater]:
+) -> tuple[Period]:
     """
     Create dates from a start date
     """
     #[
     num_dates = len(date_str_vector)
-    start_date = _dates.Dater.from_sdmx_string(date_str_vector[0], frequency=freq, )
-    return tuple(_dates.Ranger(start_date, num_dates, ))
+    start_date = _dates.Period.from_sdmx_string(date_str_vector[0], frequency=freq, )
+    return tuple(_dates.Span(start_date, num_dates, ))
     #]
 
 
 def _create_dates_from_date_column(
     freq: _dates.Frequency | None,
     date_str_vector: _DataVector | None,
-) -> tuple[Dater]:
+) -> tuple[Period]:
     """
     Create dates from a date column
     """
     #[
     return tuple(
-        _dates.Dater.from_sdmx_string(s, frequency=freq, ) if s else None
+        _dates.Period.from_sdmx_string(s, frequency=freq, ) if s else None
         for s in date_str_vector
     )
     #]

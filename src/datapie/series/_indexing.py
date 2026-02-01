@@ -62,7 +62,7 @@ class Mixin:
     self[dates, variants]
     ```
 
-    The `dates` is a `Dater` or a tuple of `Daters` or a time `Span` object,
+    The `dates` is a `Period` or a tuple of `Periods` or a time `Span` object,
     and `variants` is an integer or a tuple of integers or a `slice` object
     specifying the variants. The data extraction syntax returns a
     two-dimensional `numpy` array, with the time dimension running along the
@@ -76,7 +76,7 @@ class Mixin:
     self[dates, variants] = ...
     ```
 
-    The `dates` is a `Dater` or a tuple of `Daters` or a time `Span` object,
+    The `dates` is a `Period` or a tuple of `Periods` or a time `Span` object,
     and `variants` is an integer or a tuple of integers or a `slice` object
     specifying the variants. The data assignment syntax sets the data in the
     time series.
@@ -89,7 +89,7 @@ class Mixin:
     self(dates, variants)
     ```
 
-    The `dates` is a `Dater` or a tuple of `Daters` or a time `Span` object,
+    The `dates` is a `Period` or a tuple of `Periods` or a time `Span` object,
     and `variants` is an integer or a tuple of integers or a `slice` object
     specifying the variants. The time `Series` recreation syntax returns a new
     time `Series` object based on the data selected by the `dates` and

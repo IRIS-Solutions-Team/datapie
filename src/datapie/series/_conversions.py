@@ -332,7 +332,7 @@ def _aggregate_daily_to_regular(
             aggregate_within_data_func(data_variant[get_slice_func(t)])
             for data_variant in self.iter_own_data_variants_from_until(from_until, )
         )
-        for t in _dates.Ranger(new_start_date, new_end_date)
+        for t in _dates.Span(new_start_date, new_end_date)
     )
     #
     new_data = _np.array(new_data, dtype=self.data_type, )
@@ -344,7 +344,7 @@ def _aggregate_regular_to_regular(
     self,
     new_dater_class: type,
     aggregate_within_data_func: Callable,
-) -> tuple[Dater, _np.ndarray]:
+) -> tuple[Period, _np.ndarray]:
     """
     """
     #[
@@ -373,7 +373,7 @@ def _aggregate_regular_to_regular(
 def _disaggregate_flat(
     self,
     high_dater_class: type,
-) -> tuple[Dater, _np.ndarray]:
+) -> tuple[Period, _np.ndarray]:
     """
     """
     #[
@@ -388,7 +388,7 @@ def _disaggregate_flat(
 def _disaggregate_first(
     self,
     high_dater_class: type,
-) -> tuple[Dater, _np.ndarray]:
+) -> tuple[Period, _np.ndarray]:
     """
     """
     #[
@@ -402,7 +402,7 @@ def _disaggregate_first(
 def _disaggregate_middle(
     self,
     high_dater_class: type,
-) -> tuple[Dater, _np.ndarray]:
+) -> tuple[Period, _np.ndarray]:
     """
     """
     #[
@@ -416,7 +416,7 @@ def _disaggregate_middle(
 def _disaggregate_last(
     self,
     high_dater_class: type,
-) -> tuple[Dater, _np.ndarray]:
+) -> tuple[Period, _np.ndarray]:
     """
     """
     #[

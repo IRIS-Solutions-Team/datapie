@@ -7,21 +7,18 @@ Time frequencies
 
 from __future__ import annotations
 
-from typing import Union, Self, Any, Protocol, TypeAlias, Literal, runtime_checkable
-from collections.abc import Iterable, Callable, Iterator
-from numbers import (Real, )
+# Standard library imports
 import re as _re
 import enum as _en
-import functools as _ft
-import datetime as _dt
-import calendar as _ca
+
+# Typing imports
+from typing import Self, NoReturn
+
+# Third-party imports
 import documark as _dm
 
-from . import wrongdoings as _wrongdoings
-
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .ez_plotly import PlotlyDateAxisModeType
+# Application imports
+from .. import wrongdoings as _wrongdoings
 
 #]
 
@@ -32,31 +29,6 @@ __all__ = (
     "YEARLY", "HALFYEARLY", "QUARTERLY", "MONTHLY", "WEEKLY", "DAILY",
     "REGULAR_FREQUENCIES",
 )
-
-
-SDMX_PATTERNS = {
-    Frequency.YEARLY: _re.compile(r"\d\d\d\d", ),
-    Frequency.HALFYEARLY: _re.compile(r"\d\d\d\d-H\d", ),
-    Frequency.QUARTERLY: _re.compile(r"\d\d\d\d-Q\d", ),
-    Frequency.MONTHLY: _re.compile(r"\d\d\d\d-\d\d", ),
-    Frequency.WEEKLY: _re.compile(r"\d\d\d\d-W\d\d", ),
-    Frequency.DAILY: _re.compile(r"\d\d\d\d-\d\d-\d\d", ),
-    Frequency.INTEGER: _re.compile(r"\([\-\+]?\d+\),", ),
-}
-
-
-def is_sdmx_string(
-    input_string: str,
-) -> bool:
-    r"""
-    """
-    #[
-    input_string = input_string.strip()
-    for pattern in SDMX_PATTERNS.values():
-        if pattern.fullmatch(input_string, ):
-            return True
-    return False
-    #]
 
 
 @_dm.reference(
@@ -144,7 +116,7 @@ custom check of time period or time series properties is needed.
     def from_sdmx_string(
         klass,
         sdmx_string: str,
-    ) -> Self:
+    ) -> Self | NoReturn:
         r"""
 ................................................................................
 
@@ -284,4 +256,29 @@ QUARTERLY = Frequency.QUARTERLY
 MONTHLY = Frequency.MONTHLY
 WEEKLY = Frequency.WEEKLY
 DAILY = Frequency.DAILY
+
+
+SDMX_PATTERNS = {
+    Frequency.YEARLY: _re.compile(r"\d\d\d\d", ),
+    Frequency.HALFYEARLY: _re.compile(r"\d\d\d\d-H[12]", ),
+    Frequency.QUARTERLY: _re.compile(r"\d\d\d\d-Q[1234]", ),
+    Frequency.MONTHLY: _re.compile(r"\d\d\d\d-\d\d", ),
+    Frequency.WEEKLY: _re.compile(r"\d\d\d\d-W[012345]\d", ),
+    Frequency.DAILY: _re.compile(r"\d\d\d\d-\d\d-\d\d", ),
+    Frequency.INTEGER: _re.compile(r"\([\-\+]?\d+\),", ),
+}
+
+
+def is_sdmx_string(
+    input_string: str,
+) -> bool:
+    r"""
+    """
+    #[
+    input_string = input_string.strip()
+    for pattern in SDMX_PATTERNS.values():
+        if pattern.fullmatch(input_string, ):
+            return True
+    return False
+    #]
 

@@ -22,7 +22,6 @@ import glob as _gl
 import documark as _dm
 
 # Application imports
-from .. import executables as _executables
 from .. import wrongdoings as _wrongdoings
 from .. import has_variants as _has_variants
 from ..dates import Period, Span, Frequency
@@ -627,8 +626,6 @@ def _clean_up(
         _os.remove(f, )
     #]
 
-
-_EXECUTABLES_PATH = _os.path.dirname(_executables.__file__)
 
 _DEFAULT_SERIES_TEMPLATE = {
     "start": "$(series_start)",

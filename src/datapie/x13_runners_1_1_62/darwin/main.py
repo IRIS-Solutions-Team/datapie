@@ -29,7 +29,6 @@ def run(spc_file_without_ext: str, ):
     # Set up environment
     ENVIRON = os.environ.copy()
     ENVIRON["DYLD_LIBRARY_PATH"] = THIS_DIR + ":" + ENVIRON.get("DYLD_LIBRARY_PATH", "")
-    breakpoint()
 
     return sp.run(
         (EXECUTABLE_PATH, spc_file_without_ext, ),

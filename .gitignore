@@ -13,3 +13,6 @@ session
 issues/
 .venv*
 
+*~
+*.*~
+

@@ -26,7 +26,9 @@ from .. import executables as _executables
 from .. import wrongdoings as _wrongdoings
 from .. import has_variants as _has_variants
 from ..dates import Period, Span, Frequency
-from ..x13_runners import run_x13_executable
+
+from .. import x13_runners_1_1_39
+from .. import x13_runners_1_1_62
 
 # Local imports
 from ._functionalize import FUNC_STRING
@@ -58,6 +60,12 @@ OutputType = Literal[
 ]
 
 
+_X13_RUNNER_VERSION_DISPATCH = {
+    "1.1.39": x13_runners_1_1_39.run_x13_executable,
+    "1.1.62": x13_runners_1_1_62.run_x13_executable,
+}
+
+
 class Mixin:
     #[
 
@@ -77,6 +85,8 @@ class Mixin:
         mode: Literal["mult", "add", "pseudoadd", "logadd", ] | None = None,
         allow_missing: bool = False,
         add_to_specs: dict[str, Any] | None = None,
+        #
+        version: Literal["1.1.39", "1.1.62", ] = "1.1.62",
     ) -> dict[str, Any]:
         r"""
     ................................................................................
@@ -291,6 +301,7 @@ class Mixin:
         _update_specs_template_with_extra_settings(specs_template, add_to_specs, allow_missing, )
         specs_template_string = _print_specs_template(specs_template, )
         specs_template_string = _insert_basic_settings_into_specs_template_string(specs_template_string, basic_settings, )
+        run_x13_executable = _X13_RUNNER_VERSION_DISPATCH[version]
         #
         new_data = []
         out_info = []
@@ -308,8 +319,10 @@ class Mixin:
                 base_start,
                 variant_data,
                 basic_settings["x11_save"],
+                run_x13_executable,
                 info=info_v,
                 clean_up=clean_up,
+                version=version,
             )
             if flip_sign:
                 new_data_v = -new_data_v
@@ -350,9 +363,11 @@ def _x13_data(
     base_start: Period,
     base_variant_data: _np.ndarray,
     x11_save: str,
+    run_x13_executable: Callable,
     *,
     info: dict[str, Any],
     clean_up: bool = True,
+    version: Literal["1.1.39", "1.1.62", ] = "1.1.62",
 ) -> tuple[_np.ndarray, dict[str, Any]]:
     """
     """

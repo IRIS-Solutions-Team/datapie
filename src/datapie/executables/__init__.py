@@ -1,4 +1,0 @@
-r"""
-Third-party executables
-"""
-

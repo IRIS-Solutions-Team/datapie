@@ -24,7 +24,8 @@ import documark as _dm
 # Application imports
 from .. import wrongdoings as _wrongdoings
 from .. import has_variants as _has_variants
-from ..dates import Period, Span, Frequency
+from ..periods import Period, Span
+from ..frequencies import Frequency
 
 from .. import x13_runners_1_1_39
 from .. import x13_runners_1_1_62

@@ -16,8 +16,8 @@ import itertools as _it
 import warnings as _wa
 import datetime as _dt
 
-from ..dates import Period, PositionType
-from .. import dates as _dates
+from ..periods import Period
+from .. import periods as _periods
 from .. import ez_plotly as _ez_plotly
 
 from typing import TYPE_CHECKING
@@ -184,7 +184,7 @@ class Mixin:
 
         traces_periods = tuple(
             i.to_plotly_date(mode=date_axis_mode, )
-            for i in _dates.periods_from_until(*from_until, )
+            for i in _periods.periods_from_until(*from_until, )
         )
 
         traces_iterable = _iter_traces(

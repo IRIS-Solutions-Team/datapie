@@ -7,17 +7,22 @@ Univariate time series filters
 
 from __future__ import annotations
 
-from numbers import (Real, )
-from collections.abc import (Iterable, Callable, )
-from types import (EllipsisType, )
-from typing import (Self, )
+from numbers import Real
+from collections.abc import Iterable, Callable
+from types import EllipsisType
+from typing import Self
 import numpy as _np
 import documark as _dm
 
-from ..dates import (Period, Frequency, )
-from .. import dates as _dates
-from . import main as _series
+from ..periods import Period
+from ..frequencies import Frequency
+from .. import periods as _periods
+
 from ._functionalize import FUNC_STRING
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .main import Series
 
 #]
 
@@ -361,7 +366,7 @@ class Mixin:
 #-------------------------------------------------------------------------------
 
 
-def hpf(self, *args, **kwargs, ) -> tuple[_series.Series, _series.Series]:
+def hpf(self, *args, **kwargs, ) -> tuple[Series, Series]:
     """
     Constrained Hodrick-Prescott filter
     """
@@ -391,15 +396,15 @@ def _data_hpf(
     span: Iterable[Period] | EllipsisType = ...,
     smooth: Real | None = None,
     log: bool = False,
-    level: _series.Series | None = None,
-    change: _series.Series | None = None,
+    level: Series | None = None,
+    change: Series | None = None,
 ) -> tuple[Period, _np.ndarray, _np.ndarray]:
     """
     Hodrick-Prescott filter run on a multi-variant data matrix
     """
     #[
     span = self.resolve_periods(span, )
-    encompassing_span, *from_until = _dates.get_encompassing_span(self, level, change, span, )
+    encompassing_span, *from_until = _periods.get_encompassing_span(self, level, change, span, )
     num_periods = len(encompassing_span, )
     level_data, level_where = _prepare_constraints(level, from_until, )
     change_data, change_where = _prepare_constraints(change, from_until, )

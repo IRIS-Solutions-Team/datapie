@@ -12,6 +12,7 @@ import numpy as _np
 import documark as _dm
 from typing import Literal
 
+from ..periods import Period
 from ._functionalize import FUNC_STRING
 
 from typing import TYPE_CHECKING
@@ -19,8 +20,7 @@ if TYPE_CHECKING:
     from typing import Any, Callable, EllipsisType
     from collections.abc import Iterable
     from numbers import Real
-    from ..dates import Period
-    from ..series import Series
+    from .main import Series
 
 #]
 

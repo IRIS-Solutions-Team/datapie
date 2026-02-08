@@ -22,9 +22,9 @@ import documark as _dm
 
 from .. import iterators as _iterators
 from ..series import Series
-from ..series import functional_form_context
-from ..dates import Period, Frequency, Span, EmptySpan
-from .. import dates as _times
+from ..periods import Period, Span, EmptySpan
+from ..frequencies import Frequency
+from .. import periods as _periods
 from .. import wrongdoings as _wrongdoings
 
 from .. import descriptions as _descriptions
@@ -1514,7 +1514,7 @@ VectorAutoregression models.
 ................................................................................
         """
         self = klass()
-        start, end = _times.extend_span(
+        start, end = _periods.extend_span(
             span,
             steady_databoxable.max_lag,
             steady_databoxable.max_lead,

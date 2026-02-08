@@ -10,7 +10,7 @@ from typing import Literal
 import documark as _dm
 import numpy as _np
 
-from .. import dates as _dates
+from .. import periods as _periods
 from . import _broadcasts as _bc
 from ._functionalize import FUNC_STRING
 
@@ -160,7 +160,7 @@ class Mixin:
         _bc.broadcast_variants_when_needed(self, other)
         #
         # Get encompassing span and from_until tuple for data extraction
-        encompassing_span, *from_until = _dates.get_encompassing_span(self, other)
+        encompassing_span, *from_until = _periods.get_encompassing_span(self, other)
         #
         # Get data for both series over the encompassing span
         self_data = self.get_data_from_until(from_until)

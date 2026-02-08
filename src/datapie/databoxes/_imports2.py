@@ -4,19 +4,21 @@ Import time series data from a CSV file
 
 
 #[
+
 from __future__ import annotations
 
-from typing import (Self, TypeAlias, Protocol, Callable, )
-from collections.abc import (Iterator, Iterable, Generator, )
+from typing import Self, TypeAlias, Protocol, Callable
+from collections.abc import Iterator, Iterable, Generator
 import csv as _cs
 import numpy as _np
 import itertools as _it
 import functools as _ft
 
-from ..series import main as _series
-from .. import dates as _dates
+from ..periods import Period, Span
+from ..frequencies import Frequency
 
-from . import main as _databoxes
+from .main import Databox
+
 #]
 
 
@@ -141,7 +143,7 @@ class _Block:
     ) -> None:
         self._start_index = start_index
         self._headers = []
-        freq = _dates.Frequency.from_letter(header[0]) if header is not None else None
+        freq = Frequency.from_letter(header[0]) if header is not None else None
         self._dates = _create_dates_for_block(freq, date_str_vector, **kwargs, )
         self._data_array = None
 
@@ -160,7 +162,7 @@ class _Block:
         data_array_reader: _DataArrayReader,
         /,
         **kwargs,
-    ) -> _databoxes.Databox:
+    ) -> Databox:
         """
         Create a databox from the block
         """
@@ -294,7 +296,7 @@ class _ColumnwiseFileFactory(_SheetFileFactory):
 
 
 def _create_dates_for_block(
-    freq: _dates.Frequency | None,
+    freq: Frequency | None,
     date_str_vector: _DataVector | None,
     /,
     start_date_only: bool = False,
@@ -313,7 +315,7 @@ def _create_dates_for_block(
 
 
 def _create_dates_from_start_date(
-    freq: _dates.Frequency | None,
+    freq: Frequency | None,
     date_str_vector: _DataVector | None,
 ) -> tuple[Period]:
     """
@@ -321,13 +323,13 @@ def _create_dates_from_start_date(
     """
     #[
     num_dates = len(date_str_vector)
-    start_date = _dates.Period.from_sdmx_string(date_str_vector[0], frequency=freq, )
-    return tuple(_dates.Span(start_date, num_dates, ))
+    start_date = Period.from_sdmx_string(date_str_vector[0], frequency=freq, )
+    return tuple(Span(start_date, num_dates, ))
     #]
 
 
 def _create_dates_from_date_column(
-    freq: _dates.Frequency | None,
+    freq: Frequency | None,
     date_str_vector: _DataVector | None,
 ) -> tuple[Period]:
     """
@@ -335,7 +337,7 @@ def _create_dates_from_date_column(
     """
     #[
     return tuple(
-        _dates.Period.from_sdmx_string(s, frequency=freq, ) if s else None
+        Period.from_sdmx_string(s, frequency=freq, ) if s else None
         for s in date_str_vector
     )
     #]

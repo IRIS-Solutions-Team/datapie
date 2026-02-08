@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import documark as _dm
 
-from .. import dates as _dates
 from ._categories import CATEGORIES
 
 #]
@@ -117,7 +116,6 @@ class Mixin:
                 dates, variants = index
             else:
                 dates, variants = index, None
-            # dates = _dates.ensure_period_tuple(dates, frequency=self.frequency, )
             return self.get_data(dates, variants, )
 
     def __setitem__(

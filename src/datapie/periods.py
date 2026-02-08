@@ -22,7 +22,7 @@ from collections.abc import Iterable, Callable, Iterator
 import documark as _dm
 
 # Application imports
-from .. import wrongdoings as _wrongdoings
+from . import wrongdoings as _wrongdoings
 
 # Local imports
 from .frequencies import Frequency
@@ -45,7 +45,6 @@ __all__ = (
     "PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION",
     "refrequent", "convert_to_new_freq",
     "daily_serial_from_ymd",
-    "PositionType",
 )
 
 
@@ -2638,15 +2637,10 @@ convert_to_new_freq = refrequent
 SPAN_ELLIPSIS = "…"
 
 
-def get_printable_span(start: Period, end: Period, ) -> str:
+def get_printable_span(*args, ) -> str:
     """
     """
-    return (
-        f"{start}{SPAN_ELLIPSIS}{end}"
-        if start is not None or end is not None
-        else "None"
-    )
-
+    return SPAN_ELLIPSIS.join(str(i) for i in args)
 
 def extend_span(
     span: Iterable[Period],

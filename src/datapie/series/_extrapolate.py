@@ -13,12 +13,12 @@ import numpy as _np
 import scipy as _sp
 import documark as _dm
 
+from ..periods import Period
 from ._functionalize import FUNC_STRING
 
 if TYPE_CHECKING:
-    from typing import (Iterable, )
-    from numbers import (Real, )
-    from ..dates import (Period, )
+    from typing import Iterable
+    from numbers import Real
 
 #]
 

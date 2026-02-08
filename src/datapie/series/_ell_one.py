@@ -12,7 +12,7 @@ import numpy as _np
 import daqp as _qp
 import ctypes as _ct
 
-from ..dates import Period
+from ..periods import Period
 from .main import Series
 
 from typing import TYPE_CHECKING

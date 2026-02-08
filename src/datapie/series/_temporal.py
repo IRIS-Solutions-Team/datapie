@@ -4,6 +4,7 @@ Temporal change functions
 
 
 #[
+
 from __future__ import annotations
 
 from typing import Self, Callable
@@ -12,9 +13,10 @@ import numpy as _np
 import textwrap as _tw
 import documark as _dm
 
-from ..dates import Span
+from ..periods import Span
 from ._functionalize import FUNC_STRING
 from ._categories import CATEGORIES
+
 #]
 
 

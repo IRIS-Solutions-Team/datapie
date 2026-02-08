@@ -16,8 +16,9 @@ import pickle as _pickle
 import warnings as _wa
 import documark as _dm
 
-from ..dates import Period, Frequency, Span
-from ..series.main import Series
+from ..periods import Period, Span
+from ..frequencies import Frequency
+from ..series import Series
 
 #]
 

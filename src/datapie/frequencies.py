@@ -18,7 +18,7 @@ from typing import Self, NoReturn
 import documark as _dm
 
 # Application imports
-from .. import wrongdoings as _wrongdoings
+from . import wrongdoings as _wrongdoings
 
 #]
 
@@ -27,7 +27,6 @@ __all__ = (
     "is_sdmx_string",
     "Frequency",
     "YEARLY", "HALFYEARLY", "QUARTERLY", "MONTHLY", "WEEKLY", "DAILY",
-    "REGULAR_FREQUENCIES",
 )
 
 
@@ -157,7 +156,7 @@ custom check of time period or time series properties is needed.
     @_dm.reference(category="property", )
     def is_regular(self, ) -> bool:
         r"""==True for regular time frequency=="""
-        return self in REGULAR_FREQUENCIES
+        return self in _REGULAR_FREQUENCIES
 
     def __str__(self, ) -> str:
         return self.name
@@ -165,7 +164,7 @@ custom check of time period or time series properties is needed.
     #]
 
 
-REGULAR_FREQUENCIES = (
+_REGULAR_FREQUENCIES = (
    Frequency.YEARLY,
    Frequency.HALFYEARLY,
    Frequency.QUARTERLY,

@@ -7,7 +7,7 @@ r"""
 from __future__ import annotations
 
 from .. import views as _views
-from .. import dates as _dates
+from .. import periods as _periods
 
 #]
 
@@ -27,7 +27,7 @@ class Mixin(_views.Mixin, ):
         """
         """
         shape = self.data.shape
-        span_str = _dates.get_printable_span(self.start, self.end, )
+        span_str = _periods.get_printable_span(self.start, self.end, )
         missing_str = "*" if self.has_missing else " "
         return f"Series {self.frequency.letter} {span_str}{missing_str}{shape[0]}×{shape[1]}"
 

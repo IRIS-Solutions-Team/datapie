@@ -3,6 +3,7 @@
 
 
 #[
+
 from __future__ import annotations
 
 from typing import (Self, Iterable, Literal, )
@@ -10,9 +11,10 @@ from numbers import (Real, )
 import functools as _ft
 import numpy as _np
 
+from ..periods import Period
 from .. import wrongdoings as _wrongdoings
-from .. import dates as _dates
 from . import _conversions as _conversions
+
 #]
 
 
@@ -22,7 +24,7 @@ AggregationType = Literal["sum", "mean", "avg", "last", "first", ]
 
 def disaggregate_arip(
     self,
-    target_period_class: _dates.Period,
+    target_period_class: Period,
     /,
     model: tuple[FormType, AggregationType],
     target: Self | None = None,

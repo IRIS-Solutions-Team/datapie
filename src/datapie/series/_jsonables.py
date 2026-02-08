@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import documark as _dm
 
-from ..dates import Period, Frequency
+from ..periods import Period
+from ..frequencies import Frequency
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

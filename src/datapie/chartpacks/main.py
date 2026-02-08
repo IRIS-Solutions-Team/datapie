@@ -16,7 +16,7 @@ from collections.abc import Sequence
 
 from .. import descriptions as _descriptions
 from .. import ez_plotly as _ez_plotly
-from ..dates import Period
+from ..periods import Period
 from ..databoxes import main as _databoxes
 from ..series import functional_form_context
 

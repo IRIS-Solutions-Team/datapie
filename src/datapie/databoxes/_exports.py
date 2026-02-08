@@ -16,13 +16,14 @@ import dataclasses as _dc
 import functools as _ft
 import documark as _dm
 
-from ..dates import (Frequency, Period, EmptySpan, )
+from ..periods import Period, EmptySpan
+from ..frequencies import Frequency
 from .. import wrongdoings as _wrongdoings
 
 if TYPE_CHECKING:
-    from collections.abc import (Iterable, )
-    from typing import (Any, Callable, )
-    from ..databoxes.main import (Databox, )
+    from collections.abc import Iterable
+    from typing import Any, Callable
+    from .main import Databox
 
 #]
 

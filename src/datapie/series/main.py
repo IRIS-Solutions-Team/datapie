@@ -17,10 +17,11 @@ import documark as _dm
 
 from .. import descriptions as _descriptions
 from .. import iterators as _iterators
-from .. import dates as _dates
+from .. import periods as _periods
 from .. import wrongdoings as _wrongdoings
 from .. import has_variants as _has_variants
-from ..dates import Period, Span, Frequency, EmptySpan
+from ..periods import Period, Span, EmptySpan
+from ..frequencies import Frequency
 
 from ._categories import CATEGORIES
 from ._functionalize import FUNC_STRING
@@ -64,7 +65,7 @@ AxisType = Literal[0, 1]
 
 
 def _get_date_positions(dates, base, num_periods, ):
-    pos = tuple(_dates.period_indexes(dates, base, ))
+    pos = tuple(_periods.period_indexes(dates, base, ))
     min_pos = min((x for x in pos if x is not None), default=0)
     max_pos = max((x for x in pos if x is not None), default=0)
     add_before = max(-min_pos, 0)
@@ -715,7 +716,7 @@ variants of the data, stored as mutliple columns.
         if all(i.is_empty for i in self_args):
             num_variants = sum(i.num_variants for i in self_args)
             return Series(num_variants=num_variants, )
-        encompassing_span, *from_until = _dates.get_encompassing_span(self, *args, )
+        encompassing_span, *from_until = _periods.get_encompassing_span(self, *args, )
         new_data = self.get_data_from_until(from_until, )
         add_data = (
             x.get_data_from_until(from_until, )
@@ -1090,7 +1091,7 @@ This method modifies `self` in place and returns `None`.
         if not isinstance(other, type(self)):
             return self.apply(lambda data: func(data, other))
         # FIXME: empty encompassing span
-        _, *from_until = _dates.get_encompassing_span(self, other)
+        _, *from_until = _periods.get_encompassing_span(self, other)
         self_data = self.get_data_from_until(from_until, )
         other_data = other.get_data_from_until(from_until, )
         new_data = func(self_data, other_data)
@@ -1210,7 +1211,7 @@ def _from_periods_and_values(
     r"""
     """
     #[
-    # dates = _dates.ensure_period_tuple(dates, frequency=frequency, )
+    # dates = _periods.ensure_period_tuple(dates, frequency=frequency, )
     self.set_data(periods, values, )
     #]
 
@@ -1226,7 +1227,7 @@ def _from_periods_and_func(
     Create a new time series from dates and a function
     """
     #[
-    # dates = _dates.ensure_period_tuple(dates, frequency=frequency, )
+    # dates = _periods.ensure_period_tuple(dates, frequency=frequency, )
     data = [
         [func() for j in range(self.num_variants)]
         for i in range(len(periods))
@@ -1247,7 +1248,7 @@ def _from_start_and_values(
     """
     """
     #[
-    # start = _dates.ensure_period_tuple(start, frequency=frequency, )[0]
+    # start = _periods.ensure_period_tuple(start, frequency=frequency, )[0]
     self.start = start
     if isinstance(values, _np.ndarray):
         values = _reshape_numpy_array(values, )

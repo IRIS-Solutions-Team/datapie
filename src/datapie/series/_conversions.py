@@ -1,4 +1,4 @@
-"""
+r"""
 Frequency conversion of time series
 """
 
@@ -16,9 +16,13 @@ import operator as _op
 import statistics as _st
 import documark as _dm
 
-from .. import dates as _dates
 from . import arip as _arip
 from ._functionalize import FUNC_STRING
+
+from ..frequencies import Frequency
+from ..periods import Span, Period
+from .. import periods as _periods
+
 
 #]
 
@@ -43,7 +47,7 @@ class Mixin:
     @_dm.reference(category="conversion", )
     def aggregate(
         self,
-        target_freq: _dates.Frequency,
+        target_freq: Frequency,
         method: Literal["mean", "sum", "first", "last", "min", "max"] | Callable | None = None,
         discard_missing: bool | None = None,
         select: list[int] | None = None,
@@ -132,10 +136,10 @@ A new time `Series` object with the aggregated data.
         #
         if target_freq == self.frequency:
             return
-        if target_freq > self.frequency or target_freq is _dates.Frequency.UNKNOWN or self.frequency is _dates.Frequency.UNKNOWN:
+        if target_freq > self.frequency or target_freq is Frequency.UNKNOWN or self.frequency is Frequency.UNKNOWN:
             raise ValueError(f"Cannot aggregate from {self.frequency} frequency to {target_freq} frequency")
         #
-        new_dater_class = _dates.PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION[target_freq]
+        new_dater_class = _periods.PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION[target_freq]
         #
         aggregate_within_data_func = _ft.partial(
             _aggregate_within_data,
@@ -146,7 +150,7 @@ A new time `Series` object with the aggregated data.
         #
         if self.frequency.is_regular:
             aggregate_func = _aggregate_regular_to_regular
-        elif self.frequency is _dates.Frequency.DAILY:
+        elif self.frequency is Frequency.DAILY:
             aggregate_func = _aggregate_daily_to_regular
         #
         new_start_date, new_data = aggregate_func(self, new_dater_class, aggregate_within_data_func, )
@@ -155,7 +159,7 @@ A new time `Series` object with the aggregated data.
     @_dm.reference(category="conversion", )
     def disaggregate(
         self,
-        target_freq: _dates.Frequency,
+        target_freq: Frequency,
         #
         method: str = "flat",
         **kwargs,
@@ -273,14 +277,14 @@ series, $y_t$, and converted to high frequency;
             return
         #
         if target_freq < self.frequency \
-            or target_freq is _dates.Frequency.UNKNOWN \
-            or self.frequency is _dates.Frequency.UNKNOWN:
+            or target_freq is Frequency.UNKNOWN \
+            or self.frequency is Frequency.UNKNOWN:
             #
             raise _wrongdoings.Critical(
                 f"Cannot disaggregate from {self.frequency} frequency to {target_freq} frequency"
             )
         #
-        new_dater_class = _dates.PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION[target_freq]
+        new_dater_class = _periods.PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION[target_freq]
         new_start_date, new_data, *_ = method_func(self, new_dater_class, **kwargs, )
         self._replace_start_and_values(new_start_date, new_data, )
 
@@ -332,7 +336,7 @@ def _aggregate_daily_to_regular(
             aggregate_within_data_func(data_variant[get_slice_func(t)])
             for data_variant in self.iter_own_data_variants_from_until(from_until, )
         )
-        for t in _dates.Span(new_start_date, new_end_date)
+        for t in Span(new_start_date, new_end_date)
     )
     #
     new_data = _np.array(new_data, dtype=self.data_type, )
@@ -468,8 +472,8 @@ _CHOOSE_DISAGGREGATION_METHOD = {
 
 def convert_roc(
     roc: Real,
-    from_freq: _dates.Frequency,
-    to_freq: _dates.Frequency,
+    from_freq: Frequency,
+    to_freq: Frequency,
 ) -> Real:
     """
     """
@@ -478,8 +482,8 @@ def convert_roc(
 
 def convert_pct(
     pct: Real,
-    from_freq: _dates.Frequency,
-    to_freq: _dates.Frequency,
+    from_freq: Frequency,
+    to_freq: Frequency,
 ) -> Real:
     """
     """
@@ -488,8 +492,8 @@ def convert_pct(
 
 def convert_diff(
     diff: Real,
-    from_freq: _dates.Frequency,
-    to_freq: _dates.Frequency,
+    from_freq: Frequency,
+    to_freq: Frequency,
 ) -> Real:
     """
     """

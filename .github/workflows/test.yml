@@ -1,0 +1,49 @@
+#
+# Run tests using the datapie-tests repository
+# This workflow can be run independently or called by other workflows
+#
+
+name: Test
+
+on:
+  # Allow manual triggering
+  workflow_dispatch:
+  
+  # Allow being called by other workflows
+  workflow_call:
+  
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout datapie/develop
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: develop
+          path: datapie
+          token: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
+
+      - name: Checkout datapie-tests/master
+        uses: actions/checkout@v4
+        with:
+          repository: IRIS-Solutions-Team/datapie-tests
+          fetch-depth: 1
+          ref: master
+          path: datapie-tests
+          token: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          pip install -e datapie
+          pip install pytest toml
+
+      - name: Run tests
+        working-directory: datapie-tests
+        run: |
+          pytest -ra -v @specs

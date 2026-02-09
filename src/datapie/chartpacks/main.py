@@ -53,6 +53,8 @@ _CHART_SETTINGS = {
     "span": ...,
     "chart_type": "line",
     "update_traces": None,
+    "vline": None,
+    "round_to": None,
 }
 _CHART_SETTINGS_KEYS = tuple(_CHART_SETTINGS.keys(), )
 
@@ -519,8 +521,7 @@ class _Chart:
 
     def __init__(
         self,
-        expression: str,
-        #
+        expression: str | None = None,
         title: str | None = None,
         transform: str | Callable | None = None,
         input_string: str | None = None,
@@ -537,6 +538,7 @@ class _Chart:
         if isinstance(transform, str):
             self.transform = self.transform.strip()
         self.input_string = input_string
+        #
         chart_settings_cascaded = chart_settings_cascaded or {}
         for key in _CHART_SETTINGS_KEYS:
             if getattr(self, key, None) is not None:
@@ -589,10 +591,12 @@ class _Chart:
     def copy(self, ) -> Self:
         r"""
         """
-        new = type(self)()
-        new.title = self.title
-        new.expression = self.expression
-        new.transform = self.transform
+        new = type(self)(
+            expression=self.expression,
+            title=self.title,
+            transform=self.transform,
+            input_string=self.input_string,
+        )
         for n in _CHART_SETTINGS_KEYS:
             setattr(new, n, getattr(self, n, None), )
         return new
@@ -630,6 +634,8 @@ class _Chart:
             reverse_plot_order=self.reverse_plot_order,
             chart_type=self.chart_type,
             update_traces=self.update_traces,
+            vline=self.vline,
+            round_to=self.round_to,
         )
 
     def _apply_transform(self, x, ):

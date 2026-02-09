@@ -2020,7 +2020,7 @@ each period within the span to the new frequency.
     def shift_end(
         self,
         by: int,
-    ) -> Self:
+    ) -> None:
         r"""
 ................................................................................
 
@@ -2056,7 +2056,7 @@ depending on the direction and magnitude of the shift.
     def shift_start(
         self,
         by: int,
-    ) -> Self:
+    ) -> None:
         r"""
 ................................................................................
 

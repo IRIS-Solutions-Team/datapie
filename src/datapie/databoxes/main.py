@@ -1272,7 +1272,7 @@ by the Series class.
             func(self[n], other[n], **kwargs, )
 
     @_dm.reference(category="manipulation", )
-    def clip(
+    def clip_series(
         self,
         new_start_date: Period | None = None,
         new_end_date: Period | None = None,
@@ -1328,6 +1328,9 @@ are left unchanged.
         value_test = lambda x: isinstance(x, Series) and x.frequency == frequency
         for n in self.get_series_names_by_frequency(frequency, ):
             self[n].clip(new_start_date, new_end_date, )
+
+    # Legacy alias for backward compatibility
+    clip = clip_series
 
     @_dm.reference(category="multiple", )
     def prepend(

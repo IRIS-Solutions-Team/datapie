@@ -39,17 +39,23 @@ with open(_os.path.join(_PLOTLY_STYLES_FOLDER, "plain_layout.json", ), "rt", ) a
     _PLOTLY_STYLES["layouts"]["plain"] = _js.load(fid, )
 
 
-def _line_plot(color: str, x, y, **settings) -> _pg.Scatter:
+def _line_plot(color: str, **kwargs) -> _pg.Scatter:
     """
     """
-    settings = {"mode": "lines+markers", } | settings
-    return _pg.Scatter(line_color=color, x=x, y=y, **settings, )
+    kwargs = {"mode": "lines+markers", } | kwargs
+    return _pg.Scatter(line_color=color, **kwargs, )
 
 
-def _bar_plot(color: str, **settings) -> _pg.Bar:
+def _bar_plot(color: str, **kwargs) -> _pg.Bar:
     """
     """
-    return _pg.Bar(marker_color=color, **settings, )
+    return _pg.Bar(marker_color=color, **kwargs, )
+
+
+def _histogram_plot(color: str, x, y, **kwargs) -> _pg.Bar:
+    """
+    """
+    return _pg.Histogram(marker_color=color, x=y, **kwargs, )
 
 
 _PLOTLY_TRACES_CONSTRUCTOR = {
@@ -59,6 +65,29 @@ _PLOTLY_TRACES_CONSTRUCTOR = {
     "bar_group": _bar_plot,
     "bar_stack": _bar_plot,
     "bar_overlay": _bar_plot,
+    "histogram": _histogram_plot,
+}
+
+
+_HAS_TIME_AXIS = {
+    "line": True,
+    "bar": True,
+    "bar_relative": True,
+    "bar_group": True,
+    "bar_stack": True,
+    "bar_overlay": True,
+    "histogram": False,
+}
+
+
+_XAXIS_TYPE = {
+    "line": None,
+    "bar": None,
+    "bar_relative": None,
+    "bar_group": None,
+    "bar_stack": None,
+    "bar_overlay": None,
+    "histogram": "linear",
 }
 
 
@@ -180,8 +209,6 @@ class Mixin:
 
         traces_constructor = _PLOTLY_TRACES_CONSTRUCTOR[chart_type]
 
-        xaxis_type = from_until[0].plotly_xaxis_type if from_until else None
-
         traces_periods = tuple(
             i.to_plotly_date(mode=date_axis_mode, )
             for i in _periods.periods_from_until(*from_until, )
@@ -227,14 +254,18 @@ class Mixin:
         xaxis["tickformat"] = date_format
         xaxis["ticklabelmode"] = date_axis_mode
 
-        if xaxis_type is not None:
-            xaxis["type" ] = xaxis_type
+        # OMG REFACTOR
+        has_time_axis = _HAS_TIME_AXIS[chart_type]
+        xaxis_type = _XAXIS_TYPE.get(chart_type, None, )
+        if xaxis_type is None:
+            xaxis_type = from_until[0].plotly_xaxis_type if from_until else "linear"
+        xaxis["type" ] = xaxis_type
 
         figure.update_xaxes(xaxis, **row_column, )
         figure.update_yaxes(yaxis, **row_column, )
         figure.update_layout(layout or {}, )
 
-        if freeze_span:
+        if has_time_axis and freeze_span:
             _ez_plotly.freeze_span(figure, span, subplot, )
 
         if figure_title is not None:

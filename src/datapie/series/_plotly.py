@@ -145,7 +145,7 @@ class Mixin:
         legend: Iterable[str] | None = None,
         show_figure: bool = True,
         show_legend: bool | None = None,
-        include_in_legend: bool | Iterable[bool] = False,
+        include_in_legend: bool | Iterable[bool] = True,
         renderer: str | None = None,
         subplot: tuple[int, int] | int | None = None,
         xline = None,

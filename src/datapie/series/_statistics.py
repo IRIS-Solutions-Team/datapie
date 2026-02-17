@@ -95,12 +95,10 @@ _FUNCTION_TEMPLATE = """
 
 
 _functional_forms = set(_ALL_FUNCTIONS)
-functional_form_context = {}
 
 for n in _functional_forms:
     code = _FUNCTION_TEMPLATE.format(n=n, )
     exec(_tw.dedent(code, ), )
-    functional_form_context[n] = locals()[n]
 
 
 __all__ = tuple(_functional_forms)

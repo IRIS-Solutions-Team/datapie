@@ -613,7 +613,7 @@ data.
 
 
 _functional_forms = {
-    "temporal_change",
+    # "temporal_change",
     "diff",
     "adiff",
     "diff_log",
@@ -622,13 +622,13 @@ _functional_forms = {
     "apct",
     "roc",
     "aroc",
-    "temporal_change_conversion",
+    # "temporal_change_conversion",
     "roc_from_pct",
     "pct_from_roc",
     "pct_from_apct",
     "roc_from_apct",
     "roc_from_aroc",
-    "temporal_cumulation",
+    # "temporal_cumulation",
     "cum_diff",
     "cum_diff_log",
     "cum_pct",
@@ -638,6 +638,7 @@ _functional_forms = {
 for n in _functional_forms:
     code = FUNC_STRING.format(n=n, )
     exec(_tw.dedent(code, ), )
+
 
 __all__ = tuple(_functional_forms)
 

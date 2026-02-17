@@ -18,7 +18,6 @@ from .. import descriptions as _descriptions
 from .. import ez_plotly as _ez_plotly
 from ..periods import Period
 from ..databoxes import main as _databoxes
-from ..series import functional_form_context
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -93,11 +92,13 @@ Chartpacks
         "_figure_settings",
         "_chart_settings",
         "_description",
+        "_context",
     )
 
     def __init__(
         self,
         title: str = "",
+        context: dict | None = None,
         **kwargs,
     ) -> None:
         """
@@ -105,6 +106,7 @@ Chartpacks
         self.title = title
         self.figures = []
         self._description = None
+        self._context = context
         #
         self._figure_settings = {
             n: kwargs[n]
@@ -243,7 +245,7 @@ self = Chartpack(
 ················································································
         """
         figures = tuple(
-            figure.plot(input_db, )
+            figure.plot(input_db, context=self._context, )
             for figure in self
         )
         if show_figures:
@@ -419,6 +421,7 @@ class _Figure:
     def plot(
         self,
         input_db: _databoxes.Databox,
+        context: dict | None = None,
     ) -> _pg.Figure:
         r"""
         """
@@ -433,6 +436,7 @@ class _Figure:
         for i, chart in enumerate(self, ):
             chart.plot(
                 input_db, figure, i,
+                context=context,
                 legend=self.legend,
                 include_in_legend=(i == 0),
             )
@@ -615,12 +619,17 @@ class _Chart:
         input_db: _databoxes.Databox,
         figure: _pg.Figure,
         index: int,
+        context: dict | None,
         legend: Iterable[str, ...] | None,
         include_in_legend: bool,
     ) -> None:
         """
         """
-        series_to_plot = input_db.evaluate_expression(self.expression, context=functional_form_context, )
+        series_to_plot = input_db.evaluate_expression(
+            self.expression,
+            series_function_context=True,
+            context=context,
+        )
         series_to_plot = self._apply_transform(series_to_plot, )
         series_to_plot.plot(
             figure=figure,

@@ -4,15 +4,21 @@ Time series module
 
 
 from .main import *
-from .main import __all__ as _main__all__
+from .main import __all__ as all_main
 
 from .functions import *
-from .functions import __all__ as _functions__all__
+from .functions import __all__ as all_functions
 
 __all__ = (
-    *_main__all__,
-    *_functions__all__,
+    *all_main,
+    *all_functions,
 )
 
-from .functions import functional_form_context
+function_context = {}
+for n in all_functions:
+    function_context[n] = locals()[n]
+
+del all_main
+del all_functions
+
 

@@ -22,6 +22,7 @@ import documark as _dm
 
 from .. import iterators as _iterators
 from ..series import Series
+from .. import series as _series
 from ..periods import Period, Span, EmptySpan
 from ..frequencies import Frequency
 from .. import periods as _periods
@@ -1382,7 +1383,8 @@ This method uses the `underlay` method to add the time series data from the
     def evaluate_expression(
         self,
         expression: str,
-        context: dict[str, Any] | None = None,
+        *args, 
+        **kwargs,
     ) -> Any:
         """
 ................................................................................
@@ -1429,34 +1431,34 @@ Shortcut syntax:
 
 ................................................................................
         """
-        if context is None:
-            context = {}
         expression = expression.strip()
         if expression in self:
             return self[expression]
         else:
-            return self.eval(expression, context, )
+            return self.eval(expression, *args, **kwargs, )
 
     @_dm.no_reference
     def eval(
         self,
         expression: str,
+        series_function_context: bool = False,
         context: dict[str, Any] | None = None,
     ) -> Any:
         """
         """
         expression = _reformat_eval_expression(expression, )
-        context = (dict(context) if context else {}) | { k: v for k, v in self.items() }
-        return eval(expression, context, )
+        all_context = {}
+        if series_function_context:
+            all_context.update(_series.function_context, )
+        if context:
+            all_context.update(context, )
+        all_context.update({ k: v for k, v in self.items() })
+        return eval(expression, all_context, )
 
-    def __call__(
-        self,
-        expression: str,
-        context: dict[str, Any] | None = None,
-    ) -> Any:
+    def __call__(self, *args, **kwargs, ) -> Any:
+        r"""
         """
-        """
-        return self.evaluate_expression(expression, context, )
+        return self.evaluate_expression(*args, **kwargs, )
 
     @classmethod
     @_dm.reference(category="constructor", )

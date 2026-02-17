@@ -10,7 +10,7 @@ from __future__ import annotations
 from numbers import Real
 from collections.abc import Iterable, Callable
 from types import EllipsisType
-from typing import Self
+from typing import Self, Literal
 import numpy as _np
 import documark as _dm
 
@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 
 #]
 
+
+_DEFAULT_FILTER_INFORMATION = "two_sided"
 
 _AUTO_SMOOTH = {
     Frequency.YEARLY: (10*1)**2,
@@ -51,33 +53,30 @@ class _ConstrainedHodrickPrescottFilter:
         self,
         num_periods: int,
         smooth: Real,
-        /,
+        #
         level_where: list[int] | None = None,
         change_where: list[int] | None = None,
-        log: bool = False,
+        information: Literal["two_sided", "one_sided"] = _DEFAULT_FILTER_INFORMATION,
     ) -> None:
         self._num_periods = num_periods
         self._smooth = smooth
-        self._log = log
         self._num_extra_rows = 0
         self._create_plain_filter_matrix()
         self._add_level_constraints(level_where, )
         self._add_change_constraints(change_where, )
+        self.filter_data = getattr(self, f"filter_data_{information}", )
 
-    def filter_data(
+    def filter_data_two_sided(
         self,
         data: _np.ndarray,
-        /,
+        #
         level_data: _np.ndarray | None = None,
         change_data: _np.ndarray | None = None,
     ) -> tuple[_np.ndarray, _np.ndarray]:
+        r"""
         """
-        """
-        data = data.reshape(-1, 1)
         F = self._add_eye_for_observations(data, )
         extended_data = self._extend_data(data, level_data, change_data, )
-        if self._log:
-            extended_data = _np.log(extended_data, )
         enforced_zeros_where = _np.where(_np.isnan(data, ))
         extended_data[enforced_zeros_where] = 0
         trend_data = _np.linalg.solve(F, extended_data, )
@@ -86,21 +85,53 @@ class _ConstrainedHodrickPrescottFilter:
         if self._num_extra_rows > 0:
             trend_data = trend_data[:-self._num_extra_rows, :]
             gap_data = gap_data[:-self._num_extra_rows, :]
-        if self._log:
-            trend_data = _np.exp(trend_data, )
-            gap_data = _np.exp(gap_data, )
         return trend_data, gap_data
+
+    def filter_data_one_sided(
+        self,
+        data: _np.ndarray,
+        #
+        level_data: _np.ndarray | None = None,
+        change_data: _np.ndarray | None = None,
+    ) -> tuple[_np.ndarray, _np.ndarray]:
+        """
+        """
+        # Implement the one-sided version of the filter by looping through the
+        # data and applying the two-sided filter to the data up to the current
+        # period. This is not the most efficient way to implement the one-sided
+        # filter, but it is straightforward and works correctly. However, keep
+        # the level and change constraints affective in each iteration.
+        #
+        # Initialize trend and gap data as arrays with NaNs
+        trend_data = _np.full_like(data, _np.nan, )
+        gap_data = _np.full_like(data, _np.nan, )
+        #
+        for i in range(self._num_periods, ):
+            data_up_to_i = _np.array(data, )
+            data_up_to_i[i+1:] = _np.nan
+            # Keep level and change constraints unchanged on the entire horizon;
+            # we want to apply even the "future" constraints in each iteration
+            # even though this is a one-sided filter.
+            #
+            trend_data_up_to_i, gap_data_up_to_i, = self.filter_data_two_sided(
+                data_up_to_i,
+                level_data=level_data,
+                change_data=change_data,
+            )
+            trend_data[i,:] = trend_data_up_to_i[i,:]
+            gap_data[i,:] = gap_data_up_to_i[i,:]
+        #
+        return trend_data, gap_data,
 
     def _add_eye_for_observations(
         self,
         data: _np.ndarray,
-        /,
     ) -> None:
         """
         Add 1 to the F diagonal for each row where an observation is available
         """
         #[
-        F = _np.copy(self._F)
+        F = _np.array(self._F, )
         quasi_eye = _np.diag(_np.float64(~_np.isnan(data.flatten(), )))
         F[:self._num_periods, :self._num_periods] += quasi_eye
         return F
@@ -202,7 +233,6 @@ class Mixin:
     )
 
     self.hpf_gap(
-        /,
         span=None,
         smooth=None,
         log=False,
@@ -398,6 +428,7 @@ def _data_hpf(
     log: bool = False,
     level: Series | None = None,
     change: Series | None = None,
+    information: Literal["two_sided", "one_sided"] = _DEFAULT_FILTER_INFORMATION,
 ) -> tuple[Period, _np.ndarray, _np.ndarray]:
     """
     Hodrick-Prescott filter run on a multi-variant data matrix
@@ -406,24 +437,31 @@ def _data_hpf(
     span = self.resolve_periods(span, )
     encompassing_span, *from_until = _periods.get_encompassing_span(self, level, change, span, )
     num_periods = len(encompassing_span, )
+    own_data = self.get_data_from_until(from_until, )
     level_data, level_where = _prepare_constraints(level, from_until, )
     change_data, change_where = _prepare_constraints(change, from_until, )
     change_data, change_where = _remove_first_date_change(change_data, change_where, )
+    #
+    if log:
+        own_data = _np.log(own_data, )
+        level_data = _np.log(level_data, ) if level_data is not None else None
+        change_data = _np.log(change_data, ) if change_data is not None else None
     #
     if smooth is None:
         smooth = _get_default_smooth(self.frequency, )
     #
     hp = _ConstrainedHodrickPrescottFilter(
-        num_periods,
-        smooth,
+        num_periods=num_periods,
+        smooth=smooth,
         level_where=level_where,
         change_where=change_where,
-        log=log,
+        information=information,
     )
     #
     trend_data = []
     gap_data = []
-    for data_variant in self.iter_own_data_variants_from_until(from_until, ):
+    for data_variant in own_data.T:
+        data_variant = data_variant.reshape(-1, 1)
         trend_data_variant, gap_data_variant = hp.filter_data(
             data_variant,
             level_data=level_data,
@@ -447,14 +485,17 @@ def _data_hpf(
         trend_data = trend_data[[], ...]
         gap_data = gap_data[[], ...]
     #
-    return new_start_date, trend_data, gap_data
+    if log:
+        trend_data = _np.exp(trend_data, )
+        gap_data = _np.exp(gap_data, )
+    #
+    return new_start_date, trend_data, gap_data,
     #]
 
 
 def _prepare_constraints(
     constraint: Self | None,
     from_until: tuple[Period, Period, ],
-    /,
 ) -> tuple[_np.ndarray | None, list[int] | None, ]:
     #[
     if constraint is None:

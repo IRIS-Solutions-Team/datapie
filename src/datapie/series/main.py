@@ -26,6 +26,7 @@ from ..frequencies import Frequency
 from ._categories import CATEGORIES
 from ._functionalize import FUNC_STRING
 
+from . import _apply_to_variants
 from . import _broadcasts
 from . import _conversions
 from . import _elementwise
@@ -40,6 +41,7 @@ from . import _plotly
 from . import _statistics
 from . import _temporal
 from . import _timing
+from . import _uv_filters
 from . import _views
 from . import _x13
 
@@ -99,6 +101,8 @@ class Series(
     _jsonables.Mixin,
     _descriptions.Mixin,
     _views.Mixin,
+    _apply_to_variants.Mixin,
+    _uv_filters.Mixin,
 ):
     r"""
 ················································································
@@ -422,6 +426,13 @@ variants of the data, stored as mutliple columns.
         """
         """
         return self._func_missing(_np.any, *args, )
+
+    def where_missing(self, *args, ) -> tuple[Period]:
+        """
+        """
+        data = self.get_data(*args, )
+        missing_mask = _np.isnan(data).any(axis=1, )
+        return tuple(p for p, m in zip(self.span, missing_mask, ) if m)
 
     def all_missing(self, *args, ) -> bool:
         """

@@ -92,13 +92,11 @@ def {k}(object, *args, **kwargs, ):
 
 
 _functional_forms = set()
-functional_form_context = {}
 
 for k, v in ELEMENTWISE_FUNCTION_DISPATCH.items():
     code = _tw.dedent(_TEMPLATE.format(k=k, v=v, ))
     exec(code, globals(), locals(), )
     _functional_forms.add(k, )
-    functional_form_context[k] = locals()[k]
 
 
 __all__ = tuple(_functional_forms)

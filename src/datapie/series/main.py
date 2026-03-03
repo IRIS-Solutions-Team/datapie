@@ -240,7 +240,7 @@ variants of the data, stored as mutliple columns.
         return new
 
     @classmethod
-    def as_empty(
+    def void(
         klass,
         num_variants: int = 1,
         data_type: type = _np.float64,

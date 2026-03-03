@@ -185,7 +185,7 @@ This class method creates a time series from a JSON-serializable dictionary.
         )
         #
         if not start or not values:
-            return klass.as_empty(description=description, )
+            return klass.void(description=description, )
         #
         return klass(
             start=start,

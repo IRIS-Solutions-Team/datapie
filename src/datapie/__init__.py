@@ -1,6 +1,7 @@
 r"""
 """
 
+from ._editions import __version__
 
 from .periods import *
 from .periods import __all__ as periods_all

@@ -2654,7 +2654,7 @@ def extend_span(
     range_tuple = tuple(t for t in span)
     start_date, end_date, = range_tuple[0], range_tuple[-1],
     if prepend_initial:
-        start_date -= min_shift
+        start_date += min_shift
     if append_terminal:
         end_date += max_shift
     return start_date, end_date,

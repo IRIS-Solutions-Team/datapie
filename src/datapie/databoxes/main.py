@@ -1519,7 +1519,7 @@ VectorAutoregression models.
 ................................................................................
         """
         self = klass()
-        start, end = _periods.extend_span(
+        start, end, = _periods.extend_span(
             span,
             steady_databoxable.max_lag,
             steady_databoxable.max_lead,

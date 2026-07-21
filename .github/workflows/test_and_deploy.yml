@@ -44,7 +44,7 @@ jobs:
           fetch-depth: 0
           ref: develop
           path: datapie
-          token: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
+          token: ${{ secrets.IRIS_SOLUTIONS_TEAM_TOKEN_2026 }}
           repository: IRIS-Solutions-Team/datapie
 
       - name: Set up identity
@@ -97,7 +97,7 @@ jobs:
         env:
           version: ${{ steps.bump-version.outputs.new-version }}
           # gh picks the token from GITHUB_TOKEN env variable automatically
-          GITHUB_TOKEN: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
+          GITHUB_TOKEN: ${{ secrets.IRIS_SOLUTIONS_TEAM_TOKEN_2026 }}
         working-directory: datapie
         run: |
           git switch master
@@ -120,7 +120,7 @@ jobs:
           fetch-depth: 0
           ref: master
           path: datapie
-          token: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
+          token: ${{ secrets.IRIS_SOLUTIONS_TEAM_TOKEN_2026 }}
 
       - name: Set up identity
         working-directory: datapie

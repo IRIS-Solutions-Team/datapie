@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
           ref: develop
           path: datapie
-          token: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
+          token: ${{ secrets.IRIS_SOLUTIONS_TEAM_TOKEN_2026 }}
 
       - name: Checkout datapie-tests/master
         uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 1
           ref: master
           path: datapie-tests
-          token: ${{ secrets.IRISPIE_ACTIONS_TOKEN_2025 }}
+          token: ${{ secrets.IRIS_SOLUTIONS_TEAM_TOKEN_2026 }}
 
       - uses: actions/setup-python@v5
         with:

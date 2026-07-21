@@ -2,6 +2,8 @@ r"""
 Create a namespace for functional forms of Series methods
 """
 
+from ._indexing import *
+from ._indexing import __all__ as all_indexing
 
 from ._extrapolate import *
 from ._extrapolate import __all__ as all_extrapolate
@@ -44,6 +46,7 @@ from ._elementwise import __all__ as all_elementwise
 
 
 __all__ = (
+    *all_indexing,
     *all_extrapolate,
     *all_temporal,
     *all_conversions,
@@ -59,6 +62,7 @@ __all__ = (
     *all_elementwise,
 )
 
+del all_indexing
 del all_extrapolate
 del all_temporal
 del all_conversions

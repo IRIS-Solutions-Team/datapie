@@ -1834,8 +1834,8 @@ from a start period to an end period (possibly with a step size other than
     )
     def __init__(
         self,
-        from_per: Period | None = None,
-        until_per: Period | None = None,
+        from_per: Period | str | None = None,
+        until_per: Period | str | None = None,
         step: int = 1,
     ) -> None:
         r"""
@@ -1865,9 +1865,17 @@ from a start period to an end period (possibly with a step size other than
         else:
             default_from_per = end
             default_until_per = start
-        self._start = from_per if from_per is not None else default_from_per
-        self._end = until_per if until_per is not None else default_until_per
-        self._step = step
+        self._start = (
+            resolve_period_or_string(from_per, )
+            if from_per is not None
+            else default_from_per
+        )
+        self._end = (
+            resolve_period_or_string(until_per, )
+            if until_per is not None
+            else default_until_per
+        )
+        self._step = int(step)
         self.needs_resolve = self._start.needs_resolve or self._end.needs_resolve
         if not self.needs_resolve:
             _check_periods(from_per, until_per)
@@ -2451,6 +2459,17 @@ def resolve_period_or_integer(input_period: Any, ) -> Period:
     return (
         IntegerPeriod(int(input_period))
         if isinstance(input_period, Real) else input_period
+    )
+
+
+def resolve_period_or_string(input_period: Period | str, ) -> Period:
+    r"""
+    Convert string to Period or keep as is if already a Period
+    """
+    return (
+        Period.from_sdmx_string(input_period, )
+        if isinstance(input_period, str, )
+        else input_period
     )
 
 

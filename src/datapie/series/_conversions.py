@@ -7,8 +7,8 @@ Frequency conversion of time series
 
 from __future__ import annotations
 
-from typing import (Self, Callable, )
-from types import (EllipsisType, )
+from typing import Self, Callable
+from types import EllipsisType
 import numpy as _np
 import functools as _ft
 import textwrap as _tw

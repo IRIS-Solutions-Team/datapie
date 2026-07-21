@@ -176,7 +176,10 @@ An `Databox` populated with time series from the CSV file.
         if name_row_transform:
             name_row = _apply_name_row_transform(name_row, name_row_transform, )
         #
-        description_row = header_rows[1] if description_row else [""] * len(name_row)
+        description_row = (
+            header_rows[1] if description_row
+            else [""] * len(name_row)
+        )
         period_from_string = period_from_string or _DEFAULT_PERIOD_FROM_STRING
         #
         for b in _block_iterator(name_row, description_row, data_rows, period_from_string, start_period_only, ):

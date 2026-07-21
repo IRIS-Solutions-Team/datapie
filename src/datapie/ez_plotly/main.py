@@ -14,9 +14,11 @@ import plotly.graph_objects as _pg
 import plotly.subplots as _ps
 import plotly.io as _pi
 import documark as _dm
+import warnings as _wa
 
 from ..periods import Period
 from ..frequencies import Frequency
+from .. import iterators as _it
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -44,6 +46,7 @@ __all__ = (
     "update_subplot_title",
     "vline",
     "PlotlyDateAxisModeType",
+    "create_style_cycle",
 )
 
 
@@ -385,15 +388,57 @@ def auto_tiles(num_charts, ) -> tuple[int, int]:
     #]
 
 
-def auto_tiles(num_charts, ) -> tuple[int, int]:
+_STYLE_INDEXES_KEY = "style_indexes"
+
+
+def get_style_index(figure: _pg.Figure, subplot_index: int, ) -> int:
     r"""
     """
-    #[
-    n = _ma.ceil(_ma.sqrt(num_charts, ), )
-    if n * (n-1) >= num_charts:
-        return (n, n-1, )
-    return (n, n, )
-    #]
+    if figure.layout.meta is None:
+        return 0
+    if not isinstance(figure.layout.meta, dict):
+        return 0
+    style_indexes = figure.layout.meta.get(_STYLE_INDEXES_KEY, {}, )
+    style_index = style_indexes.get(subplot_index, 0, )
+    return style_index
+
+
+def set_style_index(figure: _pg.Figure, subplot_index: int, style_index: int, ) -> None:
+    r"""
+    """
+    if figure.layout.meta is None:
+        figure.layout.meta = {}
+    if not isinstance(figure.layout.meta, dict, ):
+        _wa.warning("Cannot store style index in figure.layout.meta because it is not a dictionary.", )
+        return
+    if _STYLE_INDEXES_KEY not in figure.layout.meta:
+        figure.layout.meta[_STYLE_INDEXES_KEY] = {}
+    figure.layout.meta[_STYLE_INDEXES_KEY][subplot_index] = style_index
+
+
+def increment_style_index(figure: _pg.Figure, subplot_index: int, ) -> int:
+    r"""
+    """
+    style_index = get_style_index(figure, subplot_index, )
+    style_index += 1
+    set_style_index(figure, subplot_index, style_index, )
+    return style_index
+
+
+def reset_style_index(figure: _pg.Figure, subplot_index: int, ) -> None:
+    r"""
+    """
+    set_style_index(figure, subplot_index, 0, )
+
+
+def create_style_cycle(figure: _pg.Figure, subplot_index: int, *args, ) -> Iterator[tuple[Any, ...]]:
+    r"""
+    """
+    style_index = get_style_index(figure, subplot_index, )
+    style_cycle = _it.zip_cycles_from(style_index, *args, )
+    for style in style_cycle:
+        increment_style_index(figure, subplot_index, )
+        yield style
 
 
 # @_dm.reference(

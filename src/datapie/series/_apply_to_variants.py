@@ -95,7 +95,7 @@ class Mixin:
         end_pos = end_period - self.start + 1
 
         # Apply function to each variant (column) and assign back directly
-        for i, variant_data in enumerate(self.iter_own_data_variants_from_until(from_until)):
+        for i, variant_data, in enumerate(self.iter_own_data_variants_from_until(from_until)):
             # Apply the function to this variant
             new_variant_data = func(periods_tuple, variant_data, **kwargs)
 

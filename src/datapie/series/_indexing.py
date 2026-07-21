@@ -7,9 +7,12 @@ Time series indexing inlay
 
 from __future__ import annotations
 
+import textwrap as _tw
+import numpy as _np
 import documark as _dm
 
 from ._categories import CATEGORIES
+from ._functionalize import FUNC_STRING
 
 #]
 
@@ -139,5 +142,41 @@ class Mixin:
         """
         return self._get_data_and_recreate(*index, )
 
+    @_dm.reference(category="indexing", )
+    def reverse_variants(self, ) -> None:
+        r"""
+        Reverse the order of the variants (columns) in the time series
+        """
+        self.data = self.data[:, ::-1]
+
+    @_dm.reference(category="indexing", )
+    def reverse_periods(self, ) -> None:
+        r"""
+        Reverse the order of the values in the periods (rows) in the time series
+        """
+        self.data = self.data[::-1, :]
+
+    reverse_columns = reverse_variants
+    reverse_rows = reverse_periods
+
     #]
+
+
+#---------------------------------------------------------------------------------
+# Functional forms
+#---------------------------------------------------------------------------------
+
+
+__all__ = (
+    "reverse_variants",
+    "reverse_columns",
+    "reverse_periods",
+    "reverse_rows",
+)
+
+
+for n in __all__:
+    code = FUNC_STRING.format(n=n, )
+    exec(_tw.dedent(code, ), )
+
 

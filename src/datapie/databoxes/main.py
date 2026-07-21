@@ -365,7 +365,8 @@ analysis.
     @_dm.reference(category="information", )
     def get_names(
         self, 
-        filter: None | Callable = None,
+        test: None | Callable = None,
+        filter: None | Callable = None, # Legacy argument, will be deprecated in the future
     ) -> list[str]:
         """
 ················································································
@@ -373,12 +374,12 @@ analysis.
 ==Get item names from a Databox==
 
 
-    names = self.get_names(filter=None, )
+    names = self.get_names(test=None, )
 
 
 ### Input arguments ###
 
-???+ input "filter"
+???+ input "test"
     A function that takes a name and returns `True` to include the name in the
     output list, or `False` to keep the name out. If `None`, all names are
     included.
@@ -392,8 +393,10 @@ analysis.
 ················································································
         """
         keys = tuple(self.keys())
-        if filter is not None:
-            keys = tuple(k for k in keys if filter(k, ))
+        if filter is not None and test is None:
+            test = filter
+        if test is not None:
+            keys = tuple(k for k in keys if test(k, ))
         return keys
 
     @_dm.reference(category="information", )

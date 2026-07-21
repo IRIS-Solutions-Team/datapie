@@ -25,7 +25,6 @@ AggregationType = Literal["sum", "mean", "avg", "last", "first", ]
 def disaggregate_arip(
     self,
     target_period_class: Period,
-    /,
     model: tuple[FormType, AggregationType],
     target: Self | None = None,
     # indicator: _np.ndarray | None = None,
@@ -221,7 +220,6 @@ def _get_target_data(
     high_start_date,
     high_end_date,
     num_high_periods,
-    /,
 ) -> tuple[_np.ndarray, _np.ndarray, _np.ndarray]:
     """
     """
@@ -236,7 +234,6 @@ def _create_basic_system_matrices(
     rho: Real,
     const: Real,
     sigma_vector: _np.ndarray,
-    /,
 ) -> tuple[_np.ndarray, _np.ndarray]:
     """
     """
@@ -258,7 +255,6 @@ def disaggregate_arip_data(
     num_low_periods: int,
     low_freq: int,
     high_freq: int,
-    /,
 ) -> tuple[_np.ndarray, ...]:
     """
     """

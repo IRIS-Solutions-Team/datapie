@@ -155,7 +155,7 @@ def _make_subplots(
         rows=num_rows,
         cols=num_columns,
         subplot_titles=subplot_titles or None,
-        vertical_spacing=vertical_spacing,
+       vertical_spacing=vertical_spacing,
         horizontal_spacing=horizontal_spacing,
         **kwargs,
     )

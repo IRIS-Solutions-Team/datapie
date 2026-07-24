@@ -398,8 +398,9 @@ def get_style_index(figure: _pg.Figure, subplot_index: int, ) -> int:
         return 0
     if not isinstance(figure.layout.meta, dict):
         return 0
+    subplot_index_str = str(subplot_index)
     style_indexes = figure.layout.meta.get(_STYLE_INDEXES_KEY, {}, )
-    style_index = style_indexes.get(subplot_index, 0, )
+    style_index = style_indexes.get(subplot_index_str, 0, )
     return style_index
 
 
@@ -413,7 +414,8 @@ def set_style_index(figure: _pg.Figure, subplot_index: int, style_index: int, ) 
         return
     if _STYLE_INDEXES_KEY not in figure.layout.meta:
         figure.layout.meta[_STYLE_INDEXES_KEY] = {}
-    figure.layout.meta[_STYLE_INDEXES_KEY][subplot_index] = style_index
+    subplot_index_str = str(subplot_index)
+    figure.layout.meta[_STYLE_INDEXES_KEY][subplot_index_str] = style_index
 
 
 def increment_style_index(figure: _pg.Figure, subplot_index: int, ) -> int:

@@ -41,6 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e datapie
+          pip install orjson
           pip install pytest toml
 
       - name: Run tests

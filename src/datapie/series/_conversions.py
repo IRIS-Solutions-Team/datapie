@@ -156,6 +156,63 @@ A new time `Series` object with the aggregated data.
         new_start_date, new_data = aggregate_func(self, new_dater_class, aggregate_within_data_func, )
         self._replace_start_and_values(new_start_date, new_data, )
 
+    # ==========================================================================
+    #  ### `aggregate(target_freq, method="mean",
+    #   discard_missing=False, select=None)`
+    #
+    #  Converts a time series to a lower frequency by replacing the
+    #  high-frequency observations within each low-frequency period with a
+    #  single summary value.
+    #
+    #  This is how quarterly data becomes annual, or daily data monthly.
+    #  Aggregation covers whole calendar years, so a series that does not
+    #  start in the first period of a year, or end in the last one, has an
+    #  incomplete year at that end. An incomplete year contains missing
+    #  observations and aggregates to a missing value, which is then
+    #  trimmed off, taking the observations it held with it. Setting
+    #  `discard_missing=True` drops the missing observations first and
+    #  aggregates the part-year that remains.
+    #
+    #  **Parameters.** `target_freq` is the frequency to move down to.
+    #  Asking for the frequency the series already has returns silently
+    #  without changing anything; asking for a higher frequency raises
+    #  `ValueError`.
+    #
+    #  `method` is one of `"mean"`, `"geometric_mean"`, `"sum"`, `"prod"`,
+    #  `"first"`, `"last"`, `"min"` and `"max"`, or a function of your own
+    #  taking an array of values and returning one number. Left alone it is
+    #  `"mean"`.
+    #
+    #  `discard_missing` is described above and is `False` when left alone.
+    #  `select` is meant to pick positions within each period but does not
+    #  work as intended, so leave it as `None`.
+    #
+    #  **Returns.** Nothing; the series is converted in place.
+    #
+    #  **Examples.** Two whole years of quarterly data averaged into annual
+    #  data:
+    #
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4., 5., 6., 7., 8.]))
+    #      >>> x.aggregate(dp.Frequency.YEARLY)
+    #      >>> x.get_data()[:, 0].tolist()
+    #      [2.5, 6.5]
+    #
+    #  The same data starting in the third quarter of 2020. The first half
+    #  of 2020 is missing, so 2020 aggregates to a missing value and is
+    #  trimmed away; the two observations it held are gone:
+    #
+    #      >>> x = dp.Series(start=dp.qq(2020, 3),
+    #      ...     values=np.array([3., 4., 5., 6., 7., 8.]))
+    #      >>> x.aggregate(dp.Frequency.YEARLY)
+    #      >>> x.start
+    #      yy(2021)
+    #      >>> x.get_data()[:, 0].tolist()
+    #      [6.5]
+    #
+    # ==========================================================================
+
     @_dm.reference(category="conversion", )
     def disaggregate(
         self,
@@ -287,6 +344,41 @@ series, $y_t$, and converted to high frequency;
         new_dater_class = _periods.PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION[target_freq]
         new_start_date, new_data, *_ = method_func(self, new_dater_class, **kwargs, )
         self._replace_start_and_values(new_start_date, new_data, )
+
+    # ==========================================================================
+    #  ### `disaggregate(target_freq, method="flat", **kwargs)`
+    #
+    #  Converts a time series to a higher frequency by spreading each
+    #  low-frequency observation over the periods it covers.
+    #
+    #  Use it to put annual data on a quarterly grid before combining it
+    #  with quarterly series. Only `"flat"` and `"arip"` fill every new
+    #  period; `"first"`, `"middle"` and `"last"` put the number into one
+    #  period of each block and leave the rest missing.
+    #
+    #  **Parameters.** `target_freq` is the frequency to move up to, and
+    #  must be higher than the one the series already has. Asking for the
+    #  frequency it already has returns silently without changing anything.
+    #
+    #  `method` is `"flat"`, `"first"`, `"middle"`, `"last"` or `"arip"`.
+    #  Left alone it is `"flat"`, which repeats the low-frequency value in
+    #  every high-frequency period without dividing it.
+    #
+    #  Anything else you pass is handed on to the chosen method; `"arip"`
+    #  needs a `model` argument, and the docstring above sets out the
+    #  algorithm behind it.
+    #
+    #  **Returns.** Nothing; the series is converted in place.
+    #
+    #  **Examples.** Annual data repeated across the quarters of each year:
+    #
+    #      >>> y = dp.Series(start=dp.yy(2020),
+    #      ...     values=np.array([100., 200.]))
+    #      >>> y.disaggregate(dp.Frequency.QUARTERLY)
+    #      >>> y.get_data()[:, 0].tolist()
+    #      [100.0, 100.0, 100.0, 100.0, 200.0, 200.0, 200.0, 200.0]
+    #
+    # ==========================================================================
 
     #]
 

@@ -72,6 +72,50 @@ def lonf(
 
     return trend_series, gap_series,
 
+# ==========================================================================
+#  ### `lonf(input_series, order, smooth, span=None)`
+#
+#  Splits a time series into a smooth trend and the gap around it, and
+#  returns the two as new series.
+#
+#  This is an L1-norm relative of the Hodrick-Prescott filter: the trend
+#  comes out as straight segments joined at a few breaks rather than a
+#  curve that bends everywhere.
+#
+#  **Parameters.** `input_series` is read and never modified. `order` must
+#  be `1` or `2` and has no default; any other value raises `KeyError`.
+#  `smooth` has no default either, and the larger it is, the smoother the
+#  trend and the more of the movement goes into the gap. `span` is the
+#  stretch of periods to filter, and left as `None` it is the whole span
+#  the series covers; it has to lie inside the observed data.
+#
+#  **Returns.** A pair, `(trend_series, gap_series)`, both new `Series`
+#  starting at the first period of the resolved span, which added back
+#  together reproduce the input over that span.
+#
+#  Two things happen quietly. A single missing observation anywhere in the
+#  span turns the whole result into an empty series rather than an error.
+#  Only the first variant is filtered, and any others are dropped.
+#
+#  **Examples.** Trend and gap add back up to the data they came from:
+#
+#      >>> import datapie as dp
+#      >>> x = dp.Series(start=dp.qq(2020, 1),
+#      ...     values=np.array(
+#      ...         [1., 3., 2., 5., 4., 7., 6., 9., 8., 11., 10., 13.]))
+#      >>> trend, gap = dp.lonf(x, 1, 1.0)
+#      >>> np.allclose(trend.get_data() + gap.get_data(), x.get_data())
+#      True
+#
+#  One missing observation empties the result:
+#
+#      >>> x = dp.Series(start=dp.qq(2020, 1),
+#      ...     values=np.array([1., 3., np.nan, 5., 4., 7.]))
+#      >>> trend, gap = dp.lonf(x, 1, 1.0)
+#      >>> trend.num_periods
+#      0
+#
+# ==========================================================================
 
 _functional_forms = {"lonf", }
 __all__ = tuple(_functional_forms)

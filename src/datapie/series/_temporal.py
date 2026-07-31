@@ -166,6 +166,63 @@ original data.
         other.shift(by, **kwargs, )
         self._binop(other, func, new=self, )
 
+    # ==========================================================================
+    #  ### `temporal_change(by, func, **kwargs)`
+    #
+    #  Compares every observation with an earlier one and replaces it with
+    #  the result of `func`.
+    #
+    #  This is the engine under `diff`, `diff_log`, `pct`, `roc` and their
+    #  annualized counterparts, and where the `shift` argument they all
+    #  take is decided. Note the first argument is called `by` here, while
+    #  the methods built on it call the same thing `shift`.
+    #
+    #  **Parameters.** `by` picks the earlier period to compare against. A
+    #  negative integer counts that many periods back, so `-1` is the
+    #  previous period and `-4` the same period a year earlier in quarterly
+    #  data. Zero, a positive number and a non-integer all raise
+    #  `ValueError`.
+    #
+    #  It can also be one of four strings. `"yoy"` steps back a whole year.
+    #  `"soy"` compares against the first period of the current year, and
+    #  `"eopy"` against the last period of the previous year. `"tty"` is
+    #  `-1` except in the first period of each year, where the observation
+    #  is left as it stands. Any other string reaches the shifting
+    #  machinery and fails there with `AttributeError: 'Series' object has
+    #  no attribute '_shift_nonsense'`, naming a method you never called.
+    #
+    #  `func` takes the current and the earlier value and returns the
+    #  result. Anything else you pass goes on to the shift, which is how
+    #  the methods supply `neutral_value`.
+    #
+    #  **Returns.** Nothing; the series is modified in place. Periods left
+    #  with nothing to compare against come back missing and are trimmed.
+    #
+    #  **Examples.** Your own `func`, differencing against the previous
+    #  period. The first period has nothing behind it, so the series comes
+    #  back one period shorter, starting a quarter later:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.temporal_change(-1, lambda a, b: a - b)
+    #      >>> x.start
+    #      qq(2020,2)
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [10.0, 11.0, 12.1]
+    #
+    #  With `"soy"` every period has a reference, so nothing is trimmed and
+    #  the first quarter compares against itself:
+    #
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.diff("soy")
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [0.0, 10.0, 21.0, 33.1]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(
         category=None,
@@ -211,6 +268,28 @@ self.roc_from_aroc()
         """
         pass
 
+    # ==========================================================================
+    #  ### `temporal_change_conversion()`
+    #
+    #  Carries the shared documentation for the five methods that convert
+    #  one measure of change into another.
+    #
+    #  Calling it does nothing at all: the body is a single `pass`. It
+    #  exists only so the reference documentation has somewhere to put the
+    #  overview, and there is no working method of this name to call
+    #  instead.
+    #
+    #  The five it stands for are `roc_from_pct`, `pct_from_roc`,
+    #  `pct_from_apct`, `roc_from_apct` and `roc_from_aroc`. Each rewrites
+    #  the values of the series in place and takes no arguments. The three
+    #  that undo an annualization -- `pct_from_apct`, `roc_from_apct` and
+    #  `roc_from_aroc` -- use the number of periods in a year for the
+    #  series' frequency; the other two do not look at the frequency.
+    #
+    #  **Returns.** `None`, and the series is untouched.
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_change", )
     def diff(
@@ -229,6 +308,29 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         """
         self.temporal_change(shift, lambda x, y: x - y, neutral_value=0, )
 
+    # ==========================================================================
+    #  ### `diff(shift=-1)`
+    #
+    #  Replaces every observation with its change from an earlier
+    #  period, as a difference in levels.
+    #
+    #  **Parameters.** `shift` is described under `temporal_change`, and is
+    #  `-1` when left alone.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.diff()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [10.0, 11.0, 12.1]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_change", )
     def adiff(self, ) -> None:
@@ -245,6 +347,30 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         shift = -1
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: factor*(x - y), neutral_value=0, )
+
+    # ==========================================================================
+    #  ### `adiff()`
+    #
+    #  Replaces every observation with its change from the previous
+    #  period, scaled up to a yearly rate.
+    #
+    #  The difference against the previous period is multiplied by the
+    #  number of periods in a year, so quarterly differences are
+    #  multiplied by four. There is no `shift`; it is always `-1`.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.adiff()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [40.0, 44.0, 48.4]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(category="temporal_change", )
@@ -264,6 +390,30 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         """
         self.temporal_change(shift, lambda x, y: _np.log(x) - _np.log(y), neutral_value=0, )
 
+    # ==========================================================================
+    #  ### `diff_log(shift=-1)`
+    #
+    #  Replaces every observation with the change in its logarithm from
+    #  an earlier period.
+    #
+    #  Close to a proportional change for small movements, and it adds up
+    #  across periods, which a percent change does not. `shift` is
+    #  described under `temporal_change` and is `-1` when left alone.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.diff_log()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [0.0953, 0.0953, 0.0953]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_change", )
     def adiff_log(self, ) -> None:
@@ -280,6 +430,29 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         shift = -1
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: factor*(_np.log(x) - _np.log(y)), neutral_value=0, )
+
+    # ==========================================================================
+    #  ### `adiff_log()`
+    #
+    #  Replaces every observation with the change in its logarithm from
+    #  the previous period, scaled up to a yearly rate.
+    #
+    #  The log difference is multiplied by the number of periods in a
+    #  year. There is no `shift`; it is always `-1`.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.adiff_log()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [0.3812, 0.3812, 0.3812]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(category="temporal_change", )
@@ -298,6 +471,30 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
 ................................................................................
         """
         self.temporal_change(shift, lambda x, y: x/y, neutral_value=1, )
+
+    # ==========================================================================
+    #  ### `roc(shift=-1)`
+    #
+    #  Replaces every observation with its gross rate of change against
+    #  an earlier period.
+    #
+    #  A gross rate is the ratio itself, so growth of ten percent comes
+    #  out as `1.1` rather than `10`. `shift` is described under
+    #  `temporal_change` and is `-1` when left alone.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.roc()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [1.1, 1.1, 1.1]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(category="temporal_change", )
@@ -318,6 +515,30 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: (x/y)**factor, neutral_value=1, )
 
+    # ==========================================================================
+    #  ### `aroc()`
+    #
+    #  Replaces every observation with its gross rate of change against
+    #  the previous period, compounded to a yearly rate.
+    #
+    #  The ratio is raised to the number of periods in a year, so a
+    #  quarterly ratio of `1.1` becomes `1.1**4`. There is no `shift`; it
+    #  is always `-1`.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.aroc()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [1.4641, 1.4641, 1.4641]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_change", )
     def pct(
@@ -335,6 +556,29 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
 ................................................................................
         """
         self.temporal_change(shift, lambda x, y: 100*(x/y - 1), neutral_value=None, )
+
+    # ==========================================================================
+    #  ### `pct(shift=-1)`
+    #
+    #  Replaces every observation with its percent change against an
+    #  earlier period.
+    #
+    #  **Parameters.** `shift` is described under `temporal_change`, and is
+    #  `-1` when left alone.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.pct()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [10.0, 10.0, 10.0]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(category="temporal_change", )
@@ -355,6 +599,29 @@ See documentation for [temporal change calculations](#temporal-change-calculatio
         factor = self.frequency.value or 1
         self.temporal_change(shift, lambda x, y: 100*((x/y)**factor - 1), neutral_value=None, )
 
+    # ==========================================================================
+    #  ### `apct()`
+    #
+    #  Replaces every observation with its percent change against the
+    #  previous period, compounded to a yearly rate.
+    #
+    #  Ten percent a quarter compounds to just over forty-six percent a
+    #  year, not forty. There is no `shift`; it is always `-1`.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.apct()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [46.41, 46.41, 46.41]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_change_conversion", )
     def roc_from_pct(
@@ -372,6 +639,29 @@ change](#temporal-change-conversion).
         """
         self.data = 1 + self.data/100
 
+    # ==========================================================================
+    #  ### `roc_from_pct()`
+    #
+    #  Reads the values as percent changes and rewrites them as gross
+    #  rates of change.
+    #
+    #  Ten percent becomes `1.1`. The frequency is not consulted, so this
+    #  is a plain rescaling and nothing is annualized either way.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([10., 20.]))
+    #      >>> x.roc_from_pct()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [1.1, 1.2]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_change_conversion", )
     def pct_from_roc(
@@ -388,6 +678,29 @@ change](#temporal-change-conversion).
 ................................................................................
         """
         self.data = 100*(self.data - 1)
+
+    # ==========================================================================
+    #  ### `pct_from_roc()`
+    #
+    #  Reads the values as gross rates of change and rewrites them as
+    #  percent changes.
+    #
+    #  The inverse of `roc_from_pct`, and like it the frequency plays no
+    #  part.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1.1, 1.2]))
+    #      >>> x.pct_from_roc()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [10.0, 20.0]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(category="temporal_change_conversion", )
@@ -407,6 +720,29 @@ change](#temporal-change-conversion).
         factor = self.frequency.value or 1
         self.data = 100*((1 + self.data/100)**(1/factor) - 1)
 
+    # ==========================================================================
+    #  ### `pct_from_apct()`
+    #
+    #  Reads the values as annualized percent changes and rewrites them as
+    #  percent changes per period.
+    #
+    #  The yearly figure is spread back over the periods in a year, so an
+    #  annualized ten percent becomes about 2.41 percent a quarter.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([10., 20.]))
+    #      >>> x.pct_from_apct()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [2.4114, 4.6635]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_change_conversion", )
     def roc_from_apct(
@@ -424,6 +760,29 @@ change](#temporal-change-conversion).
         """
         factor = self.frequency.value or 1
         self.data = (1 + self.data/100)**(1/factor)
+
+    # ==========================================================================
+    #  ### `roc_from_apct()`
+    #
+    #  Reads the values as annualized percent changes and rewrites them as
+    #  gross rates of change per period.
+    #
+    #  Does what `pct_from_apct` does and leaves the result as a ratio
+    #  rather than a percentage.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([10., 20.]))
+    #      >>> x.roc_from_apct()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [1.0241, 1.0466]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(category="temporal_change_conversion", )
@@ -443,6 +802,31 @@ change](#temporal-change-conversion).
         factor = self.frequency.value or 1
         self.data = self.data**factor
 
+    # ==========================================================================
+    #  ### `roc_from_aroc()`
+    #
+    #  Raises every value to the power of the number of periods in a year.
+    #
+    #  The name says it converts an annualized gross rate into a per-period
+    #  one, but the code raises to `factor` where its siblings divide by it,
+    #  so it annualizes a second time instead. A quarterly series of `1.1`
+    #  comes back as `1.4641`, not as the `1.1**(1/4)` the name implies.
+    #  Use `roc_from_apct` if you want the de-annualizing behaviour.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1.1, 1.2]))
+    #      >>> x.roc_from_aroc()
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [1.4641, 2.0736]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_cumulation", )
     def cum_diff(self, *args, **kwargs, ) -> None:
@@ -457,6 +841,29 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
 ................................................................................
         """
         self.temporal_cumulation("diff", *args, **kwargs, )
+
+    # ==========================================================================
+    #  ### `cum_diff(shift=-1, initial=None, span=None)`
+    #
+    #  Rebuilds a series of levels from a series of first differences.
+    #
+    #  `shift`, `initial` and `span` are described under `temporal_cumulation`.
+    #  Left alone, `initial` is `0`.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** Undoing the matching change calculation:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.diff()
+    #      >>> x.cum_diff(initial=100.)
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [100.0, 110.0, 121.0, 133.1]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(category="temporal_cumulation", )
@@ -473,6 +880,31 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
         """
         self.temporal_cumulation("diff_log", *args, **kwargs, )
 
+    # ==========================================================================
+    #  ### `cum_diff_log(shift=-1, initial=None, span=None)`
+    #
+    #  Rebuilds a series of levels from a series of log differences.
+    #
+    #  `shift`, `initial` and `span` are described under `temporal_cumulation`.
+    #  The default `initial` of `0` cannot be used here: the cumulation
+    #  multiplies, so a start of `0` leaves every value `0`. Always pass a
+    #  starting level.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** Undoing the matching change calculation:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.diff_log()
+    #      >>> x.cum_diff_log(initial=100.)
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [100.0, 110.0, 121.0, 133.1]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_cumulation", )
     def cum_pct(self, *args, **kwargs, ) -> None:
@@ -488,6 +920,30 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
         """
         self.temporal_cumulation("pct", *args, **kwargs, )
 
+    # ==========================================================================
+    #  ### `cum_pct(shift=-1, initial=None, span=None)`
+    #
+    #  Rebuilds a series of levels from a series of percent changes.
+    #
+    #  `shift`, `initial` and `span` are described under `temporal_cumulation`.
+    #  Left alone, `initial` is `1`, which gives an index rather than a
+    #  level.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** Undoing the matching change calculation:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.pct()
+    #      >>> x.cum_pct(initial=100.)
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [100.0, 110.0, 121.0, 133.1]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="temporal_cumulation", )
     def cum_roc(self, *args, **kwargs, ) -> None:
@@ -502,6 +958,30 @@ See documentation for [temporal cumulation calculations](#temporal-cumulation-ca
 ................................................................................
         """
         self.temporal_cumulation("roc", *args, **kwargs, )
+
+    # ==========================================================================
+    #  ### `cum_roc(shift=-1, initial=None, span=None)`
+    #
+    #  Rebuilds a series of levels from a series of gross rates of change.
+    #
+    #  `shift`, `initial` and `span` are described under `temporal_cumulation`.
+    #  Left alone, `initial` is `1`, which gives an index rather than a
+    #  level.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** Undoing the matching change calculation:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.roc()
+    #      >>> x.cum_roc(initial=100.)
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [100.0, 110.0, 121.0, 133.1]
+    #
+    # ==========================================================================
 
 
     @_dm.reference(
@@ -603,6 +1083,55 @@ data.
         #
         elif direction == "backward":
             _cumulate_backward(self, shift, cum_func, initial, span, )
+
+    # ==========================================================================
+    #  ### `temporal_cumulation(func_name, shift=-1, initial=None,
+    #   span=None)`
+    #
+    #  Rebuilds a series of levels from a series of changes, undoing what
+    #  `diff`, `diff_log`, `pct` or `roc` did.
+    #
+    #  This is the engine under `cum_diff`, `cum_diff_log`, `cum_pct` and
+    #  `cum_roc`, and where their shared arguments are decided. Use it to
+    #  turn a forecast written as growth rates back into a path of levels.
+    #
+    #  **Parameters.** `func_name` is one of `"diff"`, `"diff_log"`,
+    #  `"pct"` and `"roc"`, and says which change the values represent; the
+    #  four `cum_*` methods each fill it in. `shift` is the lag the changes
+    #  were computed at and is `-1` when left alone, with the same rules as
+    #  under `temporal_change`.
+    #
+    #  `initial` is the level to start from. Left as `None` it is `0` for
+    #  `"diff"` and `"diff_log"` and `1` for `"pct"` and `"roc"`. For
+    #  `"diff_log"` that default is useless: the cumulation multiplies, so
+    #  a start of `0` stays `0` and the whole series comes back as zeros.
+    #  Pass a real starting level there.
+    #
+    #  `span` is the stretch to cumulate over, and left as `None` it is the
+    #  whole series. Its direction chooses between the forward and the
+    #  backward routine.
+    #
+    #  **Returns.** Nothing; the series is modified in place. Cumulating
+    #  gives back the period that the change calculation trimmed, so the
+    #  series grows one period at the front.
+    #
+    #  **Examples.** Differences turned back into levels, starting at 100.
+    #  Note the start moving back to 2020-Q1:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([100., 110., 121., 133.1]))
+    #      >>> x.diff()
+    #      >>> x.start
+    #      qq(2020,2)
+    #      >>> x.cum_diff(initial=100.)
+    #      >>> x.start
+    #      qq(2020,1)
+    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    #      [100.0, 110.0, 121.0, 133.1]
+    #
+    # ==========================================================================
 
     #]
 

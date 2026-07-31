@@ -93,6 +93,38 @@ class Mixin:
         self.set_data(other_copy.span, other_copy.data, )
         self.trim()
 
+    # ==========================================================================
+    #  ### `overlay_by_span(other)`
+    #
+    #  Writes the whole span of another series over this one, from the
+    #  other series' first observation to its last.
+    #
+    #  Everything inside that stretch comes from `other`, the periods where
+    #  `other` has no observation included. Use it when the other series is
+    #  meant to replace this one over its whole span, gaps and all, and
+    #  `overlay_by_observation` when you want only the periods `other`
+    #  actually carries.
+    #
+    #  **Parameters.** `other` is the series to lay on top. It is copied
+    #  first, so it is not modified.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** The gap in `other` wipes out the observation this
+    #  series held in 2020-Q4:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> y = dp.Series(start=dp.qq(2020, 3),
+    #      ...     values=np.array([30., np.nan, 50.]))
+    #      >>> x.overlay_by_span(y)
+    #      >>> x.get_data()[:, 0].tolist()
+    #      [1.0, 2.0, 30.0, nan, 50.0]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="multiple", )
     def overlay_by_observation(
@@ -177,6 +209,38 @@ class Mixin:
         self.start = encompassing_span.start
         self.data = result_data
 
+    # ==========================================================================
+    #  ### `overlay_by_observation(other)`
+    #
+    #  Writes the observations of another series over this one period by
+    #  period, only where the other series has one.
+    #
+    #  Where `other` is missing, this series keeps what it already had.
+    #  That is the whole difference from `overlay_by_span`, which hands the
+    #  gaps over as well.
+    #
+    #  **Parameters.** `other` is the series to lay on top, and unlike the
+    #  other three methods here it is not copied first. If `other` holds a
+    #  single variant while this series holds several, `other` is widened
+    #  where it stands and comes back with more variants than it had.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** The same pair as `overlay_by_span`, where the
+    #  observation in 2020-Q4 now survives:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> y = dp.Series(start=dp.qq(2020, 3),
+    #      ...     values=np.array([30., np.nan, 50.]))
+    #      >>> x.overlay_by_observation(y)
+    #      >>> x.get_data()[:, 0].tolist()
+    #      [1.0, 2.0, 30.0, 4.0, 50.0]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="multiple", )
     def underlay_by_span(
@@ -236,6 +300,37 @@ class Mixin:
         new_self.overlay_by_span(self, )
         self._shallow_copy_data(new_self, )
 
+    # ==========================================================================
+    #  ### `underlay_by_span(other)`
+    #
+    #  Slides another series in underneath this one, so this series wins
+    #  across its whole span and `other` shows only outside it.
+    #
+    #  This series keeps everything it had between its first and last
+    #  observation, its internal gaps included, and `other` reaches only
+    #  the periods before and after. Use `underlay_by_observation` when you
+    #  want those internal gaps filled instead.
+    #
+    #  **Parameters.** `other` is the series to lay underneath. It is not
+    #  modified.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** The gap this series has in 2020-Q2 stays a gap, and
+    #  `other` only reaches 2021-Q1:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., np.nan, 3., 4.]))
+    #      >>> y = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([10., 20., 30., 40., 50.]))
+    #      >>> x.underlay_by_span(y)
+    #      >>> x.get_data()[:, 0].tolist()
+    #      [1.0, nan, 3.0, 4.0, 50.0]
+    #
+    # ==========================================================================
+
 
     @_dm.reference(category="multiple", )
     def underlay_by_observation(
@@ -290,6 +385,36 @@ class Mixin:
         new_self = other.copy()
         new_self.overlay_by_observation(self)
         self._shallow_copy_data(new_self)
+
+    # ==========================================================================
+    #  ### `underlay_by_observation(other)`
+    #
+    #  Slides another series in underneath this one period by period, so
+    #  `other` shows through only where this series has no observation.
+    #
+    #  This series wins wherever it holds a value, and `other` supplies the
+    #  rest, inside the span as well as outside it. This is the one to
+    #  reach for when you are filling gaps from a second source.
+    #
+    #  **Parameters.** `other` is the series to lay underneath. It is not
+    #  modified.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.** The same pair as `underlay_by_span`, where the gap in
+    #  2020-Q2 is now filled from `other`:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., np.nan, 3., 4.]))
+    #      >>> y = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([10., 20., 30., 40., 50.]))
+    #      >>> x.underlay_by_observation(y)
+    #      >>> x.get_data()[:, 0].tolist()
+    #      [1.0, 20.0, 3.0, 4.0, 50.0]
+    #
+    # ==========================================================================
 
     #]
 

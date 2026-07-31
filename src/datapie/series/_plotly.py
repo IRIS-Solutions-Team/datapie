@@ -107,6 +107,32 @@ class Mixin:
         else:
             raise ValueError(f"Invalid chart_type: {chart_type!r}, must be one of 'line', 'bar', 'bar_group', 'bar_stack', 'bar_relative', 'bar_overlay', 'area' or 'histogram'")
 
+    # ==========================================================================
+    #  ### `plot(chart_type="line", **kwargs)`
+    #
+    #  Draws the series as a chart of the kind named by `chart_type`,
+    #  handing the work to the matching `plot_*` method.
+    #
+    #  `chart_type` is one of `"line"`, `"bar"`, `"bar_group"`,
+    #  `"bar_stack"`, `"bar_relative"`, `"bar_overlay"`, `"area"` and
+    #  `"histogram"`, and is `"line"` when left alone. Everything else you
+    #  pass goes straight on to the chosen method.
+    #
+    #  **Returns.** Whatever that method returns, which is `None` unless
+    #  you pass `return_info=True`.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> info = x.plot("bar", show_figure=False, return_info=True)
+    #      >>> info["traces"][0].type
+    #      'bar'
+    #
+    # ==========================================================================
+
     def plot_line(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -128,6 +154,44 @@ class Mixin:
             **kwargs,
         )
         return info
+
+    # ==========================================================================
+    #  ### `plot_line(span=..., update_traces=None, **kwargs)`
+    #
+    #  Draws each variant of the series as a line with markers.
+    #
+    #  The arguments described here are shared with `plot_area`, `plot_bar`
+    #  and `plot_histogram`, which differ only in the shape they draw.
+    #
+    #  **Parameters.** `span` is the stretch of periods to draw, and left
+    #  alone it is the span the series covers. `update_traces` is a
+    #  dictionary of plotly trace settings applied to every trace, or an
+    #  iterable of dictionaries cycled over the variants; left as `None`
+    #  nothing is applied.
+    #
+    #  Everything else reaches the layout builder. The two worth knowing
+    #  are `show_figure`, which is `True` and displays the chart as soon as
+    #  it is built, and `return_info`, which is `False` and is why the
+    #  method hands back nothing. Others include `figure` and `subplot` for
+    #  drawing into an existing figure, `figure_title` and `subplot_title`,
+    #  `legend`, `update_layout`, `highlight`, `vline` and `round_to`.
+    #
+    #  **Returns.** `None`, unless `return_info=True`, in which case a
+    #  dictionary with `"figure"` and `"traces"`.
+    #
+    #  **Examples.** Nothing comes back until you ask for it:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> x.plot_line(show_figure=False) is None
+    #      True
+    #      >>> info = x.plot_line(show_figure=False, return_info=True)
+    #      >>> sorted(info)
+    #      ['figure', 'traces']
+    #
+    # ==========================================================================
 
     def plot_bands(
         self,
@@ -163,6 +227,50 @@ class Mixin:
         )
         return info
 
+    # ==========================================================================
+    #  ### `plot_bands(span=..., base_color=None, shading_weights=None,
+    #   shading_background=None, update_band_traces=None,
+    #   update_midline_trace=None, update_layout=None, **kwargs)`
+    #
+    #  Draws the variants of the series as shaded bands around a middle
+    #  line, the way a fan chart shows a forecast.
+    #
+    #  The variants are paired from the outside in: the first with the
+    #  last, the second with the second from last, and so on, each pair
+    #  becoming one filled band. An odd number of variants leaves the
+    #  middle one over, and it is drawn as a plain line. So six variants
+    #  give three bands, and seven give three bands and a midline.
+    #
+    #  **Parameters.** `base_color` is the colour the bands are shaded
+    #  from; left as `None` it is the next colour in the figure's style
+    #  cycle. `shading_weights` sets how the shades step from the outer
+    #  band to the inner, and `shading_background` is the colour the shades
+    #  are blended towards; left alone both fall back to the default
+    #  shading.
+    #
+    #  `update_band_traces` and `update_midline_trace` are plotly settings
+    #  applied to the band traces and to the middle line. `span` and the
+    #  rest of the arguments work as described under `plot_line`.
+    #
+    #  `update_layout` is used and then modified: a `legend_traceorder` key
+    #  is added to the dictionary you passed in, so the dictionary you
+    #  still hold comes back with an extra entry.
+    #
+    #  **Returns.** `None`, unless `return_info=True`, in which case a
+    #  dictionary with `"figure"` and `"traces"`.
+    #
+    #  **Examples.** Three variants make one band and one midline:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> b = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.column_stack([[1., 2.], [3., 4.], [5., 6.]]))
+    #      >>> info = b.plot_bands(show_figure=False, return_info=True)
+    #      >>> len(info["traces"])
+    #      2
+    #
+    # ==========================================================================
+
     def plot_area(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -185,6 +293,29 @@ class Mixin:
             **kwargs,
         )
         return info
+
+    # ==========================================================================
+    #  ### `plot_area(span=..., update_traces=None, **kwargs)`
+    #
+    #  Draws each variant of the series as a line with the space down to
+    #  zero filled in.
+    #
+    #  Same as `plot_line` apart from the fill, and all its arguments are
+    #  described there.
+    #
+    #  **Returns.** `None`, unless `return_info=True`.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> info = x.plot_area(show_figure=False, return_info=True)
+    #      >>> info["traces"][0].fill
+    #      'tozeroy'
+    #
+    # ==========================================================================
 
     def plot_bar(
         self,
@@ -209,10 +340,65 @@ class Mixin:
         )
         return info
 
+    # ==========================================================================
+    #  ### `plot_bar(span=..., update_traces=None, **kwargs)`
+    #
+    #  Draws each variant of the series as bars.
+    #
+    #  Same as `plot_line` apart from the shape, and all its arguments are
+    #  described there. How the bars of several variants sit against each
+    #  other is set by `bar_mode`, which you can pass here directly as
+    #  `"stack"`, `"group"`, `"overlay"` or `"relative"`; leaving it out
+    #  sets no bar mode at all. The four `plot_bar_*` methods below are the
+    #  same call with each of those values already filled in.
+    #
+    #  **Returns.** `None`, unless `return_info=True`.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> info = x.plot_bar(bar_mode="group", show_figure=False,
+    #      ...     return_info=True)
+    #      >>> info["figure"].layout.barmode
+    #      'group'
+    #
+    # ==========================================================================
+
     plot_bar_stack = _ft.partialmethod(plot_bar, bar_mode="stack", )
     plot_bar_group = _ft.partialmethod(plot_bar, bar_mode="group", )
     plot_bar_overlay = _ft.partialmethod(plot_bar, bar_mode="overlay", )
     plot_bar_relative = _ft.partialmethod(plot_bar, bar_mode="relative", )
+
+    # ==========================================================================
+    #  ### `plot_bar_stack(span=..., update_traces=None, **kwargs)` and
+    #   `plot_bar_group`, `plot_bar_overlay`, `plot_bar_relative`
+    #
+    #  Four ready-made versions of `plot_bar`, one for each way of placing
+    #  the bars of several variants against each other.
+    #
+    #  Each is `plot_bar` with `bar_mode` already fixed, to `"stack"`,
+    #  `"group"`, `"overlay"` and `"relative"` respectively, so all four
+    #  take `plot_bar`'s arguments and return what it returns. Stacked bars
+    #  pile the variants up, grouped bars stand them side by side,
+    #  overlaid bars draw them on top of one another, and relative bars
+    #  stack positive and negative values on opposite sides of the axis.
+    #
+    #  **Returns.** `None`, unless `return_info=True`.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> info = x.plot_bar_stack(show_figure=False, return_info=True)
+    #      >>> info["figure"].layout.barmode
+    #      'stack'
+    #
+    # ==========================================================================
 
     def plot_histogram(
         self,
@@ -239,6 +425,36 @@ class Mixin:
             **kwargs,
         )
         return info
+
+    # ==========================================================================
+    #  ### `plot_histogram(span=..., hist_norm="", update_traces=None,
+    #   **kwargs)`
+    #
+    #  Draws the distribution of each variant's values as a histogram.
+    #
+    #  Unlike the other methods here, time does not appear on the chart:
+    #  the observations are counted into bins, and `span` only decides
+    #  which of them are counted. `span` and the remaining arguments work
+    #  as described under `plot_line`.
+    #
+    #  **Parameters.** `hist_norm` chooses what the bars measure, being
+    #  `""`, `"probability"`, `"percent"`, `"density"` or
+    #  `"probability density"`. Left alone it is `""`, which counts
+    #  observations.
+    #
+    #  **Returns.** `None`, unless `return_info=True`.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2., 3., 4.]))
+    #      >>> info = x.plot_histogram(show_figure=False, return_info=True)
+    #      >>> info["traces"][0].type
+    #      'histogram'
+    #
+    # ==========================================================================
 
     #]
 

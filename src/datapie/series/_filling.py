@@ -132,6 +132,61 @@ class Mixin:
         ]
         self.set_data(span, new_data, )
 
+# ==========================================================================
+    #  ### `fill_missing(method, method_args=None, span=None)`
+    #
+    #  Replaces the missing observations in a time series using a chosen
+    #  rule.
+    #
+    #  **Parameters.** `method` is the rule to fill with, and is required.
+    #  `"next"`, `"previous"` and `"nearest"` copy a neighbouring
+    #  observation; `"linear"` and `"log_linear"` interpolate between the
+    #  observations on either side; `"constant"` writes a fixed number;
+    #  and `"from_series"` takes the values from another series. An
+    #  unknown name raises `KeyError`.
+    #
+    #  `method_args` carries whatever the rule needs: the number for
+    #  `"constant"`, the other series for `"from_series"`. The other rules
+    #  ignore it. With `"constant"` and `method_args` left as `None`, the
+    #  gaps are refilled with missing values and the series is unchanged.
+    #
+    #  `span` is the stretch of periods to fill, and left as `None` it is
+    #  the span the series already covers; a wider `span` lets the filling
+    #  reach beyond the data.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  Despite the names, `"linear"` and `"log_linear"` only interpolate.
+    #  Past the first and last observation they repeat that end value
+    #  rather than continuing the line. Periods no rule could reach stay
+    #  missing, and missing periods at the ends are then trimmed off, so
+    #  the series can come back shorter than the `span` asked for.
+    #
+    #  **Examples.** A span reaching one period before the data and two
+    #  after it. The two interior gaps are interpolated, while the three
+    #  periods outside the data take the nearest end value:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 2),
+    #      ...     values=np.array([2., np.nan, np.nan, 8.]))
+    #      >>> x.fill_missing("linear", None,
+    #      ...     dp.Span(dp.qq(2020, 1), dp.qq(2021, 3)))
+    #      >>> x.get_data()[:, 0].tolist()
+    #      [2.0, 2.0, 4.0, 6.0, 8.0, 8.0, 8.0]
+    #
+    #  `"next"` has no later observation to copy after 2021-Q1, so those
+    #  periods stay missing and are trimmed:
+    #
+    #      >>> x = dp.Series(start=dp.qq(2020, 2),
+    #      ...     values=np.array([2., np.nan, np.nan, 8.]))
+    #      >>> x.fill_missing("next", None,
+    #      ...     dp.Span(dp.qq(2020, 1), dp.qq(2021, 3)))
+    #      >>> x.end
+    #      qq(2021,1)
+    #
+    # ==========================================================================
+
     #]
 
 
@@ -262,6 +317,20 @@ def fill_from_series(
     index_nan = _np.isnan(values)
     values[index_nan] = fill_values.flatten()[index_nan]
     return values
+
+
+# ==========================================================================
+#  ### `fill_from_series(values, method_args, span)`
+#
+#  Fills the missing entries of an array with the observations another
+#  time series holds over the same span, and returns the array.
+#
+#  This is what backs the `"from_series"` rule of `fill_missing`, and is
+#  not meant to be called on its own. `method_args` is the series to take
+#  the values from, and `values` is modified in place as well as returned.
+#  Periods that series does not cover stay missing.
+#
+# ==========================================================================
 
 
 def _next_index(i: int, where_obs: _np.ndarray, /, ) -> int:

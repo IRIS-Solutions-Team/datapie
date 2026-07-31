@@ -114,6 +114,8 @@ def broadcast_variants_when_needed(
 #
 #  **Examples.** The second argument is the one that changes here:
 #
+#      >>> import numpy as np
+#      >>> import datapie as dp
 #      >>> from datapie.series import _broadcasts
 #      >>> x = dp.Series(start=dp.qq(2020, 1),
 #      ...     values=np.array([[1.0, 2.0], [3.0, 4.0]]))

@@ -99,6 +99,7 @@ def lonf(
 #
 #  **Examples.** Trend and gap add back up to the data they came from:
 #
+#      >>> import numpy as np
 #      >>> import datapie as dp
 #      >>> x = dp.Series(start=dp.qq(2020, 1),
 #      ...     values=np.array(

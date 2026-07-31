@@ -102,6 +102,49 @@ series, as well as handling multiple variants.
         #
         return jsonable
 
+    # ==========================================================================
+    #  ### `to_jsonable(*, period_to_string=Period.to_sdmx_string,
+    #   include_description=True, include_frequency=True,
+    #   allow_multiple_variants=False)`
+    #
+    #  Turns a time series into a plain dictionary that can be written out
+    #  as JSON.
+    #
+    #  **Parameters.** Every argument is keyword-only.
+    #
+    #  `period_to_string` turns the start period into text. Left alone it
+    #  writes the SDMX form such as `"2020-Q1"`; `Period.to_iso_string`
+    #  writes `"2020-01-01"` instead.
+    #
+    #  `include_description` and `include_frequency` decide whether those
+    #  two keys appear at all. Both are on when left alone.
+    #
+    #  `allow_multiple_variants` is not implemented. Setting it to `True`
+    #  raises `NotImplementedError`.
+    #
+    #  **Returns.** A dictionary holding `"description"`, `"frequency"`,
+    #  `"start"` and `"values"`, the first two only if you asked for them.
+    #  `"start"` is `None` for an empty series, and `"values"` is a tuple.
+    #
+    #  A series holding more than one variant cannot be written at all. The
+    #  `ValueError` you get tells you to pass `allow_multiple_variants=True`,
+    #  which then raises `NotImplementedError`.
+    #
+    #  Missing observations are written through unchanged. That is not a
+    #  problem here, but `NaN` is not valid JSON, so passing the result to
+    #  the standard `json` module -- as `Databox.series_to_json_file`
+    #  does -- produces a file that a strict reader will reject.
+    #
+    #  **Examples.**
+    #
+    #      >>> import datapie as dp
+    #      >>> import numpy as np
+    #      >>> x = dp.Series(start=dp.qq(2020, 1), values=np.array([1., 2.]))
+    #      >>> x.to_jsonable(include_description=False)
+    #      {'frequency': 'Q', 'start': '2020-Q1', 'values': (1.0, 2.0)}
+    #
+    # ==========================================================================
+
     @classmethod
     @_dm.reference(
         category="constructor",
@@ -192,6 +235,55 @@ This class method creates a time series from a JSON-serializable dictionary.
             values=values,
             description=description,
         )
+
+    # ==========================================================================
+    #  ### `Series.from_jsonable(jsonable, *,
+    #   period_from_string=Period.from_sdmx_string,
+    #   frequency_included=True, description_included=True,
+    #   allow_multiple_variants=False)`
+    #
+    #  Builds a time series from a dictionary of the kind `to_jsonable`
+    #  produces.
+    #
+    #  This one is called on the class rather than on a series, as
+    #  `Series.from_jsonable(d)`.
+    #
+    #  **Parameters.** Everything after `jsonable` is keyword-only.
+    #
+    #  `period_from_string` parses the start period and has to match the
+    #  way it was written. Left alone it reads the SDMX form, while
+    #  `Period.from_iso_string` reads ISO dates.
+    #
+    #  `frequency_included` and `description_included` say whether those
+    #  keys are there to be read. Both are on when left alone.
+    #
+    #  `allow_multiple_variants` is not implemented. Setting it to `True`
+    #  raises `NotImplementedError`.
+    #
+    #  **Returns.** A new series. When the stored start or values are
+    #  empty you get an empty series instead, and it carries the
+    #  description only if `description_included` was left on.
+    #
+    #  The flags have to match the ones used when writing, and they are
+    #  spelled differently at the two ends. Writing with
+    #  `include_frequency=False` and reading with the default
+    #  `frequency_included=True` raises `KeyError: 'frequency'`, and the
+    #  same goes for the description. Reading ISO dates with the default
+    #  SDMX parser raises `ValueError`.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 2.]), description="GDP")
+    #      >>> y = dp.Series.from_jsonable(x.to_jsonable())
+    #      >>> y.get_data()[:, 0].tolist()
+    #      [1.0, 2.0]
+    #      >>> y.get_description()
+    #      'GDP'
+    #
+    # ==========================================================================
 
         #]
 

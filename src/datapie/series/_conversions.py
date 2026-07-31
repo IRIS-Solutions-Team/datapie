@@ -192,6 +192,7 @@ A new time `Series` object with the aggregated data.
     #  **Examples.** Two whole years of quarterly data averaged into annual
     #  data:
     #
+    #      >>> import numpy as np
     #      >>> import datapie as dp
     #      >>> x = dp.Series(start=dp.qq(2020, 1),
     #      ...     values=np.array([1., 2., 3., 4., 5., 6., 7., 8.]))
@@ -372,6 +373,8 @@ series, $y_t$, and converted to high frequency;
     #
     #  **Examples.** Annual data repeated across the quarters of each year:
     #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
     #      >>> y = dp.Series(start=dp.yy(2020),
     #      ...     values=np.array([100., 200.]))
     #      >>> y.disaggregate(dp.Frequency.QUARTERLY)

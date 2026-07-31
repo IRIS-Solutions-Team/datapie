@@ -382,11 +382,62 @@ class Mixin:
         start_date, trend_data, _ = _data_hpf(self, *args, **kwargs, )
         self._replace_start_and_values(start_date, trend_data, )
 
+    # ==========================================================================
+    #  ### `hpf_trend(*args, **kwargs)`
+    #
+    #  Replaces the values of a time series with the trend component of the
+    #  Hodrick-Prescott filter.
+    #
+    #  It accepts the same arguments as `hpf`, which is where they are
+    #  described. The gap component is computed and then thrown away; call
+    #  `hpf` instead when you want to keep both parts.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 3., 2., 5., 4., 7.]))
+    #      >>> x.hpf_trend()
+    #      >>> [round(v, 3) for v in x.get_data()[:, 0].tolist()]
+    #      [1.096, 2.124, 3.152, 4.181, 5.209, 6.239]
+    #
+    # ==========================================================================
+
     def hpf_gap(self, *args, **kwargs):
         """
         """
         start_date, _, gap_data = _data_hpf(self, *args, **kwargs, )
         self._replace_start_and_values(start_date, gap_data, )
+
+    # ==========================================================================
+    #  ### `hpf_gap(self,*args, **kwargs)`
+    #
+    #  Replaces the values of a time series with the gap component of the
+    #  Hodrick-Prescott filter.
+    #
+    #  It accepts the same arguments as `hpf`, which is where they are
+    #  described. The trend component is computed and then thrown away;
+    #  call `hpf` instead when you want to keep both parts. Unlike the
+    #  trend, the gap exists only where the input had an observation,
+    #  so a series with gaps in it comes back with gaps in the same
+    #  places.
+    #
+    #  **Returns.** Nothing; the series is modified in place.
+    #
+    #  **Examples.**
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> x = dp.Series(start=dp.qq(2020, 1),
+    #      ...     values=np.array([1., 3., 2., 5., 4., 7.]))
+    #      >>> x.hpf_gap()
+    #      >>> [round(v, 3) for v in x.get_data()[:, 0].tolist()]
+    #      [-0.096, 0.876, -1.152, 0.819, -1.209, 0.761]
+    #
+    # ==========================================================================
 
     #]
 
@@ -404,6 +455,59 @@ def hpf(self, *args, **kwargs, ) -> tuple[Series, Series]:
     trend = type(self)(start_date=start_date, values=trend_data, )
     gap = type(self)(start_date=start_date, values=gap_data, )
     return trend, gap
+
+
+# ==========================================================================
+#  ### `hpf(self, *args, **kwargs)`
+#
+#  Splits a time series into a trend and a gap with the constrained
+#  Hodrick-Prescott filter, and returns the two as new series.
+#
+#  This module-level function is the working one. The `Series` method of
+#  the same name raises `NotImplementedError`; it exists only to carry
+#  the reference documentation.
+#
+#  **Parameters.** `self` is the series to filter, which is read and not
+#  changed. Everything after it is forwarded unchanged, and all of it must
+#  be passed by keyword: `span`, `smooth`, `log`, `level`, `change` and
+#  `information`. Positional arguments are accepted here and rejected
+#  further down, so the `TypeError` names `_data_hpf`, a function you did
+#  not call.
+#
+#  `span` is the stretch of periods the results are returned on, and left
+#  alone it is the span of the input.
+#
+#  `smooth` is the penalty on a rough trend. Left as `None` it is taken
+#  from the frequency of the series: 100 yearly, 400 half-yearly, 1600
+#  quarterly, 14400 monthly, and 1600 for anything else.
+#
+#  With `log=True` the filter runs on the logarithms of the data.
+#
+#  `level` and `change` are series pinning the trend, or its
+#  period-on-period difference, to the values they carry in the periods
+#  where they hold observations.
+#
+#  `information` picks `"two_sided"`, which uses every observation, or
+#  `"one_sided"`, which uses only those up to each period.
+#
+#  **Returns.** A pair, `(trend, gap)`, both new series; the input series
+#  is left alone. The trend covers the whole `span`, while the gap exists
+#  only in periods where the input has an observation.
+#
+#  With `log=True` the gap comes back as the data divided by the trend
+#  rather than as the difference between them.
+#
+#  **Examples.** Trend and gap add back up to the data they came from:
+#
+#      >>> import numpy as np
+#      >>> import datapie as dp
+#      >>> x = dp.Series(start=dp.qq(2020, 1),
+#      ...     values=np.array([1., 3., 2., 5., 4., 7.]))
+#      >>> trend, gap = dp.hpf(x)
+#      >>> np.allclose(trend.get_data() + gap.get_data(), x.get_data())
+#      True
+#
+# ==========================================================================
 
 
 _functional_forms = {"hpf", }

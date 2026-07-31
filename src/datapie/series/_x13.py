@@ -345,6 +345,95 @@ class Mixin:
         else:
             return
 
+    # ==========================================================================
+    #  ### `x13(*, span=..., when_error="warning", clean_up=True,
+    #   output="seasonally_adjusted", return_info=False,
+    #   unpack_singleton=True, specs_template=None, mode=None,
+    #   allow_missing=False, add_to_specs=None, version="1.1.62")`
+    #
+    #  Runs the series through the X13-ARIMA-TRAMO-SEATS program and
+    #  replaces its values with the component you asked for.
+    #
+    #  This is the standard tool for taking the seasonal pattern out of
+    #  monthly or quarterly data. The work is done by the bundled X13
+    #  executable: the series is written to a spec file, the program is
+    #  run, and one of its output tables is read back. Only monthly and
+    #  quarterly series can be used; any other frequency raises `KeyError`
+    #  naming the frequency.
+    #
+    #  **Parameters.** Every argument is keyword-only.
+    #
+    #  `span` is the stretch of periods to work on, and left alone it is
+    #  the whole series. It is not merely a window on the calculation: the
+    #  series is clipped to it in place before X13 runs, so a narrower
+    #  `span` permanently discards the observations outside it.
+    #
+    #  `output` picks which of the X13 tables comes back, and is
+    #  `"seasonally_adjusted"` when left alone. The documented names are
+    #  `"seasonal"`, `"seasonally_adjusted"`, `"trend_cycle"`,
+    #  `"irregular"`, `"seasonal_and_td"` and `"holiday_and_td"`; the short
+    #  forms `"sf"`, `"sa"`, `"tc"`, `"irr"` and `"seasonal_factors"` are
+    #  accepted too. An unrecognised name is not rejected, it is passed to
+    #  X13 as a table name, which produces no data and fails obscurely.
+    #
+    #  `mode` is the decomposition, one of `"mult"`, `"add"`,
+    #  `"pseudoadd"` and `"logadd"`. Left as `None` it is chosen from the
+    #  data: multiplicative when every observation is strictly positive or
+    #  every observation is strictly negative, additive otherwise. Missing
+    #  observations do not spoil that test, but a zero does, since zero is
+    #  neither positive nor negative and pushes the choice to additive. An
+    #  all-negative series is flipped to positive for the run and flipped
+    #  back afterwards -- but only if it holds no missing observation, so
+    #  an all-negative series with a gap is sent to X13 as it stands, under
+    #  a multiplicative mode that takes logarithms of negative numbers, and
+    #  the run fails.
+    #
+    #  `specs_template` replaces the default spec dictionary and
+    #  `add_to_specs` merges extra settings into whichever template is in
+    #  use. `allow_missing` lets missing observations through and adds an
+    #  empty `automdl` spec when no ARIMA model has been given. `version`
+    #  chooses between the two bundled executables and is `"1.1.62"` when
+    #  left alone.
+    #
+    #  `when_error` decides what happens when X13 fails for a variant,
+    #  either `"warning"` or `"error"`. `clean_up` removes the spec and
+    #  output files afterwards; note these are written into the current
+    #  working directory, so `clean_up=False` leaves a handful of `tmp*`
+    #  files behind wherever you happened to be.
+    #
+    #  **Returns.** Nothing, unless `return_info=True`, which returns a
+    #  dictionary describing the run: `success`, `mode`,
+    #  `transform_function`, `flip_sign`, `specs`, `specs_template`, and
+    #  the contents of the files X13 wrote, including the requested table.
+    #  With several variants there is one such dictionary per variant,
+    #  collapsed to a single one for a singleton series unless
+    #  `unpack_singleton=False`.
+    #
+    #  **Examples.** Six years of quarterly data with a seasonal pattern.
+    #  The series is adjusted in place and keeps its length:
+    #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
+    #      >>> t = np.arange(24)
+    #      >>> x = dp.Series(start=dp.qq(2015, 1),
+    #      ...     values=100 + 2*t + 10*np.sin(2*np.pi*t/4))
+    #      >>> x.x13() is None
+    #      True
+    #      >>> x.num_periods
+    #      24
+    #
+    #  Asking for the details of the run:
+    #
+    #      >>> x = dp.Series(start=dp.qq(2015, 1),
+    #      ...     values=100 + 2*t + 10*np.sin(2*np.pi*t/4))
+    #      >>> info = x.x13(return_info=True)
+    #      >>> info["success"]
+    #      True
+    #      >>> info["mode"]
+    #      'mult'
+    #
+    # ==========================================================================
+
     #]
 
 

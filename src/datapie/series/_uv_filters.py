@@ -346,11 +346,10 @@ This method modifies `self` in-place and does not return a value.
         )
 
     # ==========================================================================
-    #  ### Simple exponential smoothing filter
-    #   `exp_smooth(span=..., alpha=0.3)`
+    #  ### `exp_smooth(span=..., alpha=0.3)`
     #
-    #  Smooths each variant of the series in place by exponentially
-    #  weighted averaging.
+    #  Simple exponential smoothing filter. Smooths each variant of the
+    #  series in place by exponentially weighted averaging.
     #
     #  Each filtered value is a weighted average of the current
     #  observation and the previous filtered value, so the weight given to
@@ -369,6 +368,8 @@ This method modifies `self` in-place and does not return a value.
     #  **Examples.** The third period has no observation, so it is filled
     #  with the previous filtered value of 1.5 rather than left missing:
     #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
     #      >>> x = dp.Series(start=dp.qq(2020, 1),
     #      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
     #      >>> x.exp_smooth(alpha=0.5)
@@ -430,11 +431,11 @@ This method modifies `self` in-place and does not return a value.
         )
 
     # ==========================================================================
-    #  ### Double exponential smoothing filter (Holt's method)
-    #   `double_exp_smooth(alpha=0.3, beta=0.3, span=...)`
+    #  ### `double_exp_smooth(alpha=0.3, beta=0.3, span=...)`
     #
-    #  Smooths each variant of the series in place while tracking a trend,
-    #  using Holt's two-parameter method.
+    #  Double exponential smoothing filter. Smooths each variant of the
+    #  series in place while tracking a trend, using Holt's two-parameter
+    #  method.
     #
     #  It carries both a level and a slope, so unlike `exp_smooth` it
     #  follows a rising or falling series instead of lagging behind it.
@@ -457,6 +458,8 @@ This method modifies `self` in-place and does not return a value.
     #  value to 6.0 -- above every number in the data. Compare a series
     #  with no gap:
     #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
     #      >>> x = dp.Series(start=dp.qq(2020, 1),
     #      ...     values=np.array([1.0, 3.0, 2.0, 5.0, 4.0]))
     #      >>> x.double_exp_smooth(0.5, 0.2)
@@ -533,12 +536,12 @@ and the effective count is scaled by the decay factor.
         )
 
     # ==========================================================================
-    #  ### Decay average filter with geometrically decaying weights 
-    #   `decay_avg(span=..., decay=0.9)`
+    #  ### `decay_avg(span=..., decay=0.9)`
     #
-    #  Replaces each variant of the series in place with a weighted
-    #  average of every observation up to that period, weighted so that
-    #  older data counts for less.
+    #  Decay average filter with geometrically decaying weights. Replaces
+    #  each variant of the series in place with a weighted average of
+    #  every observation up to that period, weighted so that older data
+    #  counts for less.
     #
     #  The weights going backwards in time are 1, `decay`, `decay`
     #  squared, and so on. Older data fades out gradually instead of
@@ -558,6 +561,8 @@ and the effective count is scaled by the decay factor.
     #  `decay` even though no new observation arrived. Values are rounded
     #  here only to keep the line short:
     #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
     #      >>> x = dp.Series(start=dp.qq(2020, 1),
     #      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
     #      >>> x.decay_avg(decay=0.9)
@@ -612,11 +617,11 @@ This is equivalent to decay_avg with decay=1.
         )
 
     # ==========================================================================
-    #  ### Cumulative average filter 
-    #   `cum_avg(span=...)`
+    #  ### `cum_avg(span=...)`
     #
-    #  Replaces each variant of the series in place with the running mean
-    #  of all observations up to and including each period.
+    #  Cumulative average filter. Replaces each variant of the series
+    #  in place with the running mean of all observations up to and
+    #  including each period.
     #
     #  Use it when what you want is the average so far rather than the
     #  average of the whole sample: a year-to-date mean, or a line that
@@ -633,6 +638,8 @@ This is equivalent to decay_avg with decay=1.
     #  mean does not move. The fourth then divides a total of 7.0 by the
     #  three observations seen, not by the four periods elapsed:
     #
+    #      >>> import numpy as np
+    #      >>> import datapie as dp
     #      >>> x = dp.Series(start=dp.qq(2020, 1),
     #      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
     #      >>> x.cum_avg()
@@ -690,6 +697,8 @@ __all__ = tuple(_functional_forms)
 #
 #  **Examples.** The function copies, the method overwrites:
 #
+#      >>> import numpy as np
+#      >>> import datapie as dp
 #      >>> x = dp.Series(start=dp.qq(2020, 1),
 #      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
 #      >>> y = dp.cum_avg(x)

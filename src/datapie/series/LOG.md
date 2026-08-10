@@ -12,7 +12,7 @@ and everything else was re-verified by reading the code.
 three sections, in the same order:
 
 | Section | Contents |
-| --- | --- |
+| ------- | -------- |
 | **Bugs** | The code does the wrong thing, or crashes. |
 | **Docs vs code** | The docstring and the code disagree; typos. |
 | **Notes** | Verified behaviour, dead code, style, open questions. |
@@ -223,8 +223,7 @@ None.
 4. The whole reference docstring hangs on `Series.hpf`, which raises
    `NotImplementedError` (line 377) — so the one entry point a reader would try
    after reading it is the one that does not work. The working routines are the
-   module-level `hpf` (line 450) and the `hpf_trend` / `hpf_gap` methods. The usage
-   block also writes `irispie.hpf`; the package is `datapie`.
+   module-level `hpf` (line 450) and the `hpf_trend` / `hpf_gap` methods.
 5. Typos, left in place: "entier" (line 296), "unline" (line 303).
 
 ### Notes
@@ -321,8 +320,6 @@ None.
    method and as `dp.moving_window(x, np.max, -3)`.
 3. `mov_mean`'s docstring heading reads "Moving average" (line 272), duplicating
    `mov_avg`. The two bodies are identical (lines 241 and 280).
-4. The docstrings refer to `irispie.mov_sum` and
-   `help(irispie.Series.moving_window)`; the package is `datapie`.
 
 ### Notes
 
@@ -571,8 +568,7 @@ None.
    138 and 145).
 2. The usage blocks show `new, info = irispie.x13(...)` (line 121) and
    `info = self.x13(...)` (line 153). The method returns only `info`, and only when
-   `return_info=True`; otherwise `None` (lines 339-346). The package is `datapie`,
-   not `irispie`.
+   `return_info=True`; otherwise `None` (lines 339-346).
 3. The `span` entry (line 169) says "If `span=None` or `span=...`". The signature
    default is `...` and `None` is not handled specially. It says nothing about the
    clipping side effect (bug 3).

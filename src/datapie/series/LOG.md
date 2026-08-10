@@ -203,7 +203,7 @@ None.
 1. **`hpf(x, span=[])` raises `wrongdoings.Error: Invalid Series object constructor`.**
    `_data_hpf` returns `new_start_date=None` alongside empty arrays
    (lines 587-590), and the constructor rejects that combination
-   (`main.py:1300-1305` has no populator for that case). *(observed)*
+   (the `_SERIES_POPULATOR` table in `main.py` has no populator for that case). *(observed)*
 
 ### Docs vs code
 
@@ -435,8 +435,8 @@ None.
 ### Bugs
 
 1. **The sign of a numeric `by` runs opposite to intuition.** `_shift_by_number`
-   does `self.start -= by` (`main.py:674`), so `shift(-1)` moves the series later
-   (2020Q1 → 2020Q2) and `shift(1)` moves it earlier. Documented in the block.
+   does `self.start -= by` (defined in `main.py`), so `shift(-1)` moves the series
+   later (2020Q1 → 2020Q2) and `shift(1)` moves it earlier. Documented in the block.
 2. **An unrecognised string becomes a method name via `getattr`** (lines 59-60), so
    a misspelling surfaces as
    `AttributeError: 'Series' object has no attribute '_shift_nonsense'`. Same leak
@@ -451,7 +451,8 @@ None.
 
 1. Numeric and string forms do fundamentally different things. A number retimes the
    series and leaves the data alone; `"soy"`, `"eopy"` and `"tty"` rewrite the
-   values and keep the span (`main.py:682-712`). Nothing in the old docstring says
+   values and keep the span (`_shift_soy`, `_shift_eopy` and `_shift_tty` in
+   `main.py`). Nothing in the old docstring says
    so.
 
 ### Notes
@@ -624,7 +625,10 @@ None.
    still summing to 100.0. This is documented in both blocks. *(observed)*
 4. Mutation depends on the caller. Through `disaggregate_arip` the input series is
    safe, since `iter_own_data_variants_from_until` yields copies — confirmed by
-   writing -999 into a yielded array and finding the series unchanged. Calling
+   writing -999 into a yielded array and finding the series unchanged. That holds
+   because `disaggregate_arip` passes an explicit `from_until`; called with `...`
+   the same method yields views onto the series' own data and a write does land.
+   See `main.py` note 11 — the two findings agree rather than contradict. Calling
    `disaggregate_arip_data` directly modifies the caller's array:
    `[100.0, 200.0, 300.0]` came back as `[nan, 200.0, 300.0]` under a complete
    target. Documented in the block where each applies. *(observed)*
@@ -644,31 +648,139 @@ None.
 
 ## `main.py`
 
+*(Findings in this section are anchored on method and function names rather than
+line numbers. Documenting this file added over 1600 lines to it, and every number
+cited during the pass had to be re-derived twice; names survive the next insertion.
+The `has_variants.py` numbers below refer to that file, which was not touched.)*
+
 ### Bugs
 
-1. **Single-variant construction from a plain list keeps only the first value.**
+1. **A plain list in `values` is read as one entry per variant, not per period.**
    `_from_start_and_values` sends a non-array `values` through
-   `has_variants.iter_variants` (`main.py:1267`), which for a list returns
+   `has_variants.iter_variants`, which for a list returns
    `exhaust_then_last(anything)` (`has_variants.py:223-224`) — an iterator over the
-   list's *elements*. Line 1268 then does
+   list's *elements*. It then does
    `column_stack([v for v, _ in zip(values, range(self.num_variants))])`, taking only
-   the first element for a single-variant series. Read literally,
+   the first element for a single-variant series.
    `Series(start=qq(2020,1), values=[1.0, 2.0, 3.0])` builds a one-period series
-   holding 1.0. Confirmed by reading; it could not be run (the package's `documark`
-   dependency is not installed here) and it is severe enough that it needs checking
-   against a working install.
+   holding 1.0. *(observed)* A tuple or a numpy array behaves as expected. The same
+   rule applies through `set_data`, where a list broadcasts its first element across
+   every period: `set_data(span, [7., 8., 9.])` writes 7 everywhere. *(observed)*
+2. **`get_values()` returns the first variant only.** It calls the module-level
+   `_has_variants.unpack_singleton(values, unpack_singleton=...)` without passing
+   `self.is_singleton`, and that parameter defaults to `True`
+   (`has_variants.py:242-253`), so the list is unpacked whatever the number of
+   variants. A two-variant series returns one tuple and the second column is lost
+   silently. `unpack_singleton=False` returns everything. *(observed)*
+3. **`count_missing` returns a bool, not a count.** `_func_missing` wraps the result
+   in `bool(...)`, so `np.count_nonzero` collapses to `True`/`False`, and the method
+   is functionally identical to `any_missing` — the same answer by a longer route.
+   Annotated `-> int`. *(observed)*
+4. **`where_missing(dates)` reports the wrong periods.** The mask is computed on the
+   requested data but zipped against `self.span`, so the periods returned are
+   counted from the series start rather than from the request. On a series starting
+   2020Q1 with a hole at 2020Q4, `where_missing(Span(qq(2020,3), qq(2021,1)))`
+   returns `(qq(2020,2),)`. *(observed)* The no-argument form is correct.
+5. **`shrink_num_variants(n)` with `n` equal to the current count empties every
+   column.** `remove` is 0 and `self.data[:, :-remove]` is `self.data[:, :0]`,
+   giving shape `(n, 0)`. *(observed)* `alter_num_variants` never reaches this case.
+6. **`iter_variants` is broken twice over.** `iter_own_data_variants_from_until`
+   yields the rows of `data.T`, which are one-dimensional, and `_replace_data` then
+   calls `trim`, which indexes `axis=1`, so both single- and multi-variant series
+   raise `numpy.exceptions.AxisError: axis 1 is out of bounds for array of dimension
+   1`. *(observed)* Behind that fault sits a second one: the loop runs over
+   `iter_data_variants_from_until`, which is wrapped in `exhaust_then_last` and
+   never terminates. Repairing the shape alone would turn the crash into an endless
+   generator, so both need fixing together.
+7. **`clip` fails badly at two edges.** On an empty series the comparison against a
+   `None` start raises `wrongdoings.Error: Cannot handle periods of different time
+   frequencies in this context`. Clipped to a span lying entirely outside the
+   series it leaves an object with no data whose `start` is later than its `end`
+   (2020 series clipped to 2021Q1-2021Q2 came back with `start` 2021Q1 and `end`
+   2020Q4). *(observed)*
+8. **`data_type=int` produces a series that cannot be read.** Any padding path calls
+   `_np.pad(..., constant_values=_np.nan)` in `_create_expanded_data`, so a plain
+   `get_data()` raises `ValueError: cannot convert float NaN to integer`.
+   *(observed)*
 
 ### Docs vs code
 
-1. `Series.__init__` silently trims. `_from_start_and_values` ends with `self.trim()`
-   (lines 1274-1275), stripping leading and trailing missing rows at construction.
-   The constructor docstring does not mention it. This is why a leading-gap series
-   cannot be built directly.
+1. `Series.__init__` silently trims. `_from_start_and_values` ends with
+   `self.trim()`, stripping leading and trailing missing rows at construction. The
+   constructor docstring does not mention it. This is why a leading-gap series
+   cannot be built directly. The `periods=` path trims too, through `set_data`.
+2. The constructor docstring documents only `start`, `periods`, `values` and `func`.
+   `num_variants`, `data_type`, `description`, `frequency` and `populate` are all in
+   the signature and none appear. `frequency` is accepted by all three populators
+   and read by none of them.
+3. `from_start_and_array`'s docstring does not say that the array is not copied. The
+   series keeps the caller's array, so later writes to it change the series.
+   *(observed)*
+4. Five annotations disagree with the code: `alter_num_variants` and `logistic` are
+   `-> Self` and return `None`; `trim` is `-> None` and returns `self`;
+   `get_data_and_periods` is `-> _np.ndarray` and returns a `(data, periods)` tuple;
+   `_shift_eopy` is `-> Self` and returns `None`.
+5. `clip`'s docstring explains `None` for either end but not that a `new_start`
+   earlier than the current start, or a `new_end` later than the current end, is
+   silently ignored — the method only ever shortens.
+6. Copy-paste slips in the operator docstrings, left in place: `__mul__` says
+   "self + other", `__rmul__` "other + self", `__truediv__` says "self - other",
+   `__rtruediv__` "other - self".
 
 ### Notes
 
-1. Constructor signature settled: `Series.__init__` is keyword-only (line 142), and
-   `_SERIES_POPULATOR[(True, False, True, False)] = _from_start_and_values` at line
-   1302 confirms that `start=` plus `values=` is a supported combination.
-   `start_date=` and `dates=` are accepted as legacy aliases (lines 212-216), which
-   is why `_hp.hpf` can build its results with `start_date=`.
+1. Constructor signature settled: `Series.__init__` is keyword-only, and
+   `_SERIES_POPULATOR[(True, False, True, False)] = _from_start_and_values` confirms
+   that `start=` plus `values=` is a supported combination. `start_date=` and
+   `dates=` are accepted as legacy aliases, which is why `_hp.hpf` can build its
+   results with `start_date=`.
+2. The two constructors differ over whether they copy the caller's array.
+   `_from_start_and_values` ends with `values.astype(self.data_type)`, which copies
+   even when the type already matches, so the constructor is safe;
+   `from_start_and_array` assigns the reshaped array straight through and shares it.
+   Only the second needs the warning, and only the second block carries one.
+   *(observed)* both ways.
+3. `Iterator` is used in three annotations (`iter_variants`,
+   `iter_own_data_variants_from_until`, `iter_data_variants_from_until`) and never
+   imported; only `Iterable` and `Callable` are. Survives on
+   `from __future__ import annotations`.
+4. `_check_data_shape` is defined and called nowhere in the package.
+5. `range = span` shadows the builtin inside the class body. Nothing in the class
+   body after that line uses `range`, and the uses inside method bodies resolve to
+   the builtin at call time, so this is latent only.
+6. `reset` erases the description, because it rebuilds the object through the
+   constructor whose default is `""`. `trim` calls `reset` when every observation is
+   missing, so an all-missing series loses its description too. *(observed)*
+7. `empty()` keeps `start` and the description. With no rows behind it, `end`
+   reports the period *before* `start` and `span` comes back backwards
+   (`Span(qq(2020,1), qq(2019,4))`). *(observed)*
+8. `hstack` drops descriptions; the result always has `""`. *(observed)*
+9. `get_data_variant` and `get_data_variant_from_until` fall back to variant 0 when
+   the index is not below the number of variants (`variant if variant and
+   variant < self.data.shape[1] else 0`), so a mistyped index returns the wrong
+   column rather than raising. Negative indices pass through to numpy and count from
+   the right. *(observed)*
+10. `get_data_from_until` given a reversed pair returns an empty array rather than
+    raising. *(observed)*
+11. `iter_own_data_variants_from_until(...)` yields views onto the series' own data,
+    so writing into a yielded array changes the series; with an explicit
+    `from_until` it yields fresh copies. *(observed)* This is the other half of the
+    `arip.py` note 4 finding, which tested only the explicit-`from_until` path; the
+    two agree. `iter_data_variants_from_until` wraps the same iterator in
+    `exhaust_then_last`, so it never stops — `list()` over it hangs. *(observed)*
+12. The `_start` property (`call_name="start"`) raises `NotImplementedError` and
+    exists only to carry a documentation entry; `start` is an ordinary slot
+    attribute, the property never runs because the attribute shadows it, and
+    assigning to the attribute retimes the series. It is documented under the name
+    `start`, since that is what appears in the generated reference.
+13. `set_start`, and assignment to `start`, do not check the frequency of the new
+    period against the periods already in the series.
+14. FIXME comments left in place: `__pow__` on `1 ** nan` and the empty encompassing
+    span in `_binop`.
+15. The comment block above `__all__`, "The following functions can return either a
+    new time series object ... or a scalar", names no functions.
+
+### Could not verify
+
+None. Every example in the new blocks was run against the installed package
+(`documark`, `scipy`, `plotly`, `daqp`) and all 233 of them pass as doctests.

@@ -98,16 +98,14 @@ class _ExportBlock:
 
     #]
 
-
 #-------------------------------------------------------------------------------
 # Mixin methods
 #-------------------------------------------------------------------------------
 
-
 class Mixin:
     #[
 
-    @_dm.reference(category="import_export", )
+    @_dm.reference(category="import_export", add_heading=False, )
     def to_csv_file(
         self,
         file_name: str,
@@ -128,82 +126,165 @@ class Mixin:
         return_info: bool = False,
     ) -> dict[str, Any]:
         r"""
-················································································
-
-==Write Databox time series to a CSV file==
 
 
-self.to_csv_file(
-    file_name,
-    *,
-    frequency_span=None,
-    names=None,
-    description_row=False,
-    frequency=None,
-    numeric_format="g",
-    nan_str="",
-    delimiter=",",
-    round=None,
-    date_formatter=None,
-    csv_writer_settings={},
-    when_empty="warning",
-)
+................................................................................
+
+## `to_csv_file`
+
+==Writes the time series held in a databox to a CSV file, one block of columns per date frequency.==
+
+    self.to_csv_file(
+        file_name,
+        *,
+        span=None,
+        frequency_span=None,
+        names=None,
+        description_row=False,
+        description_heading="__description__",
+        frequency=None,
+        numeric_format="g",
+        nan_str="",
+        delimiter=",",
+        round=12,
+        date_formatter=None,
+        csv_writer_settings={},
+        when_empty="warning",
+        return_info=False,
+    )
+
+This is the way out of the package and into a spreadsheet or another
+program. The file is laid out one block per frequency, side by side.
+Each block opens with a column of periods headed by a frequency mark
+such as `__quarterly__`, followed by one column per series headed by
+its name, and closes with an empty column separating it from the next
+block. Blocks covering fewer periods are padded with empty rows so
+the columns stay aligned. A series with several variants takes one
+column per variant, and the extra columns are headed `*`.
+
+Only time series are written. Strings, numbers, dictionaries and
+anything else the databox holds are passed over without a word, and
+do not appear in the reported names.
 
 
-### Input arguments ###
+**Input arguments.** Every argument other than `file_name` is
+keyword-only.
 
 
 ???+ input "file_name"
-Name of the CSV file where the data will be written.
+    The path to write to. An existing file there is overwritten without
+    warning. The directory must already exist; the method does not
+    create one, and raises `FileNotFoundError` if it is missing.
+
+???+ input "span"
+    Restricts the periods written. It takes precedence over
+    `frequency_span`, and it also decides the frequency, which is read
+    off its first period -- so giving a span exports that one frequency
+    and silently drops every series of any other. An empty `span` raises
+    `IndexError: tuple index out of range` before any other check runs.
 
 ???+ input "frequency_span"
-Specifies the frequencies and their corresponding date ranges for exporting
-data. If `None`, exports data for all available frequencies and their full
-date ranges in the databox.
+    Chooses the frequencies and the periods for each, as a dictionary
+    from `Frequency` to periods, or to `...` meaning the full span the
+    databox holds at that frequency. Left alone every frequency is
+    written over its full span. Entries whose value is `None` are
+    dropped, and it is ignored entirely when `span` is given.
 
 ???+ input "names"
-A list of series names to export. If `None`, exports all series for the 
-specified frequencies.
+    Chooses which series to write and in what order. Left alone every
+    series is written in the order the databox holds them. Names the
+    databox does not have are dropped without complaint, so a
+    misspelling costs you a column rather than an error.
 
 ???+ input "description_row"
-If `True`, include a row of series descriptions in the CSV.
+    Set to `True` to add a second heading row carrying each series'
+    description; series without one get a blank cell.
+
+???+ input "description_heading"
+    Does nothing. There is no substitute.
 
 ???+ input "frequency"
-Frequency of the data to export.
+    Does nothing. Use `frequency_span` or `span` instead.
 
 ???+ input "numeric_format"
-The numeric format for data values, e.g., 'g', 'f', etc.
+    Does nothing. There is no substitute.
 
 ???+ input "nan_str"
-String representation for NaN values in the output.
+    What a missing observation is written as, an empty string -- so a
+    blank cell -- unless you change it.
 
 ???+ input "delimiter"
-Character to separate columns in the CSV file.
+    Separates the columns, a comma unless you change it.
 
 ???+ input "round"
-Number of decimal places to round numeric values.
+    The number of decimal places, and it is **12**, not `None`. Values
+    are quietly rounded before they are written unless you pass
+    `round=None`, which writes them at full precision.
 
 ???+ input "date_formatter"
-Function to format date values. If `None`, SDMX string formatter is used.
+    Turns a period into the text in the first column of its block. Left
+    alone the periods are written in their own standard form: `2020-Q1`
+    for quarterly, `2020-01` for monthly, `(1)` for integer-indexed
+    series.
 
 ???+ input "csv_writer_settings"
-Additional settings for the CSV writer.
+    A dictionary of extra arguments for the underlying `csv.writer`,
+    such as a quoting rule. `delimiter` and `lineterminator` are already
+    supplied by the method, so passing either one here raises
+    `TypeError: _csv.writer() got multiple values for keyword argument`.
 
 ???+ input "when_empty"
-Behavior when no data is available for export. Can be "error", "warning", or
-"silent".
+    Decides what happens when there is nothing to write: `"warning"`
+    reports it and carries on, `"error"` raises, `"silent"` says
+    nothing.
+
+???+ input "return_info"
+    Left alone means the method returns nothing. Set it to `True` to get
+    the report back.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "info"
-A dictionary with details about the export:
+`None`, unless `return_info=True`, in which case a dictionary whose
+one key `"names_exported"` holds a tuple of the names actually
+written. The `dict[str, Any]` annotation describes only that second
+case.
 
-* `names_exported`: Names of the series exported to the CSV file.
+The dangerous case is an export that turns out to have nothing in it.
+The file is opened, and therefore truncated, after the check but
+whatever the check decided, so with the default `when_empty="warning"`
+a databox holding no time series destroys whatever was at `file_name`
+and leaves a file of zero length behind. Only `when_empty="error"`
+stops before the file is opened. If the target matters, use `"error"`,
+or write to a new path.
 
 
-················································································
+### Examples
+
+
+A databox with one series and one entry that is not a series:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
+    ...     values=np.array([1., 2.]))
+    >>> db["note"] = "not a series, and not written"
+    >>> db.to_csv_file("out.csv", return_info=True)
+    {'names_exported': ('gdp',)}
+    >>> open("out.csv").read().splitlines()
+    ['__quarterly__,gdp,', '2020-Q1,1.0,', '2020-Q2,2.0,']
+
+Nothing to export still empties the file:
+
+    >>> with open("keep.csv", "w") as fid:
+    ...     _ = fid.write("a file you care about")
+    >>> dp.Databox().to_csv_file("keep.csv")
+    >>> open("keep.csv").read()
+    ''
+
+................................................................................
         """
         databox = self.shallow(source_names=names, )
         frequency_span = _resolve_frequency_span(databox, frequency_span, span, )
@@ -247,155 +328,48 @@ A dictionary with details about the export:
         else:
             return
 
-    # ==========================================================================
-    #  ### `to_csv_file(file_name, *, span=None, frequency_span=None,
-    #   names=None, description_row=False,
-    #   description_heading="__description__", frequency=None,
-    #   numeric_format="g", nan_str="", delimiter=",", round=12,
-    #   date_formatter=None, csv_writer_settings={}, when_empty="warning",
-    #   return_info=False)`
-    #
-    #  Writes the time series held in a databox to a CSV file, one block of
-    #  columns per date frequency.
-    #
-    #  This is the way out of the package and into a spreadsheet or another
-    #  program. The file is laid out one block per frequency, side by side.
-    #  Each block opens with a column of periods headed by a frequency mark
-    #  such as `__quarterly__`, followed by one column per series headed by
-    #  its name, and closes with an empty column separating it from the next
-    #  block. Blocks covering fewer periods are padded with empty rows so
-    #  the columns stay aligned. A series with several variants takes one
-    #  column per variant, and the extra columns are headed `*`.
-    #
-    #  Only time series are written. Strings, numbers, dictionaries and
-    #  anything else the databox holds are passed over without a word, and
-    #  do not appear in the reported names.
-    #
-    #  **Parameters.** `file_name` is the path to write to. An existing file
-    #  there is overwritten without warning. The directory must already
-    #  exist; the method does not create one, and raises `FileNotFoundError`
-    #  if it is missing.
-    #
-    #  Every remaining argument is keyword-only.
-    #
-    #  `span` restricts the periods written. It takes precedence over
-    #  `frequency_span`, and it also decides the frequency, which is read
-    #  off its first period -- so giving a span exports that one frequency
-    #  and silently drops every series of any other. An empty `span` raises
-    #  `IndexError: tuple index out of range` before any other check runs.
-    #
-    #  `frequency_span` chooses the frequencies and the periods for each, as
-    #  a dictionary from `Frequency` to periods, or to `...` meaning the
-    #  full span the databox holds at that frequency. Left alone every
-    #  frequency is written over its full span. Entries whose value is
-    #  `None` are dropped, and it is ignored entirely when `span` is given.
-    #
-    #  `names` chooses which series to write and in what order. Left alone
-    #  every series is written in the order the databox holds them. Names
-    #  the databox does not have are dropped without complaint, so a
-    #  misspelling costs you a column rather than an error.
-    #
-    #  `description_row` set to `True` adds a second heading row carrying
-    #  each series' description; series without one get a blank cell.
-    #
-    #  Three arguments in the signature do nothing: `frequency`,
-    #  `description_heading` and `numeric_format`. Use `frequency_span`
-    #  or `span` for the first; the other two have no substitute.
-    #
-    #  `nan_str` is what a missing observation is written as, an empty
-    #  string -- so a blank cell -- unless you change it.
-    #
-    #  `delimiter` separates the columns, a comma unless you change it.
-    #
-    #  `round` is the number of decimal places, and it is **12**, not
-    #  `None`. Values are quietly rounded before they are written unless you
-    #  pass `round=None`, which writes them at full precision.
-    #
-    #  `date_formatter` turns a period into the text in the first column of
-    #  its block. Left alone the periods are written in their own standard
-    #  form: `2020-Q1` for quarterly, `2020-01` for monthly, `(1)` for
-    #  integer-indexed series.
-    #
-    #  `csv_writer_settings` is a dictionary of extra arguments for the
-    #  underlying `csv.writer`, such as a quoting rule. `delimiter` and
-    #  `lineterminator` are already supplied by the method, so passing
-    #  either one here raises `TypeError: _csv.writer() got multiple values
-    #  for keyword argument`.
-    #
-    #  `when_empty` decides what happens when there is nothing to write:
-    #  `"warning"` reports it and carries on, `"error"` raises, `"silent"`
-    #  says nothing.
-    #
-    #  `return_info` left alone means the method returns nothing. Set it to
-    #  `True` to get the report back.
-    #
-    #  **Returns.** `None`, unless `return_info=True`, in which case a
-    #  dictionary whose one key `"names_exported"` holds a tuple of the
-    #  names actually written. The `dict[str, Any]` annotation describes
-    #  only that second case.
-    #
-    #  The dangerous case is an export that turns out to have nothing in it.
-    #  The file is opened, and therefore truncated, after the check but
-    #  whatever the check decided, so with the default `when_empty="warning"`
-    #  a databox holding no time series destroys whatever was at `file_name`
-    #  and leaves a file of zero length behind. Only `when_empty="error"`
-    #  stops before the file is opened. If the target matters, use `"error"`,
-    #  or write to a new path.
-    #
-    #  **Examples.** A databox with one series and one entry that is not a
-    #  series:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> db = dp.Databox()
-    #      >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
-    #      ...     values=np.array([1., 2.]))
-    #      >>> db["note"] = "not a series, and not written"
-    #      >>> db.to_csv_file("out.csv", return_info=True)
-    #      {'names_exported': ('gdp',)}
-    #      >>> open("out.csv").read().splitlines()
-    #      ['__quarterly__,gdp,', '2020-Q1,1.0,', '2020-Q2,2.0,']
-    #
-    #  Nothing to export still empties the file:
-    #
-    #      >>> with open("keep.csv", "w") as fid:
-    #      ...     _ = fid.write("a file you care about")
-    #      >>> dp.Databox().to_csv_file("keep.csv")
-    #      >>> open("keep.csv").read()
-    #      ''
-    #
-    # ==========================================================================
-
 
     @_dm.no_reference
     def to_sheet(self, *args, **kwargs, ):
         r"""
+................................................................................
+
+## `to_sheet`
+
+
+==Writes the databox to a CSV file, under an older name.==
+
+    self.to_sheet(*args, **kwargs)
+    
+Everything is handed to `to_csv_file` unchanged, so the arguments,
+the layout of the file and the traps are the ones documented there.
+`to_csv` is a third name for the same method.
+
+
+**Input arguments.**
+
+
+???+ input "*args, **kwargs"
+    Whatever `to_csv_file` takes. Nothing is checked or altered on the
+    way through.
+
+
+### Returns
+
+
+Whatever `to_csv_file` returns: `None`, or the report dictionary when
+you pass `return_info=True`.
+
+................................................................................
         """
         return self.to_csv_file(*args, **kwargs, )
-
-    # ==========================================================================
-    #  ### `to_sheet(*args, **kwargs)`
-    #
-    #  Writes the databox to a CSV file, under an older name.
-    #
-    #  Everything is handed to `to_csv_file` unchanged, so the arguments,
-    #  the layout of the file and the traps are the ones documented there.
-    #  `to_csv` is a third name for the same method.
-    #
-    #  **Parameters.** Whatever `to_csv_file` takes. Nothing is checked or
-    #  altered on the way through.
-    #
-    #  **Returns.** Whatever `to_csv_file` returns: `None`, or the report
-    #  dictionary when you pass `return_info=True`.
-    #
-    # ==========================================================================
 
 
     # Legacy alias
     to_csv = to_csv_file
 
 
-    @_dm.reference(category="import_export", )
+    @_dm.reference(category="import_export", add_heading=False, )
     def to_pickle_file(
         self,
         file_name: str,
@@ -404,24 +378,63 @@ A dictionary with details about the export:
         r"""
 ................................................................................
 
-==Write Databox to a pickle file==
+## `to_pickle_file`
 
-self.to_pickle(
-    file_name,
-    **kwargs, 
-)
 
-### Input arguments ###
+==Writes the whole databox to a file in Python's own binary format.==
+
+    self.to_pickle_file(file_name, **kwargs)
+
+Where `to_csv_file` keeps only the time series, and only their
+numbers, this keeps the databox as it stands: descriptions,
+multi-variant series, and the entries that are not series at all. It
+reads back as a databox equal to the one you saved. Use it to carry
+intermediate results between your own scripts, and CSV for anything
+another program or another person has to read. This method is also
+available under the shorter name `to_pickle`.
+
+
+**Input arguments.**
+
 
 ???+ input "file_name"
-Path to the pickle file where the data will be written.
+    The path to write to, opened in binary mode. An existing file there
+    is overwritten without warning, and the directory must already
+    exist.
 
-???+ input "kwargs"
-Additional keyword arguments for the pickle writer.
+???+ input "**kwargs"
+    Passed to `pickle.dump`. The one worth knowing is `protocol`, which
+    lowers the format version so that an older Python can read the file.
 
-### Returns ###
 
-This method returns `None`.
+### Returns
+
+
+Nothing.
+
+Two things to keep in mind about this format. It stores the classes
+along with the values, so a file written by one version of the
+package may fail to load into another, which makes it a poor choice
+for archiving. And reading one executes code stored inside it, so
+never load a pickle file you did not write yourself.
+
+
+### Examples
+
+
+A round trip, description and all:
+
+    >>> import pickle
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
+    ...     values=np.array([1., 2.]), description="Output")
+    >>> db.to_pickle_file("db.pkl")
+    >>> with open("db.pkl", "rb") as fid:
+    ...     back = pickle.load(fid)
+    >>> back["gdp"].same_as(db["gdp"])
+    True
 
 ................................................................................
         """
@@ -430,51 +443,6 @@ This method returns `None`.
 
 
     to_pickle = to_pickle_file
-
-    # ==========================================================================
-    #  ### `to_pickle_file(file_name, **kwargs)`, also available as
-    #   `to_pickle`
-    #
-    #  Writes the whole databox to a file in Python's own binary format.
-    #
-    #  Where `to_csv_file` keeps only the time series, and only their
-    #  numbers, this keeps the databox as it stands: descriptions,
-    #  multi-variant series, and the entries that are not series at all. It
-    #  reads back as a databox equal to the one you saved. Use it to carry
-    #  intermediate results between your own scripts, and CSV for anything
-    #  another program or another person has to read.
-    #
-    #  **Parameters.** `file_name` is the path to write to, opened in binary
-    #  mode. An existing file there is overwritten without warning, and the
-    #  directory must already exist.
-    #
-    #  `kwargs` are passed to `pickle.dump`. The one worth knowing is
-    #  `protocol`, which lowers the format version so that an older Python
-    #  can read the file.
-    #
-    #  **Returns.** Nothing.
-    #
-    #  Two things to keep in mind about this format. It stores the classes
-    #  along with the values, so a file written by one version of the
-    #  package may fail to load into another, which makes it a poor choice
-    #  for archiving. And reading one executes code stored inside it, so
-    #  never load a pickle file you did not write yourself.
-    #
-    #  **Examples.** A round trip, description and all:
-    #
-    #      >>> import pickle
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> db = dp.Databox()
-    #      >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
-    #      ...     values=np.array([1., 2.]), description="Output")
-    #      >>> db.to_pickle_file("db.pkl")
-    #      >>> with open("db.pkl", "rb") as fid:
-    #      ...     back = pickle.load(fid)
-    #      >>> back["gdp"].same_as(db["gdp"])
-    #      True
-    #
-    # ==========================================================================
 
     #]
 

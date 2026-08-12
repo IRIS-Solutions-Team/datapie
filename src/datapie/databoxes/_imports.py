@@ -60,11 +60,9 @@ class _ImportBlock:
                 current_description = d
     #]
 
-
 #-------------------------------------------------------------------------------
 # Mixin methods
 #-------------------------------------------------------------------------------
-
 
 class Mixin:
     #[
@@ -73,6 +71,7 @@ class Mixin:
     @_dm.reference(
         category="constructor",
         call_name="Databox.from_csv_file",
+        add_heading=False,
     )
     def from_csv_file(
         klass,
@@ -90,66 +89,155 @@ class Mixin:
         databox_settings: dict = {},
     ) -> Self:
         r"""
-················································································
+
+................................................................................
+
+## `Databox.from_csv_file`
+
+==Creates a new databox by reading time series out of a CSV file written in the layout this package uses.==
+
+    self = Databox.from_csv_file(
+        file_name,
+        *,
+        period_from_string=None,
+        date_creator=None,
+        start_period_only=False,
+        start_date_only=None,
+        description_row=False,
+        delimiter=",",
+        name_row_transform=None,
+        csv_reader_settings={},
+        numpy_reader_settings={},
+        databox_settings={},
+    )
+
+This is the counterpart of `to_csv_file`, and it expects that
+method's layout: one block of columns per date frequency, each block
+opening with a column of periods headed by a frequency mark such as
+`__quarterly__`, followed by one column per series headed by its
+name. A column headed `*` continues the series to its left as a
+further variant. Blocks may sit side by side in the same file.
+Columns before the first frequency mark, and columns whose name cell
+is empty, are ignored -- which is why the empty separator columns
+`to_csv_file` writes do no harm.
+
+This is a class method: call it on the class, as
+`Databox.from_csv_file(...)`, not on a databox you already have.
 
 
-==Create a new Databox by reading time series from a CSV file==
-
-
-self = Databox.from_csv_file(
-    file_name,
-    *,
-    period_from_string=None,
-    start_period_only=False,
-    description_row=False,
-    delimiter=",",
-    csv_reader_settings={},
-    numpy_reader_settings={},
-    name_row_transform=None,
-)
-
-
-### Input arguments ###
+**Input arguments.** Every argument other than `file_name` is
+keyword-only.
 
 
 ???+ input "file_name"
-Path to the CSV file to be read.
+    The path to read. It must exist; a missing file raises
+    `FileNotFoundError`. The file is read as UTF-8 and a byte-order mark
+    at the start is discarded, so a sheet saved by Excel is read without
+    trouble.
 
 ???+ input "period_from_string"
-A callable for creating date objects from string representations. If `None`,
-a default method expecting the SDMX string format is used.
+    Turns the text in a date column into a period. Left alone the text
+    is expected in the standard form this package writes -- `2020-Q1`,
+    `2020-01`, `(1)`. Your own function is called with the text and a
+    `frequency=` keyword argument, so it has to accept that keyword even
+    if it ignores it.
+
+???+ input "date_creator"
+    The old name of `period_from_string`. It still works and warns that
+    it is deprecated.
 
 ???+ input "start_period_only"
-If `True`, only the start date of each time series is parsed from the CSV;
-subsequent periods are inferred based on frequency.
+    Decides how much of the date column is read. Left alone every row's
+    date cell is read, and **a row whose date cell is empty is skipped,
+    its numbers along with it**. Set it to `True` and only the first
+    date is read, each following row counting one period on; no row is
+    skipped then, and rows with a blank date keep their values. The same
+    file can give you different numbers under the two settings.
+
+???+ input "start_date_only"
+    The old name of `start_period_only`. It does nothing at all and does
+    not warn, because the check that swaps a legacy value in only fires
+    when the new argument is `None`, and `start_period_only` starts at
+    `False`.
 
 ???+ input "description_row"
-Indicates if the CSV contains a row for descriptions of the time series.
-Defaults to `False`.
+    Says whether the file carries a second heading row of descriptions.
+    It has to match the file, because nothing checks. A file that has
+    one, read without this set, fails inside the period reader with
+    `ValueError: not enough values to unpack (expected 2, got 1)`. A
+    file that has none, read with it set, quietly loses its first row of
+    data: those numbers are taken as the descriptions and the
+    observations are gone.
 
 ???+ input "delimiter"
-Character used to separate values in the CSV file.
+    Sets the separator, but only for half the reading. On its own it is
+    not enough; see the paragraph after Returns.
 
 ???+ input "name_row_transform"
-A function to transform names in the name row of the CSV.
+    Applied to every cell of the name row, the frequency marks included,
+    so a transform that alters text beginning with `__` will stop the
+    blocks being recognised. `str.upper` is safe; something that strips
+    leading underscores is not. The row you return is not quite the row
+    the block scan works on: a marker of its own is appended afterwards.
 
 ???+ input "csv_reader_settings"
-Additional settings for the CSV reader.
+    Holds extra arguments for the reader that splits the heading rows. A
+    `delimiter` given here has no effect either.
 
 ???+ input "numpy_reader_settings"
-Settings for reading data into numpy arrays.
+    Holds extra arguments for the numeric reader, `numpy.genfromtxt`.
+    `delimiter`, `skip_header` and `usecols` are already supplied by the
+    method, so passing any of them here raises `TypeError`.
 
 ???+ input "databox_settings"
-Settings for the Databox constructor.
+    Not settings. It is handed to the `Databox` constructor, and a
+    databox is a dictionary, so `databox_settings={"note": 1}` puts an
+    entry called `note` into the new databox rather than configuring
+    anything.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "self"
-An `Databox` populated with time series from the CSV file.
+A new `Databox` holding one entry per named column group. A file with
+no rows, or with no frequency mark anywhere in its first row, gives an
+empty databox rather than an error. Two columns carrying the same name
+give one entry, the right-hand one.
 
-················································································
+A file written with any separator other than a comma cannot be read
+by `delimiter` alone. Both readers have to be told: pass
+`delimiter=";"` for the numbers and a registered `csv` dialect
+through `csv_reader_settings={"dialect": ...}` for the headings.
+Without the second, the whole heading line arrives as a single cell
+and the read fails while parsing periods.
+
+
+### Examples
+
+
+A round trip through a file, descriptions and variants included:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
+    ...     values=np.array([1., 2.]), description="Output")
+    >>> db.to_csv_file("rt.csv", description_row=True)
+    >>> back = dp.Databox.from_csv_file("rt.csv", description_row=True)
+    >>> back["gdp"].same_as(db["gdp"])
+    True
+
+Claiming a description row the file does not have costs you the first
+observation:
+
+    >>> rows = "__quarterly__,x,\n2020-Q1,1.0,\n2020-Q2,2.0,\n"
+    >>> with open("plain.csv", "w") as fid:
+    ...     _ = fid.write(rows)
+    >>> odd = dp.Databox.from_csv_file("plain.csv", description_row=True)
+    >>> odd["x"].get_data().tolist(), odd["x"].get_description()
+    ([[2.0]], '1.0')
+
+................................................................................
         """
         self = klass(**databox_settings, )
         #
@@ -188,153 +276,45 @@ An `Databox` populated with time series from the CSV file.
         #
         return self
 
-    # ==========================================================================
-    #  ### `Databox.from_csv_file(file_name, *, period_from_string=None,
-    #   start_period_only=False, description_row=False, delimiter=",",
-    #   name_row_transform=None, csv_reader_settings={},
-    #   numpy_reader_settings={}, databox_settings={})`
-    #
-    #  Creates a new databox by reading time series out of a CSV file
-    #  written in the layout this package uses.
-    #
-    #  This is the counterpart of `to_csv_file`, and it expects that
-    #  method's layout: one block of columns per date frequency, each block
-    #  opening with a column of periods headed by a frequency mark such as
-    #  `__quarterly__`, followed by one column per series headed by its
-    #  name. A column headed `*` continues the series to its left as a
-    #  further variant. Blocks may sit side by side in the same file.
-    #  Columns before the first frequency mark, and columns whose name cell
-    #  is empty, are ignored -- which is why the empty separator columns
-    #  `to_csv_file` writes do no harm.
-    #
-    #  This is a class method: call it on the class, as
-    #  `Databox.from_csv_file(...)`, not on a databox you already have.
-    #
-    #  **Parameters.** `file_name` is the path to read. It must exist; a
-    #  missing file raises `FileNotFoundError`. The file is read as UTF-8
-    #  and a byte-order mark at the start is discarded, so a sheet saved by
-    #  Excel is read without trouble.
-    #
-    #  Every remaining argument is keyword-only.
-    #
-    #  `period_from_string` turns the text in a date column into a period.
-    #  Left alone the text is expected in the standard form this package
-    #  writes -- `2020-Q1`, `2020-01`, `(1)`. Your own function is called
-    #  with the text and a `frequency=` keyword argument, so it has to
-    #  accept that keyword even if it ignores it.
-    #
-    #  `start_period_only` decides how much of the date column is read.
-    #  Left alone every row's date cell is read, and **a row whose date cell
-    #  is empty is skipped, its numbers along with it**. Set it to `True`
-    #  and only the first date is read, each following row counting one
-    #  period on; no row is skipped then, and rows with a blank date keep
-    #  their values. The same file can give you different numbers under the
-    #  two settings.
-    #
-    #  `description_row` says whether the file carries a second heading row
-    #  of descriptions. It has to match the file, because nothing checks. A
-    #  file that has one, read without this set, fails inside the period
-    #  reader with `ValueError: not enough values to unpack (expected 2, got
-    #  1)`. A file that has none, read with it set, quietly loses its first
-    #  row of data: those numbers are taken as the descriptions and the
-    #  observations are gone.
-    #
-    #  `delimiter` sets the separator, but only for half the reading. On
-    #  its own it is not enough; see the paragraph after Returns.
-    #
-    #  `name_row_transform` is applied to every cell of the name row, the
-    #  frequency marks included, so a transform that alters text beginning
-    #  with `__` will stop the blocks being recognised. `str.upper` is safe;
-    #  something that strips leading underscores is not. The row you return
-    #  is not quite the row the block scan works on: a marker of its own is
-    #  appended afterwards.
-    #
-    #  `csv_reader_settings` holds extra arguments for the reader that
-    #  splits the heading rows. A `delimiter` given here has no effect
-    #  either.
-    #
-    #  `numpy_reader_settings` holds extra arguments for the numeric reader,
-    #  `numpy.genfromtxt`. `delimiter`, `skip_header` and `usecols` are
-    #  already supplied by the method, so passing any of them here raises
-    #  `TypeError`.
-    #
-    #  `databox_settings` is not settings. It is handed to the `Databox`
-    #  constructor, and a databox is a dictionary, so
-    #  `databox_settings={"note": 1}` puts an entry called `note` into the
-    #  new databox rather than configuring anything.
-    #
-    #  `date_creator` and `start_date_only` are the old names of
-    #  `period_from_string` and `start_period_only`. `date_creator` still
-    #  works and warns that it is deprecated. `start_date_only` does
-    #  nothing at all and does not warn, because the check that swaps a
-    #  legacy value in only fires when the new argument is `None`, and
-    #  `start_period_only` starts at `False`.
-    #
-    #  **Returns.** A new `Databox` holding one entry per named column
-    #  group. A file with no rows, or with no frequency mark anywhere in its
-    #  first row, gives an empty databox rather than an error. Two columns
-    #  carrying the same name give one entry, the right-hand one.
-    #
-    #  A file written with any separator other than a comma cannot be read
-    #  by `delimiter` alone. Both readers have to be told: pass
-    #  `delimiter=";"` for the numbers and a registered `csv` dialect
-    #  through `csv_reader_settings={"dialect": ...}` for the headings.
-    #  Without the second, the whole heading line arrives as a single cell
-    #  and the read fails while parsing periods.
-    #
-    #  **Examples.** A round trip through a file, descriptions and variants
-    #  included:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> db = dp.Databox()
-    #      >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
-    #      ...     values=np.array([1., 2.]), description="Output")
-    #      >>> db.to_csv_file("rt.csv", description_row=True)
-    #      >>> back = dp.Databox.from_csv_file("rt.csv", description_row=True)
-    #      >>> back["gdp"].same_as(db["gdp"])
-    #      True
-    #
-    #  Claiming a description row the file does not have costs you the first
-    #  observation:
-    #
-    #      >>> rows = "__quarterly__,x,\n2020-Q1,1.0,\n2020-Q2,2.0,\n"
-    #      >>> with open("plain.csv", "w") as fid:
-    #      ...     _ = fid.write(rows)
-    #      >>> odd = dp.Databox.from_csv_file("plain.csv", description_row=True)
-    #      >>> odd["x"].get_data().tolist(), odd["x"].get_description()
-    #      ([[2.0]], '1.0')
-    #
-    # ==========================================================================
-
     @classmethod
     @_dm.no_reference
     def from_sheet(klass, *args, **kwargs, ):
         r"""
+................................................................................
+
+## `Databox.from_sheet`
+
+==Reads a databox from a CSV file, under an older name.==
+
+    self = Databox.from_sheet(*args, **kwargs)
+
+Everything is handed to `from_csv_file` unchanged, so the arguments,
+the layout expected of the file and the traps are the ones documented
+there. `from_csv` is a third name for the same method.
+
+
+**Input arguments.**
+
+
+???+ input "*args, **kwargs"
+    Whatever `from_csv_file` takes. Nothing is checked or altered on the
+    way through.
+
+
+### Returns
+
+
+A new `Databox`, exactly as `from_csv_file` would build it.
+
+................................................................................
         """
         return klass.from_csv_file(*args, **kwargs, )
-
-    # ==========================================================================
-    #  ### `Databox.from_sheet(*args, **kwargs)`
-    #
-    #  Reads a databox from a CSV file, under an older name.
-    #
-    #  Everything is handed to `from_csv_file` unchanged, so the arguments,
-    #  the layout expected of the file and the traps are the ones documented
-    #  there. `from_csv` is a third name for the same method.
-    #
-    #  **Parameters.** Whatever `from_csv_file` takes. Nothing is checked or
-    #  altered on the way through.
-    #
-    #  **Returns.** A new `Databox`, exactly as `from_csv_file` would build it.
-    #
-    # ==========================================================================
 
     # Legacy alias
     from_csv = from_csv_file
 
     @classmethod
-    @_dm.reference(category="import_export", )
+    @_dm.reference(category="import_export", add_heading=False, )
     def from_pickle_file(
         klass,
         file_name: str,
@@ -343,25 +323,67 @@ An `Databox` populated with time series from the CSV file.
         r"""
 ................................................................................
 
-==Read a Databox from a pickled file==
+## `from_pickle_file`
 
-self = Databox.from_pickle(
-    file_name,
-    **kwargs,
-)
+==Reads back a databox written by `to_pickle_file`.==
 
-### Input arguments ###
+    self = Databox.from_pickle_file(file_name, **kwargs)
+
+Where a CSV file keeps only the time series and only their numbers,
+a pickle file keeps the databox as it stood: descriptions,
+multi-variant series, and the entries that are not series at all. Use
+it for intermediate results passing between your own scripts.
+
+This is a class method: call it on the class, as
+`Databox.from_pickle_file(...)`. It is also available under the
+shorter name `Databox.from_pickle`.
+
+
+**Input arguments.**
+
 
 ???+ input "file_name"
-Path to the pickled file to be read.
+    The path to read, opened in binary mode. A missing file raises
+    `FileNotFoundError`.
 
-???+ input "kwargs"
-Additional keyword arguments to pass to the `pickle.load` function.
+???+ input "**kwargs"
+    Passed to `pickle.load`, where `encoding` is the one occasionally
+    needed for files written by very old versions of Python.
 
-### Returns ###
 
-???+ returns "self"
-A `Databox` object read from the pickled file.
+### Returns
+
+
+Whatever the file contains. Nothing checks that it is a databox, so a
+pickle holding a list hands you back a list, and the error only shows
+up later when you use it as though it were a databox. The `Self`
+annotation promises more than the method delivers.
+
+Two things to keep in mind about this format. It stores the classes
+along with the values, so a file written by one version of the
+package may fail to load into another, which makes it a poor choice
+for archiving. And reading one runs code stored inside the file, so
+never open a pickle you did not write yourself.
+
+
+### Examples
+
+
+A round trip, and what happens when the file holds something else:
+
+    >>> import pickle
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
+    ...     values=np.array([1., 2.]), description="Output")
+    >>> db.to_pickle_file("db.pkl")
+    >>> dp.Databox.from_pickle_file("db.pkl")["gdp"].same_as(db["gdp"])
+    True
+    >>> with open("list.pkl", "wb") as fid:
+    ...     pickle.dump([1, 2, 3], fid)
+    >>> dp.Databox.from_pickle_file("list.pkl")
+    [1, 2, 3]
 
 ................................................................................
         """
@@ -370,57 +392,6 @@ A `Databox` object read from the pickled file.
 
 
     from_pickle = from_pickle_file
-
-    # ==========================================================================
-    #  ### `Databox.from_pickle_file(file_name, **kwargs)`, also available
-    #   as `Databox.from_pickle`
-    #
-    #  Reads back a databox written by `to_pickle_file`.
-    #
-    #  Where a CSV file keeps only the time series and only their numbers,
-    #  a pickle file keeps the databox as it stood: descriptions,
-    #  multi-variant series, and the entries that are not series at all. Use
-    #  it for intermediate results passing between your own scripts.
-    #
-    #  This is a class method: call it on the class, as
-    #  `Databox.from_pickle_file(...)`.
-    #
-    #  **Parameters.** `file_name` is the path to read, opened in binary
-    #  mode. A missing file raises `FileNotFoundError`.
-    #
-    #  `kwargs` are passed to `pickle.load`, where `encoding` is the one
-    #  occasionally needed for files written by very old versions of Python.
-    #
-    #  **Returns.** Whatever the file contains. Nothing checks that it is a
-    #  databox, so a pickle holding a list hands you back a list, and the
-    #  error only shows up later when you use it as though it were a
-    #  databox. The `Self` annotation promises more than the method
-    #  delivers.
-    #
-    #  Two things to keep in mind about this format. It stores the classes
-    #  along with the values, so a file written by one version of the
-    #  package may fail to load into another, which makes it a poor choice
-    #  for archiving. And reading one runs code stored inside the file, so
-    #  never open a pickle you did not write yourself.
-    #
-    #  **Examples.** A round trip, and what happens when the file holds
-    #  something else:
-    #
-    #      >>> import pickle
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> db = dp.Databox()
-    #      >>> db["gdp"] = dp.Series(start=dp.qq(2020,1),
-    #      ...     values=np.array([1., 2.]), description="Output")
-    #      >>> db.to_pickle_file("db.pkl")
-    #      >>> dp.Databox.from_pickle_file("db.pkl")["gdp"].same_as(db["gdp"])
-    #      True
-    #      >>> with open("list.pkl", "wb") as fid:
-    #      ...     pickle.dump([1, 2, 3], fid)
-    #      >>> dp.Databox.from_pickle_file("list.pkl")
-    #      [1, 2, 3]
-    #
-    # ==========================================================================
 
     #]
 

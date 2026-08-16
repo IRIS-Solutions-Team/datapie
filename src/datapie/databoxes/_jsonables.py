@@ -26,35 +26,61 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
-    @_dm.reference(category="import_export", )
+    @_dm.reference(category="import_export", add_heading=False, )
     def series_to_jsonable(self, **kwargs, ) -> dict[str, Any]:
         r"""
 ................................................................................
 
-==Convert all time series in the databox to a JSON-serializable dictionary==
+## `series_to_jsonable`
 
-This method converts all time series contained in the databox into a
-JSON-serializable dictionary format.
+==Turns every time series in the databox into a plain dictionary that can be written out as JSON.==
 
-    jsonable = self.series_to_jsonable(**kwargs, )
+    jsonable = self.series_to_jsonable(**kwargs)
+
+The collection-level counterpart of `Series.to_jsonable`, which is
+called once per series and does the work.
+
+Only time series are converted. Strings, numbers and everything else the
+databox holds are dropped without a word, so the result can be smaller
+than the databox and a round trip through it loses those entries.
 
 
-### Input arguments ###
+**Input arguments.**
 
-???+ input "self"
-    The databox object containing the time series to be converted.
 
 ???+ input "**kwargs"
-    Additional keyword arguments to be passed to the `to_jsonable` method of each
-    `Series` object. See the documentation of the `Series.to_jsonable` method in the
-    `Series` class for details on the available options.
+    Passed to `Series.to_jsonable` for every series, so
+    `period_to_string`, `include_description` and `include_frequency`
+    are set here and set the same way for all of them. Whatever you
+    choose has to be matched by the reading side.
 
 
-### Returns ###
+One multi-variant series stops the whole databox. `Series.to_jsonable`
+raises `ValueError: The series has multiple variants. Set
+allow_multiple_variants=True to serialize`, and passing that flag
+raises `NotImplementedError` in turn, so there is no way through.
 
-???+ returns "jsonable"
-    A dictionary where each key is the name of a time series in the databox and
-    each value is the JSON-serializable dictionary representation of that time series.
+
+### Returns
+
+
+A dictionary from series name to the dictionary `Series.to_jsonable`
+produced for it. A databox holding no series at all gives `{}`.
+
+
+### Examples
+
+
+The entry that is not a series does not survive:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["note"] = "not a series"
+    >>> sorted(db.series_to_jsonable().keys())
+    ['gdp']
 
 ................................................................................
         """
@@ -66,7 +92,7 @@ JSON-serializable dictionary format.
         }
         #]
 
-    @_dm.reference(category="import_export", )
+    @_dm.reference(category="import_export", add_heading=False, )
     def series_to_json_file(
         self,
         file_name: str,
@@ -77,34 +103,65 @@ JSON-serializable dictionary format.
         r"""
 ................................................................................
 
-==Save all time series in the databox to a JSON file==
+## `series_to_json_file`
 
-This method saves all time series contained in the databox to a JSON file.
+==Writes every time series in the databox to a JSON file.==
 
     self.series_to_json_file(
         file_name,
+        *,
         json_dump_settings=None,
-        series_to_jsonable_settings=None,
+        **kwargs,
     )
 
+`series_to_jsonable` builds the dictionary and the standard `json`
+module writes it, so everything that method says applies here too --
+in particular that entries which are not time series are dropped.
 
-### Input arguments ###
 
-???+ input "self"
-    The databox object containing the time series to be saved.
+**Input arguments.**
+
 
 ???+ input "file_name"
-    The name of the JSON file to which the time series will be saved.
+    The path to write to, opened as UTF-8 text. An existing file there is
+    overwritten without warning.
 
 ???+ input "json_dump_settings"
-    A dictionary of settings to be passed to the `json.dump` function when
-    writing the JSON file. If `None`, default settings will be used alongside
-    with `indent=4`.
+    Passed to `json.dump`. Left as `None` it is `{"indent": 4}`. A
+    dictionary you pass **replaces** that default rather than adding to
+    it, so `json_dump_settings={"indent": 0}` is how you get compact
+    output. Passing an empty dictionary does not: `{}` is falsy, so it
+    falls through to the indented default.
 
-???+ input "series_to_jsonable_settings"
-    A dictionary of settings to be passed to the `series_to_jsonable` method
-    of the databox. If `None`, default settings will be used.
-    See [the documentation of the `Series.to_jsonable`](time_series.html#to_jsonable).
+???+ input "**kwargs"
+    Passed on to `series_to_jsonable`, and from there to
+    `Series.to_jsonable` for every series.
+
+
+Missing observations are written as a bare `NaN`, which is not valid
+JSON. Python's own `json` module reads it back without complaint, and
+so does `series_from_json_file`, but a strict reader in another
+language will reject the file.
+
+
+### Returns
+
+
+Nothing.
+
+
+### Examples
+
+
+    >>> import json
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db.series_to_json_file("gdp.json")
+    >>> sorted(json.load(open("gdp.json"))["gdp"])
+    ['description', 'frequency', 'start', 'values']
 
 ................................................................................
         """
@@ -119,6 +176,7 @@ This method saves all time series contained in the databox to a JSON file.
     @_dm.reference(
         category="constructor",
         call_name="Databox.seres_from_jsonable",
+        add_heading=False,
     )
     def series_from_jsonable(
         klass,
@@ -128,36 +186,55 @@ This method saves all time series contained in the databox to a JSON file.
         r"""
 ................................................................................
 
-==Create a databox from a JSON-serializable dictionary of time series==
+## `Databox.seres_from_jsonable`
 
-This class method creates a databox from a JSON-serializable dictionary where
-each key is the name of a time series and each value is the JSON-serializable
-dictionary representation of that time series.
+==Builds a databox from a dictionary of the kind `series_to_jsonable` produces.==
 
-    self = Databox.series_from_jsonable(
-        jsonable,
-        **kwargs,
-    )
+    self = Databox.series_from_jsonable(jsonable, **kwargs)
+
+A class method: call it on the class, not on a databox you already have.
+Every value in `jsonable` is handed to `Series.from_jsonable`, so every
+entry becomes a time series -- there is no way to carry anything else
+through.
 
 
-### Input arguments ###
+**Input arguments.**
+
 
 ???+ input "jsonable"
-    A dictionary where each key is the name of a time series and each value is
-    the JSON-serializable dictionary representation of that time series.
+    The dictionary to read, laid out the way `series_to_jsonable` writes
+    one: series name to the dictionary for that series.
 
 ???+ input "**kwargs"
-    Additional keyword arguments to be passed to the `Series.from_jsonable`
-    method. See
-    [the documentation of the `Series.from_jsonable`](time_series.html#from_jsonable)
-    method in the`Series` class for details on the available options.
+    Passed to `Series.from_jsonable` for every entry, so
+    `period_from_string`, `frequency_included` and `description_included`
+    are set here and set the same way for all of them.
 
 
-### Returns ###
+Those flags have to match the ones used when writing, and they are
+spelled differently at the two ends -- `include_frequency` going out
+against `frequency_included` coming back. Writing with
+`include_frequency=False` and reading with the default raises
+`KeyError: 'frequency'`, and the same goes for the description.
 
-???+ returns "self"
-    A Databox object containing the time series created from the JSON-serializable
-    dictionary.
+
+### Returns
+
+
+A new databox holding one time series per entry.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> back = dp.Databox.series_from_jsonable(db.series_to_jsonable())
+    >>> back["gdp"].same_as(db["gdp"])
+    True
 
 ................................................................................
         """
@@ -172,6 +249,7 @@ dictionary representation of that time series.
     @_dm.reference(
         category="constructor",
         call_name="Databox.seres_from_json_file",
+        add_heading=False,
     )
     def series_from_json_file(
         klass,
@@ -182,37 +260,57 @@ dictionary representation of that time series.
         r"""
 ................................................................................
 
-==Create a databox from a JSON file of time series==
+## `Databox.seres_from_json_file`
 
-This class method creates a databox from a JSON file containing a
-JSON-serializable dictionary where each key is the name of a time series and
-each value is the JSON-serializable dictionary representation of that time series.
+==Builds a databox from a JSON file of the kind `series_to_json_file` writes.==
 
     self = Databox.series_from_json_file(
         file_name,
-        series_from_jsonable_settings=None,
         json_load_settings=None,
+        **kwargs,
     )
 
+A class method: call it on the class, not on a databox you already have.
+The standard `json` module reads the file and `series_from_jsonable`
+turns it into a databox, so everything that method says applies here
+too.
 
-### Input arguments ###
+
+**Input arguments.**
+
 
 ???+ input "file_name"
-    The name of the JSON file containing the time series data.
-
-???+ input "series_from_jsonable_settings"
-    Additional dictionary with keyword arguments to be passed to the `Series.from_jsonable`
-    method. See [the documentation of the `Series.from_jsonable`](time_series.html#from_jsonable).
+    The path to read, opened as UTF-8 text. A missing file raises
+    `FileNotFoundError`.
 
 ???+ input "json_load_settings"
-    A dictionary of settings to be passed to the `json.load` function when
-    reading the JSON file. If `None`, default settings will be used.
+    Passed to `json.load`. Left as `None` it is `{}`. Unlike
+    `json_dump_settings` on the writing side, this one is **not**
+    keyword-only and can be passed positionally.
+
+???+ input "**kwargs"
+    Passed on to `series_from_jsonable`, and from there to
+    `Series.from_jsonable` for every entry.
 
 
-### Returns ###
+### Returns
 
-???+ returns "self"
-    A Databox object containing the time series created from the JSON file.
+
+A new databox holding one time series per entry in the file.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]), description="GDP")
+    >>> db.series_to_json_file("db.json")
+    >>> back = dp.Databox.series_from_json_file("db.json")
+    >>> back["gdp"].same_as(db["gdp"])
+    True
 
 ................................................................................
         """

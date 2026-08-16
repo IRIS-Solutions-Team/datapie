@@ -34,37 +34,98 @@ class Mixin:
         span: Span | Iterable[Period] | EllipsisType = ...,
         **kwargs: Any,
     ) -> None:
-        """
-        ············································································
+        r"""
+················································································
 
-        ==Apply a function to each variant (column) of a time series==
+## `_apply_to_variants`
 
-        Apply a user-defined function to each column (variant) of the time series
-        separately. The function receives the periods and values for each variant
-        and returns new values with the same number of elements. The original
-        time series is modified in-place.
+==Runs a function over each variant of the series in turn, replacing that variant's values with what the function returns.==
 
-        ### Input arguments ###
+    self._apply_to_variants(
+        func,
+        *,
+        span=...,
+        **kwargs,
+    )
 
-        ???+ input "func"
-        A function that takes two input arguments:
-        - periods: tuple of Period objects
-        - values: numpy array of values for one variant
-        Returns a numpy array of new values with the same length as the input.
+This is the engine under the four filters in `_uv_filters.py` --
+`exp_smooth`, `double_exp_smooth`, `decay_avg` and `cum_avg` -- and is
+not part of the public interface. Each of them supplies its own `func`
+and passes `span` straight through.
 
-        ???+ input "span"
-        Time span to apply the function to. If `span=...` (default), uses the
-        full span of the time series.
+The series is extended to cover `span` before the function runs, so a
+`span` reaching outside the data grows the series permanently and moves
+`start` and `end`. It is never shrunk.
 
-        ???+ input "**kwargs"
-        Additional keyword arguments passed to the function.
 
-        ### Returns ###
+**Input arguments.**
 
-        ???+ returns "None"
-        This method modifies `self` in-place and does not return a value.
 
-        ············································································
+???+ input "func"
+    Called once per variant, as `func(periods, values, **kwargs)`.
+    `periods` is a tuple of `Period` objects covering the span and
+    `values` is a one-dimensional array of that variant's values, the two
+    always the same length. It must return a numpy array of exactly the
+    same shape; anything else raises, and see the warning below about
+    what state the series is left in when it does.
+
+???+ input "span"
+    The stretch of periods to work over. Left as `...` it is the whole
+    span the series currently covers. An empty span returns immediately
+    and changes nothing.
+
+???+ input "**kwargs"
+    Passed on to `func` unchanged.
+
+
+**The series is modified before `func` is validated.** The extended data
+and the new start are written onto the object first, and only then is
+`func` called and its result checked. So when `func` returns the wrong
+type or the wrong shape, the exception leaves behind a series that has
+already been extended and re-dated: a four-period series given a span
+reaching two periods earlier comes back with six periods starting two
+periods earlier, padded with missing values, even though the call
+failed. Catching the exception does not undo it. Copy the series first
+if that matters.
+
+An integer-typed series cannot be extended at all: the padding is built
+with `numpy.nan` in the series' own dtype, which raises
+`ValueError: cannot convert float NaN to integer` after a
+`RuntimeWarning: invalid value encountered in cast`.
+
+
+### Returns
+
+
+Nothing; the series is modified in place.
+
+
+### Examples
+
+
+Doubling every value, over the span the series already covers:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3., 4.]))
+    >>> x._apply_to_variants(lambda periods, values: values * 2)
+    >>> x.get_data()[:, 0].tolist()
+    [2.0, 4.0, 6.0, 8.0]
+
+A failing `func` still leaves the series extended:
+
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3., 4.]))
+    >>> try:
+    ...     x._apply_to_variants(lambda periods, values: "not an array",
+    ...         span=dp.Span(dp.qq(2019, 3), dp.qq(2020, 4)))
+    ... except TypeError:
+    ...     pass
+    >>> x.start, x.num_periods
+    (qq(2019,3), 6)
+
+················································································
         """
         # Resolve the span to work with
         span = self.resolve_periods(span)
@@ -120,25 +181,72 @@ class Mixin:
         start_period: Period,
         end_period: Period,
     ) -> tuple[_np.ndarray, tuple[Period, ...]]:
-        """
-        Create an extended data array to cover the requested span.
+        r"""
+················································································
 
-        Always creates a copy of the data array. If the requested span extends
-        before or after the current data span, the array is extended with NaN
-        values using concatenation for performance.
+## `_create_extended_data_array`
 
-        ### Input arguments ###
+==Builds a copy of the series data padded out to cover a requested span, and the periods that copy runs over.==
 
-        ???+ input "start_period"
-        The requested start period for the span.
+    extended_data, extended_periods = self._create_extended_data_array(
+        start_period,
+        end_period,
+    )
 
-        ???+ input "end_period"
-        The requested end period for the span.
+Used by `_apply_to_variants` to make room before a function is applied.
+It reads the series and returns new objects; nothing is assigned back
+here, and the caller decides what to do with them.
 
-        ### Returns ###
+The array is **always** copied, even when no padding is needed, so the
+caller never writes through to the series' own data by accident.
 
-        ???+ returns "tuple[np.ndarray, tuple[Period, ...]]"
-        A tuple containing the extended data array and the tuple of extended periods.
+
+**Input arguments.**
+
+
+???+ input "start_period"
+    The first period the result has to cover. If it is later than the
+    series' own start, nothing is added at the front -- the array is
+    never trimmed to it.
+
+???+ input "end_period"
+    The last period the result has to cover, on the same terms at the
+    back.
+
+
+Padding is filled with `numpy.nan` **in the series' own dtype**. For a
+float series that is what it appears to be; for an integer series the
+cast fails, raising `ValueError: cannot convert float NaN to integer`
+after a `RuntimeWarning: invalid value encountered in cast`.
+
+
+### Returns
+
+
+A pair. The first entry is the padded copy of the data, one column per
+variant. The second is a tuple of the `Period` objects its rows run
+over, which starts earlier than the series only if padding was added at
+the front.
+
+
+### Examples
+
+
+Reaching two periods back adds two missing rows and reports the widened
+span, leaving the series itself untouched:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> data, periods = x._create_extended_data_array(
+    ...     dp.qq(2019, 3), dp.qq(2020, 2))
+    >>> data[:, 0].tolist()
+    [nan, nan, 1.0, 2.0]
+    >>> periods[0], x.start
+    (qq(2019,3), qq(2020,1))
+
+················································································
         """
         # Check if we need to extend the data array
         current_start = self.start

@@ -69,7 +69,7 @@ _X13_RUNNER_VERSION_DISPATCH = {
 class Mixin:
     #[
 
-    @_dm.reference(category="filtering", )
+    @_dm.reference(category="filtering", add_heading=False, )
     def x13(
         self,
         *,
@@ -89,203 +89,203 @@ class Mixin:
         version: Literal["1.1.39", "1.1.62", ] = "1.1.62",
     ) -> dict[str, Any]:
         r"""
-    ................................................................................
+................................................................................
 
-    ==X13-ARIMA-TRAMO-SEATS seasonal adjustment procedure==
+## `x13`
 
+==Runs the series through the X13-ARIMA-TRAMO-SEATS program and replaces its values with the component you asked for.==
 
-    ### Function for creating new Series objects ###
-
-
-    ```
-    new = irispie.x13(
-    self,
-
-    span=None,
-    output="seasonally_adjusted",
-    mode=None,
-    when_error="warning",
-    clean_up=True,
-
-    specs_template=None,
-    add_to_specs=None,
-    allow_missing=False,
-    mode=None,
-
-    unpack_singleton=True,
-    return_info=False,
-    )
-    ```
-
-    ```
-    new, info = irispie.x13(
-    ...,
-    return_info=True,
-    ...,
-    )
-    ```
-
-
-    ### Class method for changing existing time `Series` objects in-place ###
-
-
-    ```
     self.x13(
-    self,
-
-    span=None,
-    output="seasonally_adjusted",
-    mode=None,
-    when_error="warning",
-    clean_up=True,
-
-    specs_template=None,
-    add_to_specs=None,
-    allow_missing=False,
-    mode=None,
-
-    unpack_singleton=True,
-    return_info=False,
+        *,
+        span=...,
+        output="seasonally_adjusted",
+        mode=None,
+        when_error="warning",
+        clean_up=True,
+        specs_template=None,
+        add_to_specs=None,
+        allow_missing=False,
+        version="1.1.62",
+        return_info=False,
+        unpack_singleton=True,
     )
-    ```
 
-    ```
-    info = self.x13(
-    ...,
-    return_info=True,
-    ...,
-    )
-    ```
+This is the standard tool for taking the seasonal pattern out of
+monthly or quarterly data. The work is done by the bundled X13
+executable: the series is written to a spec file, the program is run,
+and one of its output tables is read back. Only monthly and quarterly
+series can be used; any other frequency raises `KeyError` naming the
+frequency, as in `KeyError: <Frequency.YEARLY: 1>`.
 
 
-    ### Input arguments ###
+**Input arguments.** Every argument is keyword-only.
 
 
-    ???+ input "self"
-    A time `Series` object whose data will be run through the
-    X13-ARIMA-TRAMO-SEATS procedure.
+???+ input "span"
+    The stretch of periods to work on, and left alone it is the whole
+    series. It is not merely a window on the calculation: the series is
+    clipped to it in place before X13 runs, so a narrower `span`
+    permanently discards the observations outside it.
 
-    ???+ input "span"
-    A time span be specified as a `Span` object. If `span=None` or `span=...`,
-    the time span goes from the first observed period to the last observed
-    period in the input time series.
+???+ input "output"
+    Which of the X13 tables comes back, `"seasonally_adjusted"` when
+    left alone. Each row below lists the accepted names for one table:
 
-    ???+ input "output"
-    The type of output to be returned by X13. The following options are
-    available at the moment:
+    | Value | X13 table | Description
+    |-------|-----------|-------------
+    | `"seasonal"`, `"sf"`, `"seasonal_factors"` | `d10` | Seasonal factors
+    | `"seasonally_adjusted"`, `"sa"` | `d11` | Seasonally adjusted series
+    | `"trend_cycle"`, `"tc"` | `d12` | Trend-cycle component
+    | `"irregular"`, `"irr"` | `d13` | Irregular component
+    | `"seasonal_and_td"` | `d16` | Combined seasonal and trading day factors
+    | `"holiday_and_td"` | `d18` | Combined holiday and trading day factors
 
-    | Output                  | X13 table | Description
-    |-------------------------|-----------|-------------
-    | `"seasonal"`            | `d10`     | Seasonal factors
-    | `"seasonally_adjusted"` | `d11`     | Seasonally adjusted series
-    | `"trend_cycle"`         | `d12`     | Trend-cycle component
-    | `"irregular"`           | `d13`     | Irregular component
-    | `"seasonal_and_td"`     | `d16`     | Combined seasonal and trading day factors
-    | `"holiday_and_td"`      | `d18`     | Combined holiday and trading day factors
+    An unrecognised name is not rejected. It is passed to X13 as a
+    table name, no data comes back, and the series is left **empty** --
+    a 24-period series given `output="nonsense"` comes back with
+    `num_periods` 0 and `start` `None`, behind nothing louder than the
+    usual failure warning.
 
-    ???+ input "specs_template"
-    A dictionary with a specs template for the X13 run; if `None`, a default
-    specs template is used (see below for the structure of the default template).
-
-    ???+ input "mode"
-    The mode to be used for the X13 run. The following options are available (see the
-    [X13 documentation](https://www.census.gov/srd/www/x13as/)):
+???+ input "mode"
+    The decomposition:
 
     | Mode          | Description
     |---------------|-------------
-    | `None`        | Automatically selected
+    | `None`        | Chosen from the data
     | `"mult"`      | Multiplicative
     | `"add"`       | Additive
     | `"pseudoadd"` | Pseudo-additive
     | `"logadd"`    | Log-additive
 
-    If `mode=None`, the mode is automatically selected based on the data. If the data is
-    strictly positive or strictly negative, the multiplicative mode is used, otherwise
-    the additive mode is used.
+    Left as `None` it is multiplicative when every observation is
+    strictly positive or every observation is strictly negative, and
+    additive otherwise. Missing observations do not spoil that test,
+    but a zero does, since zero is neither positive nor negative and
+    pushes the choice to additive.
 
-    ???+ input "allow_missing"
-    If `True`, allow missing values in the input time series and automatically
-    add an empty `automdl` spec if no ARIMA model is specified.
+    An all-negative series is flipped to positive for the run and
+    flipped back afterwards -- but only if it holds no missing
+    observation. An all-negative series with a gap is sent to X13 as it
+    stands, under a multiplicative mode that takes logarithms of
+    negative numbers, and the run fails.
 
-    ???+ input "add_to_specs"
-    A dictionary with additional settings to be added to the `specs_template` (or
-    the default templated).
-
-    ???+ input "when_error"
-    The action to be taken when an error occurs. The following options are
-    available:
-
-    | Action      | Description
-    |-------------|-------------
-    | `"warning"` | Issue a warning
-    | `"error"`   | Raise an error
-
-    ???+ input "unpack_singleton"
-    If `True`, unpack `info` into a plain dictionary for models with a
-    single variant.
-
-    ???+ input "return_info"
-    If `True`, return a dictionary with information about the X13 run as another
-    output argument.
-
-
-    ### Returns ###
-
-
-    ???+ returns "self"
-    The `Series` object with the output data.
-
-    ???+ returns "new"
-    A new `Series` object with the output data.
-
-    ???+ returns "info"
-    (Only returned if `return_info=True` which is not the default behavior)
-    Dictionary with information about the X13 run; `info` contains the
-    following items:
-
-    | Key | Description
-    |-----|-------------
-    | `success` | True if the X13 run was successful
-    | `specs_template` | The specs template used for the X13 run
-    | `mode` | The mode used for the X13 run
-    | `spc` | The spc file from the X13 run
-    | `log` | The log file from the X13 run
-    | `out` | The output file from the X13 run
-    | `err` | The error file from the X13 run
-    | `*` | Any other output file written by X13
-
-
-    ### Details ###
-
+???+ input "specs_template"
+    Replaces the default spec dictionary.
 
     ???+ abstract "Default SPC template structure"
 
-    The default specs template is a dictionary equivalent to the following SPC
-    file:
+        The default specs template is a dictionary equivalent to the
+        following SPC file:
 
-    ```
-    series{
-        start=$(series_start)
-        data=(
-    $(series_data)
-        )
-        period=$(series_period)
-        decimals=5
-        precision=5
-    }
+        ```
+        series{
+            start=$(series_start)
+            data=(
+        $(series_data)
+            )
+            period=$(series_period)
+            decimals=5
+            precision=5
+        }
 
-    transform{
-        function=$(transform_function)
-    }
+        transform{
+            function=$(transform_function)
+        }
 
-    x11{
-        mode=$(x11_mode)
-        save=$(x11_save)
-    }
+        x11{
+            mode=$(x11_mode)
+            save=$(x11_save)
+        }
+        ```
 
-    ```
+???+ input "add_to_specs"
+    Extra settings merged into whichever template is in use, the
+    default one or your own.
 
-    ................................................................................
+???+ input "allow_missing"
+    Lets missing observations through, and adds an empty `automdl` spec
+    when no ARIMA model has been given.
+
+???+ input "version"
+    Chooses between the two bundled executables, `"1.1.39"` and
+    `"1.1.62"`. It is `"1.1.62"` when left alone.
+
+???+ input "when_error"
+    What happens when X13 fails for a variant: `"warning"` issues a
+    warning and lets the call return, `"error"` raises.
+
+???+ input "clean_up"
+    Removes the spec and output files afterwards. Note these are
+    written into the current working directory, so `clean_up=False`
+    leaves a handful of `tmp*` files behind wherever you happened to
+    be -- five of them per run, with the extensions `.spc`, `.log`,
+    `.out`, `.err` and the requested table.
+
+???+ input "return_info"
+    Returns a dictionary describing the run instead of nothing.
+
+???+ input "unpack_singleton"
+    Collapses the per-variant list of `info` dictionaries to a single
+    dictionary for a series with one variant. `True` when left alone;
+    with `unpack_singleton=False` a one-variant series returns a list
+    of length one.
+
+
+### Returns
+
+
+Nothing, unless `return_info=True`, which returns a dictionary
+describing the run:
+
+| Key | Description
+|-----|-------------
+| `success` | `True` if X13 produced a result
+| `mode` | The mode used, whether given or chosen
+| `transform_function` | `"log"` under `"mult"`, `"none"` otherwise
+| `flip_sign` | Whether the series was negated for the run
+| `specs` | The spec file as it was sent to X13
+| `specs_template` | The template it was built from
+| `spc`, `log`, `out`, `err` | The files X13 wrote
+| `*` | The requested table, under its X13 name -- `d11` by default
+
+With several variants there is one such dictionary per variant,
+collapsed to a single one for a singleton series unless
+`unpack_singleton=False`.
+
+
+### Examples
+
+
+Both examples below run the bundled X13 executable, which ships with
+the package for macOS, Linux and Windows. On any other platform the
+lookup that selects it fails while `datapie` is being imported, so
+these two are the only examples in the time series documentation that
+depend on something outside Python.
+
+Six years of quarterly data with a seasonal pattern. The series is
+adjusted in place and keeps its length:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> t = np.arange(24)
+    >>> x = dp.Series(start=dp.qq(2015, 1),
+    ...     values=100 + 2*t + 10*np.sin(2*np.pi*t/4))
+    >>> x.x13() is None
+    True
+    >>> x.num_periods
+    24
+
+Asking for the details of the run:
+
+    >>> x = dp.Series(start=dp.qq(2015, 1),
+    ...     values=100 + 2*t + 10*np.sin(2*np.pi*t/4))
+    >>> info = x.x13(return_info=True)
+    >>> info["success"]
+    True
+    >>> info["mode"]
+    'mult'
+
+................................................................................
         """
         span = self.resolve_periods(span)
         base_start, base_end = span[0], span[-1]
@@ -344,95 +344,6 @@ class Mixin:
             return out_info
         else:
             return
-
-    # ==========================================================================
-    #  ### `x13(*, span=..., when_error="warning", clean_up=True,
-    #   output="seasonally_adjusted", return_info=False,
-    #   unpack_singleton=True, specs_template=None, mode=None,
-    #   allow_missing=False, add_to_specs=None, version="1.1.62")`
-    #
-    #  Runs the series through the X13-ARIMA-TRAMO-SEATS program and
-    #  replaces its values with the component you asked for.
-    #
-    #  This is the standard tool for taking the seasonal pattern out of
-    #  monthly or quarterly data. The work is done by the bundled X13
-    #  executable: the series is written to a spec file, the program is
-    #  run, and one of its output tables is read back. Only monthly and
-    #  quarterly series can be used; any other frequency raises `KeyError`
-    #  naming the frequency.
-    #
-    #  **Parameters.** Every argument is keyword-only.
-    #
-    #  `span` is the stretch of periods to work on, and left alone it is
-    #  the whole series. It is not merely a window on the calculation: the
-    #  series is clipped to it in place before X13 runs, so a narrower
-    #  `span` permanently discards the observations outside it.
-    #
-    #  `output` picks which of the X13 tables comes back, and is
-    #  `"seasonally_adjusted"` when left alone. The documented names are
-    #  `"seasonal"`, `"seasonally_adjusted"`, `"trend_cycle"`,
-    #  `"irregular"`, `"seasonal_and_td"` and `"holiday_and_td"`; the short
-    #  forms `"sf"`, `"sa"`, `"tc"`, `"irr"` and `"seasonal_factors"` are
-    #  accepted too. An unrecognised name is not rejected, it is passed to
-    #  X13 as a table name, which produces no data and fails obscurely.
-    #
-    #  `mode` is the decomposition, one of `"mult"`, `"add"`,
-    #  `"pseudoadd"` and `"logadd"`. Left as `None` it is chosen from the
-    #  data: multiplicative when every observation is strictly positive or
-    #  every observation is strictly negative, additive otherwise. Missing
-    #  observations do not spoil that test, but a zero does, since zero is
-    #  neither positive nor negative and pushes the choice to additive. An
-    #  all-negative series is flipped to positive for the run and flipped
-    #  back afterwards -- but only if it holds no missing observation, so
-    #  an all-negative series with a gap is sent to X13 as it stands, under
-    #  a multiplicative mode that takes logarithms of negative numbers, and
-    #  the run fails.
-    #
-    #  `specs_template` replaces the default spec dictionary and
-    #  `add_to_specs` merges extra settings into whichever template is in
-    #  use. `allow_missing` lets missing observations through and adds an
-    #  empty `automdl` spec when no ARIMA model has been given. `version`
-    #  chooses between the two bundled executables and is `"1.1.62"` when
-    #  left alone.
-    #
-    #  `when_error` decides what happens when X13 fails for a variant,
-    #  either `"warning"` or `"error"`. `clean_up` removes the spec and
-    #  output files afterwards; note these are written into the current
-    #  working directory, so `clean_up=False` leaves a handful of `tmp*`
-    #  files behind wherever you happened to be.
-    #
-    #  **Returns.** Nothing, unless `return_info=True`, which returns a
-    #  dictionary describing the run: `success`, `mode`,
-    #  `transform_function`, `flip_sign`, `specs`, `specs_template`, and
-    #  the contents of the files X13 wrote, including the requested table.
-    #  With several variants there is one such dictionary per variant,
-    #  collapsed to a single one for a singleton series unless
-    #  `unpack_singleton=False`.
-    #
-    #  **Examples.** Six years of quarterly data with a seasonal pattern.
-    #  The series is adjusted in place and keeps its length:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> t = np.arange(24)
-    #      >>> x = dp.Series(start=dp.qq(2015, 1),
-    #      ...     values=100 + 2*t + 10*np.sin(2*np.pi*t/4))
-    #      >>> x.x13() is None
-    #      True
-    #      >>> x.num_periods
-    #      24
-    #
-    #  Asking for the details of the run:
-    #
-    #      >>> x = dp.Series(start=dp.qq(2015, 1),
-    #      ...     values=100 + 2*t + 10*np.sin(2*np.pi*t/4))
-    #      >>> info = x.x13(return_info=True)
-    #      >>> info["success"]
-    #      True
-    #      >>> info["mode"]
-    #      'mult'
-    #
-    # ==========================================================================
 
     #]
 

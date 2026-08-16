@@ -44,7 +44,7 @@ _DEFAULT_DISCARD_MISSING = False
 class Mixin:
     #[
 
-    @_dm.reference(category="conversion", )
+    @_dm.reference(category="conversion", add_heading=False, )
     def aggregate(
         self,
         target_freq: Frequency,
@@ -57,68 +57,93 @@ class Mixin:
         r"""
 ................................................................................
 
-==Aggregate time series to a lower frequency==
+## `aggregate`
+
+==Converts a time series to a lower frequency by replacing the high-frequency observations within each low-frequency period with a single summary value.==
+
+    self.aggregate(
+        target_freq,
+        method="mean",
+        discard_missing=False,
+        select=None,
+    )
+
+This is how quarterly data becomes annual, or daily data monthly.
+Aggregation covers whole calendar years, so a series that does not
+start in the first period of a year, or end in the last one, has an
+incomplete year at that end. An incomplete year contains missing
+observations and aggregates to a missing value, which is then trimmed
+off, taking the observations it held with it. Setting
+`discard_missing=True` drops the missing observations first and
+aggregates the part-year that remains.
 
 
-### Function form for creating new time `Series` objects ###
-
-new = irispie.aggregate(
-    self,
-    target_freq,
-
-    method="mean",
-    discard_missing=False,
-    select=None,
-)
-
-
-### Class method changing an existing Series object in-place ###
-
-self.aggregate(
-    target_freq,
-
-    method="mean",
-    discard_missing=False,
-    select=None,
-)
-
-
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "target_freq"
-The new frequency to which the original time series will be diaggregated.
+    The frequency to move down to. Asking for the frequency the series
+    already has returns silently without changing anything; asking for
+    a higher frequency raises `ValueError`.
 
 ???+ input "method"
-Aggregation method, i.e. a function applied to the high-frequency
-values within each low-frequency period:
+    A function applied to the high-frequency values within each
+    low-frequency period, given either as one of the names below or as
+    a function of your own taking an array of values and returning one
+    number. Left alone it is `"mean"`.
 
-| Method    | Description
-|-----------|-------------
-| "mean"    | Arithmetic average of high-frequency values
-| "sum"     | Sum of high-frequency values
-| "prod"    | Product of high-frequency values
-| "first"   | Value in the first high-frequency period
-| "last"    | Value in the last high-frequency period
-| "min"     | Minimum of high-frequency values
-| "max"     | Maximum of high-frequency values
+    | Method            | Description
+    |-------------------|-------------
+    | `"mean"`          | Arithmetic average of high-frequency values
+    | `"geometric_mean"`| Geometric average of high-frequency values
+    | `"sum"`           | Sum of high-frequency values
+    | `"prod"`          | Product of high-frequency values
+    | `"first"`         | Value in the first high-frequency period
+    | `"last"`          | Value in the last high-frequency period
+    | `"min"`           | Minimum of high-frequency values
+    | `"max"`           | Maximum of high-frequency values
 
 ???+ input "discard_missing"
-Remove missing values from the high-frequency data before
-applying the aggregation `method`.
+    Drops the missing values within each low-frequency period before
+    the `method` is applied, as described above. `False` when left
+    alone.
 
 ???+ input "select"
-Select only the high-frequency values at the specified indexes;
-`select=None` means all values are used.
+    Meant to pick only the high-frequency values at the given indexes,
+    but it does not work: passing a list raises `TypeError:
+    'numpy.float64' object is not iterable`. Leave it as `None`.
 
 
-### Returns ###
+### Returns
 
-???+ returns "self"
-The original time `Series` object with the aggregated data.
 
-???+ returns "new"
-A new time `Series` object with the aggregated data.
+Nothing; the series is converted in place.
+
+
+### Examples
+
+
+Two whole years of quarterly data averaged into annual data:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3., 4., 5., 6., 7., 8.]))
+    >>> x.aggregate(dp.Frequency.YEARLY)
+    >>> x.get_data()[:, 0].tolist()
+    [2.5, 6.5]
+
+The same data starting in the third quarter of 2020. The first half of
+2020 is missing, so 2020 aggregates to a missing value and is trimmed
+away; the two observations it held are gone:
+
+    >>> x = dp.Series(start=dp.qq(2020, 3),
+    ...     values=np.array([3., 4., 5., 6., 7., 8.]))
+    >>> x.aggregate(dp.Frequency.YEARLY)
+    >>> x.start
+    yy(2021)
+    >>> x.get_data()[:, 0].tolist()
+    [6.5]
 
 ................................................................................
         """
@@ -156,65 +181,8 @@ A new time `Series` object with the aggregated data.
         new_start_date, new_data = aggregate_func(self, new_dater_class, aggregate_within_data_func, )
         self._replace_start_and_values(new_start_date, new_data, )
 
-    # ==========================================================================
-    #  ### `aggregate(target_freq, method="mean",
-    #   discard_missing=False, select=None)`
-    #
-    #  Converts a time series to a lower frequency by replacing the
-    #  high-frequency observations within each low-frequency period with a
-    #  single summary value.
-    #
-    #  This is how quarterly data becomes annual, or daily data monthly.
-    #  Aggregation covers whole calendar years, so a series that does not
-    #  start in the first period of a year, or end in the last one, has an
-    #  incomplete year at that end. An incomplete year contains missing
-    #  observations and aggregates to a missing value, which is then
-    #  trimmed off, taking the observations it held with it. Setting
-    #  `discard_missing=True` drops the missing observations first and
-    #  aggregates the part-year that remains.
-    #
-    #  **Parameters.** `target_freq` is the frequency to move down to.
-    #  Asking for the frequency the series already has returns silently
-    #  without changing anything; asking for a higher frequency raises
-    #  `ValueError`.
-    #
-    #  `method` is one of `"mean"`, `"geometric_mean"`, `"sum"`, `"prod"`,
-    #  `"first"`, `"last"`, `"min"` and `"max"`, or a function of your own
-    #  taking an array of values and returning one number. Left alone it is
-    #  `"mean"`.
-    #
-    #  `discard_missing` is described above and is `False` when left alone.
-    #  `select` is meant to pick positions within each period but does not
-    #  work as intended, so leave it as `None`.
-    #
-    #  **Returns.** Nothing; the series is converted in place.
-    #
-    #  **Examples.** Two whole years of quarterly data averaged into annual
-    #  data:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> x = dp.Series(start=dp.qq(2020, 1),
-    #      ...     values=np.array([1., 2., 3., 4., 5., 6., 7., 8.]))
-    #      >>> x.aggregate(dp.Frequency.YEARLY)
-    #      >>> x.get_data()[:, 0].tolist()
-    #      [2.5, 6.5]
-    #
-    #  The same data starting in the third quarter of 2020. The first half
-    #  of 2020 is missing, so 2020 aggregates to a missing value and is
-    #  trimmed away; the two observations it held are gone:
-    #
-    #      >>> x = dp.Series(start=dp.qq(2020, 3),
-    #      ...     values=np.array([3., 4., 5., 6., 7., 8.]))
-    #      >>> x.aggregate(dp.Frequency.YEARLY)
-    #      >>> x.start
-    #      yy(2021)
-    #      >>> x.get_data()[:, 0].tolist()
-    #      [6.5]
-    #
-    # ==========================================================================
 
-    @_dm.reference(category="conversion", )
+    @_dm.reference(category="conversion", add_heading=False, )
     def disaggregate(
         self,
         target_freq: Frequency,
@@ -225,107 +193,133 @@ A new time `Series` object with the aggregated data.
         r"""
 ................................................................................
 
-==Disaggregate time series to a higher frequency==
+## `disaggregate`
+
+==Converts a time series to a higher frequency by spreading each low-frequency observation over the periods it covers.==
+
+    self.disaggregate(
+        target_freq,
+        method="flat",
+        **kwargs,
+    )
+
+Only `"flat"` and `"arip"` fill every new period; `"first"`, `"middle"`
+and `"last"` put the number into one period of each block and leave the
+rest missing.
 
 
-### Function form for creating new time `Series` objects ###
-
-new = irispie.disaggregate(
-    self,
-    target_freq,
-
-    method="flat",
-)
-
-
-### Class method form for changing existing time `Series` objects in-place ###
-
-self.disaggregate(
-    target_freq,
-
-    method="flat",
-    model=None,
-)
-
-
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "target_freq"
-The new frequency to which the original time series will be aggregated.
+    The frequency to move up to, and it must be higher than the one the
+    series already has. Asking for the frequency the series already has
+    returns silently without changing anything.
 
 ???+ input "method"
-Aggregation method, i.e. a function applied to the high-frequency
-values within each low-frequency period:
+    How each low-frequency value is spread over the high-frequency
+    periods it covers. Left alone it is `"flat"`, which repeats the
+    low-frequency value in every high-frequency period without dividing
+    it.
 
-| Method    | Description
-|-----------|-------------
-| "flat"    | Repeat the high-frequency values
-| "first"   | Place the low-frequency value in the first high-frequency period
-| "middle"  | Place the low-frequency value in the middle high-frequency period
-| "last"    | Place the low-frequency value in the last high-frequency period
-| "arip"    | Interpolate using a smooth autoregressive process
+    | Method    | Description
+    |-----------|-------------
+    | `"flat"`  | Repeat the low-frequency value in every period
+    | `"first"` | Place the low-frequency value in the first high-frequency period
+    | `"middle"`| Place the low-frequency value in the middle high-frequency period
+    | `"last"`  | Place the low-frequency value in the last high-frequency period
+    | `"arip"`  | Interpolate using a smooth autoregressive process
+
+???+ input "**kwargs"
+    Handed on to the chosen method. `"arip"` requires a `model`
+    argument, a pair naming the form of the process and the way the
+    high-frequency values aggregate back to the observed ones --
+    `model=("rate", "mean")`, for instance. Omitting it raises
+    `TypeError: disaggregate_arip() missing 1 required positional
+    argument: 'model'`. The algorithm is set out under Algorithm below.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "new"
-A new time `Series` object with the disaggregated data.
+Nothing; the series is converted in place.
 
 
+### Examples
 
-### Details ###
+
+Annual data repeated across the quarters of each year:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> y = dp.Series(start=dp.yy(2020),
+    ...     values=np.array([100., 200.]))
+    >>> y.disaggregate(dp.Frequency.QUARTERLY)
+    >>> y.get_data()[:, 0].tolist()
+    [100.0, 100.0, 100.0, 100.0, 200.0, 200.0, 200.0, 200.0]
+
+
+### Algorithm
+
 
 ???+ details "ARIP algorithm"
+    Instead of repeating or placing the low-frequency value, `"arip"`
+    fits a smooth path through the higher-frequency periods that still
+    aggregates back to the observed data. Suited to a series that is a
+    level moving gradually, rather than a figure that should simply be
+    repeated.
 
-The `method="arip" setting invokes an interpolation method that assumes the
-underlying high-frequency process to be an autoregression. The method can be
-described in its state-space recursive form, although the numerical
-implementation is stacked-time.
+    The setting invokes an interpolation method that assumes the
+    underlying high-frequency process to be an autoregression. The
+    method can be described in its state-space recursive form, although
+    the numerical implementation is stacked-time.
 
-The `"rate"` model:
+    The `"rate"` model:
 
-$$
-\begin{gathered}
-x_t = \rho \, x_{t-1} + \epsilon_t \\[10pt]
-y_t = Z \, x_t \\[10pt]
-\epsilon_t \sim N(0, \sigma_t^2)
-\end{gathered}
-$$
+    $$
+    \begin{gathered}
+    x_t = \rho \, x_{t-1} + \epsilon_t \\[10pt]
+    y_t = Z \, x_t \\[10pt]
+    \epsilon_t \sim N(0, \sigma_t^2)
+    \end{gathered}
+    $$
 
-The `"diff"` model:
+    The `"diff"` model:
 
-$$
-\begin{gathered}
-x_t = x_{t-1} + c + \epsilon_t \\[10pt]
-y_t = Z \, x_t \\[10pt]
-\epsilon_t \sim N(0, 1)
-\end{gathered}
-$$
+    $$
+    \begin{gathered}
+    x_t = x_{t-1} + c + \epsilon_t \\[10pt]
+    y_t = Z \, x_t \\[10pt]
+    \epsilon_t \sim N(0, 1)
+    \end{gathered}
+    $$
 
-where
+    where
 
-* $x_t$ is the underlying high-frequency process;
+    * $x_t$ is the underlying high-frequency process;
 
-* $y_t$ is the observed low-frequency time series;
+    * $y_t$ is the observed low-frequency time series;
 
-* $Z$ is an aggregation vector depending on the `aggregation` specification,
+    * $Z$ is an aggregation vector depending on the `aggregation`
+    specification,
 
-| Aggregation | $Z$ vector
-|-------------|-----------
-| "sum"       | $(1, 1, \ldots, 1)$
-| "mean"      | $\tfrac{1}{n}\,(1, 1, \ldots, 1)$
-| "first"     | $(1, 0, \ldots, 0)$
-| "last"      | $(0, 0, \ldots, 1)$
+    | Aggregation | $Z$ vector
+    |-------------|-----------
+    | `"sum"`     | $(1, 1, \ldots, 1)$
+    | `"mean"`    | $\tfrac{1}{n}\,(1, 1, \ldots, 1)$
+    | `"first"`   | $(1, 0, \ldots, 0)$
+    | `"last"`    | $(0, 0, \ldots, 1)$
 
-* $\rho$ is a gross rate of change estimated as the average rate of change
-in the observed series, $y_t$, and converted to high frequency;
+    * $\rho$ is a gross rate of change estimated as the average rate of
+    change in the observed series, $y_t$, and converted to high
+    frequency;
 
-* $c$ is a constant estimated as the average difference in the observed
-series, $y_t$, and converted to high frequency;
+    * $c$ is a constant estimated as the average difference in the
+    observed series, $y_t$, and converted to high frequency;
 
-* $\sigma_t$ is a time-varying standard deviation of the high-frequency process, set to $\sigma_0 = 1$, and $\sigma_t = \rho \, \sigma_{t-1}$.
+    * $\sigma_t$ is a time-varying standard deviation of the
+    high-frequency process, set to $\sigma_0 = 1$, and
+    $\sigma_t = \rho \, \sigma_{t-1}$.
 
 ................................................................................
         """
@@ -346,42 +340,6 @@ series, $y_t$, and converted to high frequency;
         new_start_date, new_data, *_ = method_func(self, new_dater_class, **kwargs, )
         self._replace_start_and_values(new_start_date, new_data, )
 
-    # ==========================================================================
-    #  ### `disaggregate(target_freq, method="flat", **kwargs)`
-    #
-    #  Converts a time series to a higher frequency by spreading each
-    #  low-frequency observation over the periods it covers.
-    #
-    #  Use it to put annual data on a quarterly grid before combining it
-    #  with quarterly series. Only `"flat"` and `"arip"` fill every new
-    #  period; `"first"`, `"middle"` and `"last"` put the number into one
-    #  period of each block and leave the rest missing.
-    #
-    #  **Parameters.** `target_freq` is the frequency to move up to, and
-    #  must be higher than the one the series already has. Asking for the
-    #  frequency it already has returns silently without changing anything.
-    #
-    #  `method` is `"flat"`, `"first"`, `"middle"`, `"last"` or `"arip"`.
-    #  Left alone it is `"flat"`, which repeats the low-frequency value in
-    #  every high-frequency period without dividing it.
-    #
-    #  Anything else you pass is handed on to the chosen method; `"arip"`
-    #  needs a `model` argument, and the docstring above sets out the
-    #  algorithm behind it.
-    #
-    #  **Returns.** Nothing; the series is converted in place.
-    #
-    #  **Examples.** Annual data repeated across the quarters of each year:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> y = dp.Series(start=dp.yy(2020),
-    #      ...     values=np.array([100., 200.]))
-    #      >>> y.disaggregate(dp.Frequency.QUARTERLY)
-    #      >>> y.get_data()[:, 0].tolist()
-    #      [100.0, 100.0, 100.0, 100.0, 200.0, 200.0, 200.0, 200.0]
-    #
-    # ==========================================================================
 
     #]
 

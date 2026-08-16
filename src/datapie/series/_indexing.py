@@ -33,71 +33,106 @@ class Mixin:
     )
     def indexing(self, /, ) -> None:
         r"""
-    ················································································
+················································································
 
-    Time `Series` objects can be indexed in four ways (note the square versus round
-    brackets):
+==Carries the documentation for the four ways a time series can be indexed.==
 
-    | Indexing                                           | Description
-    |----------------------------------------------------|-------------
-    | `self[shift]`                                      | Time shift
-    | `self[dates]`, `self[dates, variants]`             | Data extraction
-    | `self[dates] = ...`, `self[dates, variants] = ...` | Data assignment
-    | `self(dates)`, `self(dates, variants)`             | Time `Series` recreation
+    self.indexing()
+
+Calling it raises `NotImplementedError`. It exists only to carry this
+overview in the reference documentation; the four syntaxes below are the
+working things.
+
+Note the square versus round brackets:
+
+| Indexing                                           | Description
+|----------------------------------------------------|-------------
+| `self[shift]`                                      | Time shift
+| `self[dates]`, `self[dates, variants]`             | Data extraction
+| `self[dates] = ...`, `self[dates, variants] = ...` | Data assignment
+| `self(dates)`, `self(dates, variants)`             | Time `Series` recreation
+
+Throughout, `dates` is a `Period`, a tuple of `Periods`, or a time
+`Span`; `variants` is an integer, a tuple of integers, or a `slice`.
 
 
-    ### Time shift ###
+### Time shift
 
-    ```
+
     self[shift]
-    ```
 
-    Time shift is done by passing an integer to the `self[shift]` or
-    `self[shift]` indexing. The time shift syntax returns a new copy of the
-    original series, with the time periods shifted by `shift`.
+An **integer** index is read as a time shift. It returns a new series --
+the original is not changed -- with the same values stamped `shift`
+periods away.
+
+The sign runs opposite to what you may expect, exactly as in `shift`
+itself: the number is subtracted from the start, so `self[-1]` moves the
+series one period later and `self[1]` one period earlier. `True` and
+`False` are integers in Python, so `self[True]` shifts by one rather
+than doing anything with a boolean.
 
 
-    ### Data extractation ###
+### Data extraction
 
-    ```
+
     self[dates]
     self[dates, variants]
-    ```
 
-    The `dates` is a `Period` or a tuple of `Periods` or a time `Span` object,
-    and `variants` is an integer or a tuple of integers or a `slice` object
-    specifying the variants. The data extraction syntax returns a
-    two-dimensional `numpy` array, with the time dimension running along the
-    rows and the variant dimension running along the columns.
+Returns a two-dimensional `numpy` array, time running down the rows and
+variants across the columns, even when only one of either is asked for.
+Periods outside the series come back missing rather than raising, as in
+`get_data`.
 
 
-    ### Data assignment ###
+### Data assignment
 
-    ```
+
     self[dates] = ...
     self[dates, variants] = ...
-    ```
 
-    The `dates` is a `Period` or a tuple of `Periods` or a time `Span` object,
-    and `variants` is an integer or a tuple of integers or a `slice` object
-    specifying the variants. The data assignment syntax sets the data in the
-    time series.
+Writes into the series through `set_data`, so it grows the span when the
+periods fall outside it and trims afterwards.
 
 
-    ### Time `Series` recreation ###
+### Time `Series` recreation
 
-    ```
+
     self(dates)
     self(dates, variants)
-    ```
 
-    The `dates` is a `Period` or a tuple of `Periods` or a time `Span` object,
-    and `variants` is an integer or a tuple of integers or a `slice` object
-    specifying the variants. The time `Series` recreation syntax returns a new
-    time `Series` object based on the data selected by the `dates` and
-    `variants`.
+Returns a new time `Series` built from the selected data, where the
+square-bracket form would return a bare array.
 
-    ················································································
+
+### Returns
+
+
+Nothing; this method raises `NotImplementedError` if called.
+
+
+### Examples
+
+
+A time shift, an extraction and a recreation from the same series:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3.]))
+    >>> x[-1].start
+    qq(2020,2)
+    >>> x[dp.qq(2020, 2)].tolist()
+    [[2.0]]
+    >>> x(dp.Span(dp.qq(2020, 1), dp.qq(2020, 2))).num_periods
+    2
+
+Assignment writes in place:
+
+    >>> x[dp.qq(2020, 2)] = 99.
+    >>> x.get_data()[:, 0].tolist()
+    [1.0, 99.0, 3.0]
+
+················································································
         """
         raise NotImplementedError
 
@@ -142,17 +177,85 @@ class Mixin:
         """
         return self._get_data_and_recreate(*index, )
 
-    @_dm.reference(category="indexing", )
+    @_dm.reference(category="indexing", add_heading=False, )
     def reverse_variants(self, ) -> None:
         r"""
-        Reverse the order of the variants (columns) in the time series
+················································································
+
+## `reverse_variants`
+
+==Reverses the order of the variants, that is the columns, of the time series.==
+
+    self.reverse_variants()
+    self.reverse_columns()
+
+The time dimension is untouched: every column keeps its own values in
+their own periods, and only the order of the columns changes.
+`reverse_columns` is the same method under another name.
+
+
+### Returns
+
+
+Nothing; the series is modified in place.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([[1., 2.], [3., 4.]]))
+    >>> x.reverse_variants()
+    >>> x.get_data().tolist()
+    [[2.0, 1.0], [4.0, 3.0]]
+
+················································································
         """
         self.data = self.data[:, ::-1]
 
-    @_dm.reference(category="indexing", )
+    @_dm.reference(category="indexing", add_heading=False, )
     def reverse_periods(self, ) -> None:
         r"""
-        Reverse the order of the values in the periods (rows) in the time series
+················································································
+
+## `reverse_periods`
+
+==Reverses the order of the observations in time, leaving the periods where they are.==
+
+    self.reverse_periods()
+    self.reverse_rows()
+
+The rows of the data are flipped while `start` stays put, so the series
+covers the same span as before and the last observation now sits at the
+first period. It is the values that are reversed, not the time stamps --
+nothing here re-dates the series. `reverse_rows` is the same method
+under another name.
+
+
+### Returns
+
+
+Nothing; the series is modified in place.
+
+
+### Examples
+
+
+The span is unchanged and the values run backwards through it:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3.]))
+    >>> x.reverse_periods()
+    >>> x.start
+    qq(2020,1)
+    >>> x.get_data()[:, 0].tolist()
+    [3.0, 2.0, 1.0]
+
+················································································
         """
         self.data = self.data[::-1, :]
 

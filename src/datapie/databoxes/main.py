@@ -112,36 +112,40 @@ batch processing, importing and exporting data, and more.
     @_dm.reference(
         category="constructor",
         call_name="Databox.empty",
+        add_heading=False,
     )
     def empty(klass, ) -> Self:
         """
 ················································································
 
-==Create an empty Databox==
+## `Databox.empty`
 
-Generate a new, empty Databox instance. This class method is useful for 
-initializing a Databox without any pre-existing data.
+==Creates a new, empty Databox.==
 
-    Databox.empty()
+    self = Databox.empty()
 
-
-### Input arguments ###
-
-No input arguments are required for this method.
+A class method taking no arguments, and the same thing as `Databox()`.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "Databox"
-    Returns a new instance of an empty Databox.
+A new Databox holding nothing.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> dict(dp.Databox.empty())
+    {}
 
 ················································································
         """
         return klass()
 
     @classmethod
-    @_dm.reference(category="constructor", call_name="Databox.from_dict", )
+    @_dm.reference(category="constructor", call_name="Databox.from_dict", add_heading=False, )
     def from_dict(
         klass,
         _dict: dict,
@@ -149,29 +153,38 @@ No input arguments are required for this method.
         """
 ················································································
 
-==Create a new `Databox` from a `dict`==
+## `Databox.from_dict`
 
-Create a new Databox instance populated with data from a provided dictionary. 
-This class method can be used to convert a standard Python dictionary into a 
-Databox, incorporating all its functionalities.
+==Creates a new Databox holding the contents of a plain dictionary.==
 
     self = Databox.from_dict(_dict)
 
+A class method. The entries are copied across one by one, so the
+dictionary itself is not kept and later changes to it do not reach the
+Databox; the values, however, are the same objects.
 
-### Input arguments ###
+
+**Input arguments.**
 
 
 ???+ input "_dict"
-    A dictionary containing the data to populate the new Databox. Each
-    key-value pair in the dictionary will be an item in the Databox.
+    The dictionary to read. Each key-value pair becomes one item in the
+    new Databox.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "self"
-    Returns a new Databox populated with the contents of the provided
-    dictionary.
+A new Databox holding the same items.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> db = dp.Databox.from_dict({"a": 1, "b": 2})
+    >>> dict(sorted(db.items()))
+    {'a': 1, 'b': 2}
 
 ················································································
         """
@@ -181,7 +194,7 @@ Databox, incorporating all its functionalities.
         return self
 
     @classmethod
-    @_dm.reference(category="constructor", call_name="Databox.from_array", )
+    @_dm.reference(category="constructor", call_name="Databox.from_array", add_heading=False, )
     def from_array(
         klass,
         array: _np.ndarray,
@@ -196,7 +209,16 @@ Databox, incorporating all its functionalities.
         """
 ················································································
 
-==Create a new `Databox` from a numpy array==
+## `Databox.from_array`
+
+==Creates a new Databox with one time series per row or column of a numpy array.==
+
+**This method does not currently work, and everything below describes what it
+is meant to do rather than what it does.** The helper it delegates to,
+`_from_horizontal_array_and_constructor`, has its assignment line commented out
+and a debug `print` left in its place, so the call prints one line per name to
+standard output and creates no series at all. It returns an empty `Databox`, or
+`target_db` unchanged when one is given. Nothing in the package calls it.
 
 Convert a two-dimensional [numpy](https://numpy.org) array data into a
 Databox, with the individual time series created from the rows or columns
@@ -214,7 +236,7 @@ of the numeric array.
     )
 
 
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "array"
@@ -245,11 +267,11 @@ of the numeric array.
     * `"vertical"` means each column is a time series.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "self"
-    Returns a new Databox populated with the data from the numpy array.
+A new Databox populated with the data from the numpy array -- or would; see the
+warning at the top of this entry.
 
 ················································································
         """
@@ -285,7 +307,7 @@ of the numeric array.
             # self[name] = series_constructor(values=values, description=description, )
         return self
 
-    @_dm.reference(category="retrieval", )
+    @_dm.reference(category="retrieval", add_heading=False, )
     def array_from_series(
         self,
         names: Iterable[str],
@@ -295,25 +317,22 @@ of the numeric array.
         r"""
 ................................................................................
 
-==Retrieve time series data into a numpy array==
+## `array_from_series`
 
-Retrieve the values of specified time series in the Databox into a numpy array.
-The values are extracted for the specified periods and variant. This method is
-useful for transforming time series data into a format suitable for numerical
-analysis.
+==Collects the values of several time series into one numpy array, one row per series.==
 
-```
     array = self.array_from_series(
         names,
         periods,
-
-
         variant=0,
     )
-```
+
+Both `names` and `periods` are required. Use it to hand a block of the
+Databox to code that works on plain arrays.
 
 
-### Input arguments ###
+**Input arguments.**
+
 
 ???+ input "names"
     A list of names of the time series to be converted to a numpy array.
@@ -328,14 +347,25 @@ analysis.
     integer representing a specific variant of the time series data.
 
 
-### Returns ###
+### Returns
 
-???+ returns "array"
-    A numpy array containing the values of the specified time series for the
-    specified periods and variant. The array is structured such that each row
-    corresponds to a time series, and each column corresponds to a period. The
-    values are extracted in the order specified by the `names` and `periods`
-    arguments. The array is of shape `(len(names), len(periods))`.
+A numpy array of shape `(len(names), len(periods))`: one row per series and
+one column per period, both in the order asked for.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.array_from_series(["gdp", "cpi"],
+    ...     dp.Span(dp.qq(2020, 1), dp.qq(2020, 2))).tolist()
+    [[1.0, 2.0], [3.0, 4.0]]
 
 ................................................................................
         """
@@ -362,7 +392,7 @@ analysis.
         while True:
             yield { k: next(v, ) for k, v in dict_variant_iter.items() }
 
-    @_dm.reference(category="information", )
+    @_dm.reference(category="information", add_heading=False, )
     def get_names(
         self, 
         test: None | Callable = None,
@@ -371,24 +401,47 @@ analysis.
         """
 ················································································
 
-==Get item names from a Databox==
+## `get_names`
 
+==Lists the names of the items in the Databox, optionally only those passing a test.==
 
     names = self.get_names(test=None, )
 
 
-### Input arguments ###
+**Input arguments.**
+
 
 ???+ input "test"
     A function that takes a name and returns `True` to include the name in the
     output list, or `False` to keep the name out. If `None`, all names are
     included.
 
+???+ input "filter"
+    A legacy name for `test`, marked in the signature for deprecation. It is
+    still accepted and still works. It shadows the builtin `filter` inside the
+    method, and it is a different thing from the `Databox.filter` method.
 
-### Returns ###
 
-???+ returns "names"
-    A tuple containing all the names of items in the Databox.
+### Returns
+
+
+A tuple of names. Every name in the Databox when no test is given.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> sorted(db.get_names())
+    ['cpi', 'gdp', 'n']
+    >>> sorted(db.get_names(lambda n: n.startswith("g")))
+    ['gdp']
 
 ················································································
         """
@@ -399,71 +452,128 @@ analysis.
             keys = tuple(k for k in keys if test(k, ))
         return keys
 
-    @_dm.reference(category="information", )
+    @_dm.reference(category="information", add_heading=False, )
     def get_missing_names(self, names: Iterable[str], ) -> tuple[str]:
         """
 ················································································
 
-==Identify names not present in a Databox==
+## `get_missing_names`
 
-Find and return the names from a provided list that are not present in the 
-Databox. This method is helpful for checking which items are missing or have 
-yet to be added to the Databox.
+==Reports which of the names you ask about the Databox does not hold.==
 
     missing_names = self.get_missing_names(names)
 
 
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "names"
     An iterable of names to check against the Databox's items.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "missing_names"
-    A tuple of names that are not found in the Databox.
+A tuple of the names that are not in the Databox, in the order they were
+given. Empty when the Databox holds them all.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.get_missing_names(["gdp", "zz", "qq"])
+    ('zz', 'qq')
 
 ················································································
         """
         return tuple(i for i in names if i not in self)
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.reference(category="property", add_heading=False, )
     def num_items(self, ) -> int:
-        """==Number of items in the databox=="""
+        r"""
+················································································
+
+## `num_items`
+
+==Gives the number of items held in the Databox.==
+
+    self.num_items
+
+A read-only property. It counts every entry, whether or not it is a time
+series.
+
+
+### Returns
+
+
+A whole number, zero for an empty Databox.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["note"] = "not a series"
+    >>> db.num_items
+    2
+
+················································································
+        """
         return len(self.keys())
 
-    @_dm.reference(category="copying", )
+    @_dm.reference(category="copying", add_heading=False, )
     def to_dict(self: Self) -> dict:
         r"""
 ................................................................................
 
-==Convert a Databox to a plain dictionary==
+## `to_dict`
 
-Convert a Databox to a standard Python dictionary, with the keys and values
-retained. This method is useful for converting a Databox to a format that can be
-used with other Python libraries or functions.
+==Converts a Databox to a plain dictionary.==
 
     diction = self.to_dict()
 
-### Input arguments ###
+The keys and values are carried across unchanged, so the values are the
+same objects rather than copies. Use it to hand a Databox to code that
+expects an ordinary `dict`.
 
-???+ input "self"
-    The Databox object to convert to a dictionary.
+### Returns
 
-### Returns ###
 
-???+ returns "diction"
-    A dictionary containing the items from the Databox.
+A plain `dict` holding the same items.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> sorted(db.to_dict())
+    ['cpi', 'gdp', 'n']
+    >>> type(db.to_dict()).__name__
+    'dict'
 
 ................................................................................
         """
         return { k: v for k, v in self.items() }
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def copy(
         self: Self,
         source_names: SourceNames = None,
@@ -473,10 +583,14 @@ used with other Python libraries or functions.
         """
 ................................................................................
 
-==Create a copy of the Databox==
+## `copy`
 
-Produce a deep copy of the Databox, with options to filter and rename items 
-during the duplication process.
+==Returns a new Databox holding deep copies of the items you name, under the names you give them.==
+
+It does **not** duplicate the whole Databox unless you leave `source_names`
+alone: `copy(["gdp"], ["y"])` returns a Databox whose only key is `y`. The
+values are copied, so writing into the result does not reach the original;
+`shallow` shares them instead.
 
     new_databox = self.copy(
         source_names=None,
@@ -485,7 +599,7 @@ during the duplication process.
     )
 
 
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "source_names"
@@ -503,12 +617,26 @@ during the duplication process.
     if any source name is not found in the Databox.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "new_databox"
-    A new Databox instance that is a deep copy of the current one, containing 
-    either all items or only those specified.
+A new Databox. The original is not changed.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> sorted(db.copy(["gdp"], ["y"]).keys())
+    ['y']
+    >>> sorted(db.copy().keys())
+    ['cpi', 'gdp', 'n']
 
 ................................................................................
         """
@@ -533,7 +661,7 @@ during the duplication process.
             else not self.get_missing_names(names, )
         )
 
-    @_dm.reference(category="copying", )
+    @_dm.reference(category="copying", add_heading=False, )
     def shallow(
         self: Self,
         source_names: SourceNames = None,
@@ -543,11 +671,13 @@ during the duplication process.
         r"""
 ................................................................................
 
-==Create a shallow copy of the Databox==
+## `shallow`
 
-Generate a shallow copy of the Databox, with options to filter and rename items
-during the duplication process. A shallow copy retains the original items and
-references, but does not copy the items themselves.
+==Returns a new Databox referring to the same items, rather than to copies of them.==
+
+The container is new but the values are the very same objects, so writing
+into a series in the result changes it in the original too. `copy` is the
+form that duplicates the values.
 
     shallow_databox = self.shallow(
         source_names=None,
@@ -555,7 +685,7 @@ references, but does not copy the items themselves.
         strict_names=False,
     )
 
-### Input arguments ###
+**Input arguments.**
 
 ???+ input "self"
     The Databox object to copy.
@@ -574,11 +704,27 @@ references, but does not copy the items themselves.
     If set to `True`, strictly adheres to the provided names, raising an error
     if any source name is not found in the Databox.
 
-### Returns ###
 
-???+ returns "shallow_databox"
-    A new Databox instance that is a shallow copy of the current one, containing
-    either all items or only those specified.
+### Returns
+
+
+A new Databox sharing the original's items.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> sorted(db.shallow(["gdp"]).keys())
+    ['gdp']
+    >>> db.shallow(["gdp"])["gdp"] is db["gdp"]
+    True
 
 ................................................................................
         """
@@ -603,7 +749,7 @@ references, but does not copy the items themselves.
         print("\n".join(content_view, ))
         print()
 
-    @_dm.reference(category="validation", )
+    @_dm.reference(category="validation", add_heading=False, )
     def validate(
         self: Self,
         validators: dict[str, Callable] | None,
@@ -615,6 +761,85 @@ references, but does not copy the items themselves.
         message_when_missing: str = "Missing item",
     ) -> None | NoReturn:
         r"""
+················································································
+
+## `validate`
+
+==Checks Databox items against tests and reports the ones that fail.==
+
+    self.validate(
+        validators,
+        strict_names=False,
+        when_fails="error",
+        title="Databox validation errors",
+        message_when_fails="Failed validation",
+        message_when_missing="Missing item",
+    )
+
+Every failure is collected and reported together at the end, rather than
+raising on the first one.
+
+
+**Input arguments.**
+
+
+???+ input "validators"
+    A dictionary from item name to the check for that item. **Each value must
+    be a sequence, not a bare function**, despite the `dict[str, Callable]`
+    annotation on the parameter: the body reads `validators[key][0]` for the
+    test and `validators[key][1]` for the message. So `{"n": (func,)}` and
+    `{"n": (func, "must be positive")}` both work, while `{"n": func}` raises
+    `TypeError: 'function' object is not subscriptable`.
+
+    The test is called with the item as its only argument and should return
+    something truthy to pass. A value in the first position that is not
+    callable is treated as passing. Falsy `validators`, including `None` and
+    `{}`, returns immediately.
+
+???+ input "strict_names"
+    If `True`, a name in `validators` that the Databox does not hold is itself
+    a failure, reported with `message_when_missing`. If `False`, such names are
+    skipped.
+
+???+ input "when_fails"
+    What happens once every item has been checked: `"error"` raises, and
+    `"critical"`, `"warning"` and `"silent"` behave as elsewhere in the
+    package.
+
+???+ input "title"
+    The heading of the collected report.
+
+???+ input "message_when_fails"
+    The text used for a failing item when its validator supplies none of its
+    own, that is when the sequence has only one entry.
+
+???+ input "message_when_missing"
+    The text used for a name that is missing under `strict_names=True`.
+
+
+### Returns
+
+
+`None`, or raises according to `when_fails`. The Databox is not modified.
+
+
+### Examples
+
+
+A validator is a *sequence*, and the second entry is the message:
+
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["n"] = 42
+    >>> db.validate({"n": (lambda x: x > 0, )}) is None
+    True
+    >>> try:
+    ...     db.validate({"n": (lambda x: x < 0, "must be negative")})
+    ... except Exception as error:
+    ...     type(error).__name__
+    'Error'
+
+················································································
         """
         if not validators:
             return
@@ -634,7 +859,7 @@ references, but does not copy the items themselves.
                 when_fails_stream.add(f"{message}: {key}", )
         when_fails_stream._raise()
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def rename(
         self: Self,
         #
@@ -645,13 +870,9 @@ references, but does not copy the items themselves.
         r"""
 ................................................................................
 
-==Rename items in a Databox==
+## `rename`
 
-Rename existing items in a Databox by specifying `source_names` and 
-`target_names`. The `source_names` can be a list of names, a single name, or a 
-callable function returning `True` for names to be renamed. Define `target_names`
-as the new names for these items, either as a corresponding list, a single name,
-or a callable function taking a source name and returning the new target name.
+==Renames items in the Databox, keeping their values where they are.==
 
     self.rename(
         source_names=None,
@@ -659,8 +880,14 @@ or a callable function taking a source name and returning the new target name.
         strict_names=False,
     )
 
+The two arguments do different jobs: `source_names` chooses which items
+are affected and `target_names` says what they become. A callable in the
+first position **selects**, and a callable in the second **renames**, so
+`rename(lambda n: n.upper())` renames nothing -- it selects every name
+and then supplies no new one.
 
-### Input arguments ###
+
+**Input arguments.**
 
 
 ???+ input "source_names"
@@ -677,9 +904,25 @@ or a callable function taking a source name and returning the new target name.
     error raised for any source name not found in the Databox.
 
 
-### Returns ###
+### Returns
 
-Returns `None`; `self` is modified in place.
+
+Nothing; the Databox is modified in place.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.rename(["gdp"], ["output"])
+    >>> sorted(db.keys())
+    ['cpi', 'n', 'output']
 
 ................................................................................
         """
@@ -689,7 +932,7 @@ Returns `None`; `self` is modified in place.
         for s, t in zip(source_names, target_names, ):
             self[t] = self.pop(s)
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def remove(
         self: Self,
         remove_names: SourceNames = None,
@@ -698,11 +941,9 @@ Returns `None`; `self` is modified in place.
         """
 ................................................................................
 
-==Remove specified items from a Databox==
+## `remove`
 
-Remove specified items from the Databox based on the provided names or a 
-filtering function. Items to be removed can be specified as a list of names, a 
-single name, a callable that returns `True` for names to be removed, or `None`.
+==Removes the named items from the Databox.==
 
     self.remove(
         remove_names=None,
@@ -711,7 +952,7 @@ single name, a callable that returns `True` for names to be removed, or `None`.
     )
 
 
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "remove_names"
@@ -724,9 +965,26 @@ single name, a callable that returns `True` for names to be removed, or `None`.
     name is not found in the Databox.
 
 
-### Returns ###
+### Returns
 
-Returns `None`; `self` is modified in place.
+
+Nothing; the Databox is modified in place and the removed items are gone.
+`keep` is the complement, naming what to retain instead.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.remove(["n"])
+    >>> sorted(db.keys())
+    ['cpi', 'gdp']
 
 
 ················································································
@@ -738,7 +996,7 @@ Returns `None`; `self` is modified in place.
         for n in remove_names:
             del self[n]
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def keep(
         self: Self,
         #
@@ -748,11 +1006,9 @@ Returns `None`; `self` is modified in place.
         r"""
 ················································································
 
-==Keep specified items in a Databox==
+## `keep`
 
-Retain selected items in a Databox, removing all others. Specify the items to 
-keep using `keep_names`, which can be a list of names, a single name, or a 
-callable function determining which items to retain.
+==Keeps the named items in the Databox and removes every other one.==
 
     self.keep(
         keep_names=None,
@@ -760,7 +1016,7 @@ callable function determining which items to retain.
     )
 
 
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "keep_names"
@@ -772,12 +1028,26 @@ callable function determining which items to retain.
     error raised for any name not found in the Databox.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "None"
-    Modifies the Databox in-place, keeping only the specified items, and does not 
-    return a value.
+Nothing; the Databox is modified in place and everything not named is gone.
+`remove` is the complement, naming what to drop instead.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.keep(["gdp"])
+    >>> sorted(db.keys())
+    ['gdp']
 
 ················································································
         """
@@ -790,7 +1060,7 @@ callable function determining which items to retain.
             del self[n]
 
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def apply(
         self,
         func: Callable,
@@ -803,10 +1073,9 @@ callable function determining which items to retain.
 ················································································
 
 
-==Apply a function to items in a Databox==
+## `apply`
 
-Apply a function to selected Databox items, either in place or by reassigning 
-the results.
+==Applies a function to the items you name, optionally writing what it returns back over them.==
 
     self.apply(
         func,
@@ -817,7 +1086,7 @@ the results.
     )
 
 
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "func"
@@ -829,9 +1098,11 @@ the results.
     `None` to apply to all items.
 
 ???+ input "in_place"
-    Determines if the results of the function should be assigned back to the 
-    items in-place. If `True`, items are updated in-place; if `False`, the
-    results are reassigned to the items.
+    Decides whether the value `func` returns is kept. With the default `True`
+    the return value is **discarded**, and only changes `func` made to the item
+    itself survive -- so `apply(lambda x: x*2)` leaves the databox untouched.
+    With `False` the return value is assigned back over the item, which is what
+    a function that computes rather than mutates needs.
 
 ???+ input "when_fails"
     Specifies the action to take if applying the function fails. Options are 
@@ -842,14 +1113,27 @@ the results.
     if any source name is not found in the Databox.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "None"
-    Modifies items in the Databox in-place (note that the `in_place` input
-    argument only applies to the Databox items, and not the Databox itself)
-    and does not return a value. Errors are handled based on the
-    `when_fails’ setting.
+Nothing; items are modified in the Databox itself. Note that `in_place`
+applies to the *items*, not to the Databox. Errors are collected and handled
+according to `when_fails`.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.apply(lambda s: s*2, source_names=["gdp"], in_place=False)
+    >>> db["gdp"].get_data()[:, 0].tolist()
+    [2.0, 4.0]
 
 
 ················································································
@@ -870,7 +1154,7 @@ the results.
                 when_fails_stream.add(f"{s}: {repr(e)}", )
         when_fails_stream._raise()
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def generate(
         self,
         func: Callable,
@@ -883,7 +1167,12 @@ the results.
 ················································································
 
 
-==Generate new items by applying a function on the existing items==
+## `generate`
+
+==Builds new items from existing ones by applying a function, leaving the originals in place.==
+
+Where `apply` changes the items it touches, this adds items under new
+names and keeps the sources.
 
     self.generate(
         func,
@@ -894,7 +1183,7 @@ the results.
     )
 
 
-### Input arguments ###
+**Input arguments.**
 
 
 ???+ input "func"
@@ -920,12 +1209,28 @@ the results.
     if any source name is not found in the Databox.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "None"
-    Modifies items in the Databox in-place and does not return a value. Errors
-    are handled based on the `when_fails’ setting.
+Nothing; the new items are added to the Databox. Errors are collected and
+handled according to `when_fails`.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.generate(lambda s: s*10, ["big"], ["gdp"])
+    >>> sorted(db.keys())
+    ['big', 'cpi', 'gdp', 'n']
+    >>> db["big"].get_data()[:, 0].tolist()
+    [10.0, 20.0]
 
 
 ················································································
@@ -964,7 +1269,7 @@ the results.
                 output[n] = _max_abs(self[n] - other[n], )
         return output
 
-    @_dm.reference(category="information", )
+    @_dm.reference(category="information", add_heading=False, )
     def filter(
         self,
         #
@@ -975,33 +1280,51 @@ the results.
 ················································································
 
 
-==Filter items in a Databox==
+## `filter`
 
-Select Databox items based on custom name or value test functions.
+==Selects the names of items passing a test on the name, on the value, or on both.==
 
     filtered_names = self.filter(
         name_test=None,
         value_test=None,
     )
 
+It returns names, not items, so the result is what you hand to `keep`,
+`remove` or `array_from_series`. This is a different thing from the
+legacy `filter` argument of `get_names`.
 
-### Input arguments ###
+
+**Input arguments.**
 
 
 ???+ input "name_test"
-    A callable function to test each item's name. Returns `True` for names that 
-    meet the specified condition.
+    Called with each item's name; the name is kept when it returns `True`.
+    Left as `None` every name passes.
 
 ???+ input "value_test"
-    A callable function to test each item's value. Returns `True` for values that 
-    meet the specified condition.
+    Called with each item's value on the same terms. Left as `None` every
+    value passes. Both tests given, a name has to pass both.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "filtered_names"
-    A tuple of item names that meet the specified conditions.
+A tuple of the names that passed. With neither test given, every name in
+the Databox.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> sorted(db.filter(value_test=lambda v: isinstance(v, dp.Series)))
+    ['cpi', 'gdp']
 
 
 ················································································
@@ -1017,7 +1340,7 @@ Select Databox items based on custom name or value test functions.
             if name_test(name) and value_test(self[name], )
         )
 
-    @_dm.reference(category="information", )
+    @_dm.reference(category="information", add_heading=False, )
     def get_series_names_by_frequency(
         self,
         frequency: Frequency,
@@ -1025,29 +1348,40 @@ Select Databox items based on custom name or value test functions.
         r"""
 ················································································
 
-==Retrieve time series names by frequency==
+## `get_series_names_by_frequency`
 
-Obtain a list of time series names that match a specified frequency.
+==Lists the names of the time series held at one date frequency.==
 
     time_series_names = self.get_series_names_by_frequency(frequency)
 
 
-### Input arguments ###
+**Input arguments.**
 
-
-???+ input "self"
-    The Databox object from which to retrieve time series names.
 
 ???+ input "frequency"
-    The frequency to filter the time series names by. It should be a valid 
-    frequency from the `irispie.Frequency` enumeration.
+    The frequency to select by, a member of `Frequency`.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "time_series_names"
-    A list of time series names in the Databox that match the specified frequency.
+A tuple of the names whose series carry that frequency. Entries that are
+not time series never appear, and a frequency no series uses gives an
+empty result rather than an error.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> sorted(db.get_series_names_by_frequency(dp.Frequency.QUARTERLY))
+    ['cpi', 'gdp']
 
 ················································································
         """
@@ -1055,7 +1389,7 @@ Obtain a list of time series names that match a specified frequency.
             return isinstance(x, Series) and x.frequency == frequency
         return self.filter(value_test=_is_series_with_frequency, )
 
-    @_dm.reference(category="information", )
+    @_dm.reference(category="information", add_heading=False, )
     def get_span_by_frequency(
         self,
         frequency: Frequency,
@@ -1063,30 +1397,42 @@ Obtain a list of time series names that match a specified frequency.
         r"""
 ················································································
 
-==Retrieve the date span for time series by frequency==
+## `get_span_by_frequency`
 
-Get the encompassing date span for all time series with a specified frequency.
+==Gives the span covering every time series held at one date frequency.==
 
     date_span = self.get_span_by_frequency(frequency)
 
+The span reaches from the earliest start to the latest end among those
+series, so it encompasses them all even where they do not overlap.
 
-### Input arguments ###
 
+**Input arguments.**
 
-???+ input "self"
-    The Databox object from which to retrieve the date span.
 
 ???+ input "frequency"
-    The frequency for which to determine the date span. Can be an instance of 
-    `irispie.Frequency` or a plain integer representing the frequency.
+    The frequency to select by, a member of `Frequency` or the plain
+    integer behind one.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "date_span"
-    The date span, as a `Span` object, encompassing all time series in the 
-    Databox that match the specified frequency.
+A `Span` encompassing the matching series.
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.get_span_by_frequency(dp.Frequency.QUARTERLY)
+    Span(qq(2020,1), qq(2020,2))
 
 ················································································
         """
@@ -1101,7 +1447,7 @@ Get the encompassing date span for all time series with a specified frequency.
         max_end_date = max(end_periods, key=_op.attrgetter("serial"), )
         return Span(min_start_date, max_end_date, )
 
-    @_dm.reference(category="multiple", )
+    @_dm.reference(category="multiple", add_heading=False, )
     def overlay_by_span(
         self,
         other: Self,
@@ -1111,13 +1457,9 @@ Get the encompassing date span for all time series with a specified frequency.
 ................................................................................
 
 
-==Overlay another Databox time series onto the ones in the current Databox==
+## `overlay_by_span`
 
-Overlay another Databox's time series onto the corresponding time series in the
-current Databox, aligning and incorporating data series using the `overlay_by_span`
-method defined in the Series class. This operation modifies the current Databox
-in-place by applying the overlay technique to each individual series that exists
-in both Databoxes.
+==Writes each series of another Databox over the matching one here, across the whole span of the other.==
 
     self.overlay_by_span(
         other,
@@ -1125,43 +1467,56 @@ in both Databoxes.
         strict_names=False,
     )
 
+Each pair of series is combined by `Series.overlay_by_span`, so everything
+between `other`'s first and last observation comes from `other`, its own gaps
+included. Use `overlay_by_observation` to take only the periods `other`
+actually carries.
 
-### Input arguments ###
 
-???+ input "self"
-    The Databox onto which the overlay will be applied. It contains the original
-    time series data.
+**Input arguments.**
 
 ???+ input "other"
-    The Databox that provides the time series to overlay onto `self`. Only
-    series present in both Databoxes will be affected.
+    The Databox whose time series are overlaid onto the ones here.
 
 ???+ input "names"
-    An optional iterable of names to overlay. If `None`, the overlay operation
-    is attempted on all time series present in both Databoxes.
+    An optional iterable of names to overlay. If `None`, the operation covers
+    the names both Databoxes hold as time series.
 
 ???+ input "strict_names"
-    If `True`, the names provided in `names` are strictly adhered to, and an
-    error is raised if any name is not found in both Databoxes.
+    If `True`, the names in `names` are taken as given and a name missing from
+    either Databox raises `KeyError`. If `False`, such names are dropped.
 
 
-### Returns ###
-
-This method modifies the Databox in place and returns `None`.
+### Returns
 
 
-### Details ###
+Nothing; the Databox is modified in place. Entries that are not time series are
+left alone, as are pairs whose frequencies differ or whose frequency is
+`UNKNOWN`.
 
-The `overlay_by_span` method ensures that corresponding time series in both the source
-Databox and the other Databox are merged based on the overlay logic determined
-by the Series class.
+### Examples
+
+
+`b` has a gap in 2020-Q2, which is what separates the two overlay forms:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> a = dp.Databox()
+    >>> a["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3., 4.]))
+    >>> b = dp.Databox()
+    >>> b["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([9., np.nan, 9., 9.]))
+    >>> a.overlay_by_span(b)
+    >>> a["s"].get_data()[:, 0].tolist()
+    [9.0, nan, 9.0, 9.0]
 
 
 ................................................................................
 """
         self._lay(other, Series.overlay_by_span, **kwargs, )
 
-    @_dm.reference(category="multiple", )
+    @_dm.reference(category="multiple", add_heading=False, )
     def overlay_by_observation(
         self,
         other: Self,
@@ -1170,13 +1525,65 @@ by the Series class.
         r"""
 ................................................................................
 
-==Overlay another Databox time series onto the ones in the current Databox==
+## `overlay_by_observation`
+
+==Writes each series of another Databox over the matching one here, only where the other has an observation.==
+
+    self.overlay_by_observation(
+        other,
+        names=None,
+        strict_names=False,
+    )
+
+Each pair of series is combined by `Series.overlay_by_observation`, so
+`other` wins only in the periods where it actually has an observation.
+Use `overlay_by_span` to hand over its gaps as well.
+
+
+**Input arguments.**
+
+???+ input "other"
+    The Databox whose time series are overlaid onto the ones here.
+
+???+ input "names"
+    An optional iterable of names to overlay. If `None`, the operation covers
+    the names both Databoxes hold as time series.
+
+???+ input "strict_names"
+    If `True`, the names in `names` are taken as given and a name missing from
+    either Databox raises `KeyError`. If `False`, such names are dropped.
+
+
+### Returns
+
+
+Nothing; the Databox is modified in place. Entries that are not time series are
+left alone, as are pairs whose frequencies differ or whose frequency is
+`UNKNOWN`.
+
+
+### Examples
+
+
+`b` has a gap in 2020-Q2, which is what separates the two overlay forms:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> a = dp.Databox()
+    >>> a["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3., 4.]))
+    >>> b = dp.Databox()
+    >>> b["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([9., np.nan, 9., 9.]))
+    >>> a.overlay_by_observation(b)
+    >>> a["s"].get_data()[:, 0].tolist()
+    [9.0, 2.0, 9.0, 9.0]
 
 ................................................................................
         """
         self._lay(other, Series.overlay_by_observation, **kwargs, )
 
-    @_dm.reference(category="multiple", )
+    @_dm.reference(category="multiple", add_heading=False, )
     def underlay_by_span(
         self,
         other: Self,
@@ -1186,57 +1593,66 @@ by the Series class.
 ................................................................................
 
 
-==Underlay another Databox time series beneath those in the current Databox==
+## `underlay_by_span`
 
-Underlay another Databox's time series beneath the corresponding times series in
-the current Databox, aligning and incorporating data series using the `underlay_by_span`
-method defined in the Series class. This operation modifies the current Databox
-in-place by applying the underlay technique to each individual series that
-exists in both Databoxes.
+==Slides each series of another Databox underneath the matching one here, so this Databox wins across its whole span.==
 
-    self.underlay_by_span`
+    self.underlay_by_span(
         other,
         names=None,
         strict_names=False,
     )
 
+Each pair of series is combined by `Series.underlay_by_span`, so this Databox
+keeps everything between its own first and last observation, its internal gaps
+included, and `other` reaches only the periods outside that stretch. Use
+`underlay_by_observation` to fill those internal gaps instead.
 
-### Input arguments ###
 
-???+ input "self"
-    The Databox beneath which the underlay will be applied. It contains the original
-    time series data.
+**Input arguments.**
 
 ???+ input "other"
-    The Databox that provides the time series to underlay beneath `self`. Only
-    series present in both Databoxes will be affected.
+    The Databox whose time series are laid underneath the ones here.
 
 ???+ input "names"
-    An optional iterable of names to underlay. If `None`, the underlay operation
-    is attempted on all time series present in both Databoxes.
+    An optional iterable of names to underlay. If `None`, the operation covers
+    the names both Databoxes hold as time series.
 
 ???+ input "strict_names"
-    If `True`, the names provided in `names` are strictly adhered to, and an
-    error is raised if any name is not found in both Databoxes.
+    If `True`, the names in `names` are taken as given and a name missing from
+    either Databox raises `KeyError`. If `False`, such names are dropped.
 
 
-### Returns ###
-
-This method modifies the Databox in place and returns `None`.
+### Returns
 
 
-### Details ###
+Nothing; the Databox is modified in place. Entries that are not time series are
+left alone, as are pairs whose frequencies differ or whose frequency is
+`UNKNOWN`.
 
-The `underlay_by_span` method ensures that corresponding time series in both the source
-Databox and the other Databox are merged based on the underlay logic determined
-by the Series class.
+### Examples
+
+
+`a` has a gap in 2020-Q3, which is what separates the two underlay forms:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> a = dp.Databox()
+    >>> a["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., np.nan, 4.]))
+    >>> b = dp.Databox()
+    >>> b["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([9., 9., 9., 9.]))
+    >>> a.underlay_by_span(b)
+    >>> a["s"].get_data()[:, 0].tolist()
+    [1.0, 2.0, nan, 4.0]
 
 
 ................................................................................
         """
         self._lay(other, Series.underlay_by_span, **kwargs, )
 
-    @_dm.reference(category="multiple", )
+    @_dm.reference(category="multiple", add_heading=False, )
     def underlay_by_observation(
         self,
         other: Self,
@@ -1245,7 +1661,59 @@ by the Series class.
         r"""
 ................................................................................
 
-==Underlay another Databox time series beneath those in the current Databox==
+## `underlay_by_observation`
+
+==Slides each series of another Databox underneath the matching one here, filling only the periods this one leaves empty.==
+
+    self.underlay_by_observation(
+        other,
+        names=None,
+        strict_names=False,
+    )
+
+Each pair of series is combined by `Series.underlay_by_observation`, so this
+Databox wins wherever it holds a value and `other` shows through only where it
+does not -- inside the span as well as outside it. This is the one to reach for
+when filling gaps from a second Databox.
+
+
+**Input arguments.**
+
+???+ input "other"
+    The Databox whose time series are laid underneath the ones here.
+
+???+ input "names"
+    An optional iterable of names to underlay. If `None`, the operation covers
+    the names both Databoxes hold as time series.
+
+???+ input "strict_names"
+    If `True`, the names in `names` are taken as given and a name missing from
+    either Databox raises `KeyError`. If `False`, such names are dropped.
+
+
+### Returns
+
+
+Nothing; the Databox is modified in place. Entries that are not time series are
+left alone, as are pairs whose frequencies differ or whose frequency is
+`UNKNOWN`.
+
+### Examples
+
+
+`a` has a gap in 2020-Q3, which is what separates the two underlay forms:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> a = dp.Databox()
+    >>> a["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., np.nan, 4.]))
+    >>> b = dp.Databox()
+    >>> b["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([9., 9., 9., 9.]))
+    >>> a.underlay_by_observation(b)
+    >>> a["s"].get_data()[:, 0].tolist()
+    [1.0, 2.0, 9.0, 4.0]
 
 ................................................................................
         """
@@ -1275,7 +1743,7 @@ by the Series class.
                 continue
             func(self[n], other[n], **kwargs, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def clip_series(
         self,
         new_start_date: Period | None = None,
@@ -1285,19 +1753,20 @@ by the Series class.
 ................................................................................
 
 
-==Clip the span of time series in a Databox==
+## `clip_series`
 
-Adjust the time series in a Databox by clipping them to a new specified start
-and/or end date. This allows for refining the data span within which the series
-operate, based on given periods.
+==Shortens the time series in the Databox to a new start and end period.==
 
-    self.clip(
+    self.clip_series(
         new_start_date=None,
         new_end_date=None,
     )
 
+Only series matching the frequency of the periods given are touched; every
+other entry, series or not, is left alone.
 
-### Input arguments ###
+
+**Input arguments.**
 
 
 ???+ input "new_start_date"
@@ -1309,16 +1778,26 @@ operate, based on given periods.
     is considered.
 
 
-### Returns ###
-
-This method modifies the databox in place and returns `None`.
+### Returns
 
 
-### Details ###
+Nothing; the Databox is modified in place and the discarded observations are
+gone.
 
-The `clip` method adjusts only those time series in the Databox that match the
-time frequency of the `new_start_date` and/or `new_end_date`. All other series
-are left unchanged.
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["cpi"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db["n"] = 42
+    >>> db.clip_series(dp.qq(2020, 2), None)
+    >>> db["gdp"].get_data()[:, 0].tolist()
+    [2.0]
 
 ................................................................................
         """
@@ -1336,7 +1815,7 @@ are left unchanged.
     # Legacy alias for backward compatibility
     clip = clip_series
 
-    @_dm.reference(category="multiple", )
+    @_dm.reference(category="multiple", add_heading=False, )
     def prepend(
         self,
         other: Self,
@@ -1345,20 +1824,16 @@ are left unchanged.
         """
 ................................................................................
 
-==Prepend time series data to a Databox==
+## `prepend`
 
-Add time series data from another Databox to the beginning of the current
-Databox, up to a specified end date.
+==Adds earlier observations from another Databox in front of the ones held here.==
 
     self.prepend(
         other,
         end_prepending,
     )
 
-### Input arguments ###
-
-???+ input "self"
-    The Databox to which the time series data will be added.
+**Input arguments.**
 
 ???+ input "other"
     The Databox containing the time series data to prepend to `self`.
@@ -1367,14 +1842,32 @@ Databox, up to a specified end date.
     The end date up to which the time series data from the `other` Databox will
     be added to `self`.
 
-### Returns ###
+### Returns
 
-This method modifies the Databox in place and returns `None`.
 
-### Details ###
+Nothing; the Databox is modified in place. The work is done by the underlay
+machinery, so this Databox's own observations always win where it has them.
 
-This method uses the `underlay` method to add the time series data from the
-`other` Databox to the beginning of the `self` Databox.
+
+### Examples
+
+
+`b` covers 2020-Q1 to 2020-Q4, but only its history up to `end_prepending` is
+taken, and the 99s it holds where `a` already has values are ignored:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> a = dp.Databox()
+    >>> a["s"] = dp.Series(start=dp.qq(2020, 3),
+    ...     values=np.array([3., 4.]))
+    >>> b = dp.Databox()
+    >>> b["s"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 99., 99.]))
+    >>> a.prepend(b, dp.qq(2020, 2))
+    >>> a["s"].start
+    qq(2020,1)
+    >>> a["s"].get_data()[:, 0].tolist()
+    [1.0, 2.0, 3.0, 4.0]
 
 ................................................................................
         """
@@ -1382,7 +1875,7 @@ This method uses the `underlay` method to add the time series data from the
         other.clip(None, end_prepending, )
         self.underlay_by_span(other, )
 
-    @_dm.reference(category="evaluation", )
+    @_dm.reference(category="evaluation", add_heading=False, )
     def evaluate_expression(
         self,
         expression: str,
@@ -1393,7 +1886,9 @@ This method uses the `underlay` method to add the time series data from the
 ................................................................................
 
 
-==Evaluate an expression within a Databox context==
+## `evaluate_expression`
+
+==Evaluates a string expression with the Databox entries as its variables.==
 
 Evaluate a given string expression using the entries in the Databox as 
 contextual variables. This method first checks if the expression directly 
@@ -1403,6 +1898,7 @@ context.
 
     result = self.evaluate_expression(
         expression,
+        series_function_context=False,
         context=None,
     )
 
@@ -1410,8 +1906,19 @@ Shortcut syntax:
 
     result = self(expression, context=None)
 
+**Any expression containing an `=` character raises `TypeError: 'str' object
+cannot be interpreted as an integer`.** The helper that rewrites such
+expressions calls `expression.split(expression, "=")`, splitting the string by
+itself and passing `"="` where a maximum split count belongs. The guard above it
+is only `if "=" in expression`, so this reaches well past the intended `a=b`:
+comparisons such as `a==b` and `a<=b`, any call using a keyword argument such as
+`round(a, ndigits=2)`, and any default argument such as `lambda x=1: x` all
+fail. Positional calls, attribute access, list comprehensions and dict literals
+are unaffected, the last because they use `:` rather than `=`. The shortcut form
+`self(expression)` fails the same way.
 
-### Input arguments ###
+
+**Input arguments.**
 
 
 ???+ input "expression"
@@ -1419,17 +1926,40 @@ Shortcut syntax:
     in the Databox, the corresponding item is returned without further 
     evaluation.
 
+???+ input "series_function_context"
+    If `True`, the time series function context is added to the names available
+    to the expression. `False` when left alone.
+
 ???+ input "context"
     An optional dictionary providing additional context for evaluation. Can 
-    include variables that are not present directly in the Databox.
+    include variables that are not present directly in the Databox. Databox
+    entries take precedence over both this and the series function context.
 
 
-### Returns ###
+### Returns
 
 
-???+ returns "result"
-    The result of the evaluated expression, which can be any valid Python data 
-    type based on the content of the expression and available context.
+Whatever the expression evaluates to -- often a `Series`, but any Python value
+the expression can produce.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["a"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db["b"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([3., 4.]))
+    >>> db.evaluate_expression("a+b").get_data()[:, 0].tolist()
+    [4.0, 6.0]
+
+Extra names can be supplied through `context`:
+
+    >>> db.evaluate_expression("a*k", context={"k": 10}).get_data()[:, 0].tolist()
+    [10.0, 20.0]
 
 
 ................................................................................
@@ -1464,7 +1994,7 @@ Shortcut syntax:
         return self.evaluate_expression(*args, **kwargs, )
 
     @classmethod
-    @_dm.reference(category="constructor", )
+    @_dm.reference(category="constructor", add_heading=False, )
     def steady(
         klass,
         steady_databoxable: SteadyDataboxableProtocol,
@@ -1480,7 +2010,9 @@ Shortcut syntax:
 ................................................................................
 
 
-==Create a steady-state Databox for a model==
+## `Databox.steady`
+
+==Creates a Databox of steady-state time series for a model.==
 
 
 Create a Databox with steady-state values for a model, based on the provided
@@ -1490,18 +2022,22 @@ have well-defined steady state, i.e. Simultaneous models and
 VectorAutoregression models.
 
 
-    steady_databox = self.steady(
-        model,
+    steady_databox = Databox.steady(
+        steady_databoxable,
         span,
+        *,
         deviation=False,
     )
 
+This is a class method: call it on the class, not on a Databox you already have.
 
-### Input arguments ###
+
+**Input arguments.**
 
 
-???+ input "model"
-    The model object for which to generate steady-state time series data.
+???+ input "steady_databoxable"
+    The model object for which to generate steady-state time series data. Any
+    object satisfying `SteadyDataboxableProtocol` will do.
 
 
 ???+ input "span"
@@ -1513,10 +2049,13 @@ VectorAutoregression models.
     `False`, the steady-state values are generated in their original level form.
 
 
-### Returns ###
+### Returns
 
-???+ returns "steady_databox"
-    A Databox containing steady-state time series for the `model`.
+A Databox containing steady-state time series for `steady_databoxable`.
+
+Further keyword arguments in the signature -- `unpack_single`,
+`prepend_initial` and `append_terminal` -- are passed on to the model object and
+are not described here.
 
 
 ................................................................................
@@ -1537,7 +2076,7 @@ VectorAutoregression models.
         return klass({ k: v for k, v in items })
 
     @classmethod
-    @_dm.reference(category="constructor", )
+    @_dm.reference(category="constructor", add_heading=False, )
     def zero(
         klass,
         steady_databoxable: SteadyDataboxableProtocol,
@@ -1550,14 +2089,34 @@ VectorAutoregression models.
 ................................................................................
 
 
-==Create a zero-state Databox for a model==
+## `Databox.zero`
+
+==Creates a Databox of zero-deviation time series for a model.==
+
+    zero_databox = Databox.zero(steady_databoxable, span, **kwargs)
 
 This constructor is equivalent to calling
 
-    zero_databox = Databox.steady(model, span, deviation=True, ...)
+    zero_databox = Databox.steady(steady_databoxable, span, deviation=True, ...)
+
+See the [`Databox.steady`](#steady) method for details of the arguments; they
+are all passed straight through.
 
 
-See the [`Databox.steady`](#steady) method for details.
+**Input arguments.**
+
+
+???+ input "steady_databoxable"
+    The model object for which to generate the zero-deviation time series.
+
+???+ input "span"
+    The time span to generate them over.
+
+???+ input "deviation"
+    Present in the signature only so that supplying it can be rejected. Passing
+    it at all -- `True` or `False` alike -- raises `ValueError: The 'deviation'
+    argument is not allowed for the Databox.zero method`, since this constructor
+    exists precisely to fix it at `True`.
 
 
 ................................................................................
@@ -1566,7 +2125,7 @@ See the [`Databox.steady`](#steady) method for details.
             raise ValueError("The 'deviation' argument is not allowed for the Databox.zero method")
         return klass.steady(steady_databoxable, span, deviation=True, **kwargs, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.reference(category="manipulation", add_heading=False, )
     def minus_control(
         self,
         model,
@@ -1575,29 +2134,57 @@ See the [`Databox.steady`](#steady) method for details.
         r"""
 ................................................................................
 
-==Subtract control values from a Databox==
+## `minus_control`
+
+==Subtracts a control Databox from this one, series by series.==
 
 Subtract control values (usually steady-state values or control simulation
 values) from the corresponding time series in the Databox.
 
     self.minus_control(
         model,
-        control_databox,
+        control,
     )
 
-### Input arguments ###
+**Input arguments.**
 
 ???+ input "model"
-    The underlying model object based on which the `self` and `control_databox`
-    were created.
+    The underlying model object based on which the `self` and `control` were
+    created.
 
-???+ input "control_databox"
+???+ input "control"
     The Databox containing control values to subtract from the corresponding
-    time series in `self`.
+    time series in `self`. Only the names the model maps are touched, and each
+    one keeps its description.
 
-### Returns ###
+### Returns
 
-This method modifies the Databox in place and returns `None`.
+Nothing; the Databox is modified in place. Only the names the model maps are
+touched, and each keeps the description it had.
+
+
+### Examples
+
+
+Any object exposing `map_name_to_minus_control_func` will do; a real model
+supplies one per variable. Note that `gdp` keeps its description:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> class Model:
+    ...     def map_name_to_minus_control_func(self):
+    ...         return {"gdp": lambda x, c: x - c}
+    >>> db = dp.Databox()
+    >>> db["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([10., 20.]), description="GDP")
+    >>> control = dp.Databox()
+    >>> control["gdp"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> db.minus_control(Model(), control)
+    >>> db["gdp"].get_data()[:, 0].tolist()
+    [9.0, 18.0]
+    >>> db["gdp"].get_description()
+    'GDP'
 
 ................................................................................
         """

@@ -28,52 +28,6 @@ if TYPE_CHECKING:
 #]
 
 
-# ==========================================================================
-#  ### Behaviour shared by all four filters in this file -
-#  `exp_smooth`, `double_exp_smooth`, `decay_avg` and `cum_avg`.
-#
-#  They change the series in place and return nothing. `y = x.cum_avg()`
-#  leaves `y` set to `None`, and the raw values in `x` are already gone;
-#  copy with `x.copy()` first if you need them.
-#
-#  Missing observations inside the data are filled in, silently. Three of
-#  the four carry the previous filtered value forward into the gap, and
-#  `double_exp_smooth` writes its own forecast there instead.
-#
-#  Missing observations before the first observation are left alone. Each
-#  filter starts at the first period holding a number and uses it
-#  unchanged as its own starting value.
-#
-#  `span` can grow the series and never shrinks it. Left alone it is `...`,
-#  the whole span currently covered; a `span` reaching past the data
-#  extends the series permanently and moves `start` and `end`.
-#
-#  Every variant (column) is filtered on its own, with no information
-#  passing between variants.
-#
-#  Watch where `span` sits in the argument list. It comes first in
-#  `exp_smooth`, `decay_avg` and `cum_avg`, so in `x.exp_smooth(0.5)` the
-#  `0.5` is taken as `span`. Pass every argument by keyword.
-#
-#  **Examples**
-#
-#      >>> import numpy as np
-#      >>> import datapie as dp
-#      >>> x = dp.Series(start=dp.qq(2020, 1),
-#      ...     values=np.array([1.0, 2.0, 3.0, 4.0]))
-#      >>> x.cum_avg(span=dp.Span(dp.qq(2019, 3), dp.qq(2020, 4)))
-#      >>> x.get_data()[:, 0].tolist()
-#      [nan, nan, 1.0, 1.5, 2.0, 2.5]
-#
-#      >>> x = dp.Series(start=dp.qq(2020, 1),
-#      ...     values=np.array([1.0, 2.0, 3.0, 4.0]))
-#      >>> x.cum_avg(span=dp.Span(dp.qq(2020, 1), dp.qq(2021, 2)))
-#      >>> x.get_data()[:, 0].tolist()
-#      [1.0, 1.5, 2.0, 2.5, 2.5, 2.5]
-#
-# ==========================================================================
-
-
 _DEFAULT_ALPHA = 0.3
 _DEFAULT_BETA = 0.3
 _DEFAULT_DECAY = 0.9
@@ -304,7 +258,86 @@ class Mixin:
     """
     #[
 
-    @_dm.reference(category="filtering")
+    @_dm.reference(
+        category=None,
+        call_name="Univariate time series filters",
+        call_name_is_code=False,
+        priority=20,
+    )
+    def univariate_filters(self, ) -> None:
+        r"""
+············································································
+
+==Carries the documentation shared by the four univariate filters in this file -- `exp_smooth`, `double_exp_smooth`, `decay_avg` and `cum_avg`.==
+
+    self.univariate_filters()
+
+Calling it does nothing: the body is a single `pass`. It exists only to
+carry this overview in the reference documentation.
+
+All four change the series in place and return nothing. `y =
+x.cum_avg()` leaves `y` set to `None`, and the raw values in `x` are
+already gone; copy with `x.copy()` first if you need them.
+
+Missing observations inside the data are filled in, silently. Three of
+the four carry the previous filtered value forward into the gap, and
+`double_exp_smooth` writes its own forecast there instead.
+
+Missing observations before the first observation are left alone. Each
+filter starts at the first period holding a number and uses it
+unchanged as its own starting value.
+
+`span` can grow the series and never shrinks it. Left alone it is `...`,
+the whole span currently covered; a `span` reaching past the data
+extends the series permanently and moves `start` and `end`.
+
+Every variant (column) is filtered on its own, with no information
+passing between variants.
+
+Watch where `span` sits in the argument list. It comes first in
+`exp_smooth`, `decay_avg` and `cum_avg`, so in `x.exp_smooth(0.5)` the
+`0.5` is taken as `span` and the call fails with `TypeError: 'float'
+object is not iterable`. The functional forms hand their arguments
+straight to the method, so `dp.exp_smooth(x, 0.5)` fails the same way.
+Pass every argument by keyword.
+
+
+### Returns
+
+
+`None`, and the series is untouched.
+
+
+### Examples
+
+
+A `span` reaching back before the data extends the series, and the added
+periods stay missing, since each filter starts at the first period that
+carries an observation -- the same rule that leaves a leading gap
+already in the data alone:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1.0, 2.0, 3.0, 4.0]))
+    >>> x.cum_avg(span=dp.Span(dp.qq(2019, 3), dp.qq(2020, 4)))
+    >>> x.get_data()[:, 0].tolist()
+    [nan, nan, 1.0, 1.5, 2.0, 2.5]
+
+A `span` reaching past the data extends it forward, and there the
+filter does write values:
+
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1.0, 2.0, 3.0, 4.0]))
+    >>> x.cum_avg(span=dp.Span(dp.qq(2020, 1), dp.qq(2021, 2)))
+    >>> x.get_data()[:, 0].tolist()
+    [1.0, 1.5, 2.0, 2.5, 2.5, 2.5]
+
+············································································
+        """
+        pass
+
+    @_dm.reference(category="filtering", add_heading=False, )
     def exp_smooth(
         self,
         span: Span | Iterable[Period] | EllipsisType = ...,
@@ -313,25 +346,69 @@ class Mixin:
         r"""
 ············································································
 
-==Simple exponential smoothing filter==
+## `exp_smooth`
 
-Apply simple exponential smoothing to each variant of the time series.
-Uses the recursive formula: S_t = alpha * X_t + (1 - alpha) * S_{t-1}
+==Simple exponential smoothing filter. Smooths each variant of the series in place by exponentially weighted averaging.==
 
-### Input arguments ###
+    self.exp_smooth(span=..., alpha=0.3)
 
-???+ input "alpha"
-Smoothing parameter (0 < alpha <= 1). Higher values give more weight
-to recent observations.
+Each filtered value is a weighted average of the current observation and
+the previous filtered value, so the weight given to older data falls off
+geometrically.
+
+
+**Input arguments.**
+
 
 ???+ input "span"
-Time span to apply the filter to. If `span=...` (default), uses the
-full span of the time series.
+    The periods to filter over. See **Univariate time series filters**
+    for what `span` does, and note that it comes first here, so in
+    `x.exp_smooth(0.5)` the `0.5` is taken as `span`.
 
-### Returns ###
+???+ input "alpha"
+    The weight on the current observation, so a larger value tracks the
+    data more closely and smooths less. It must satisfy `0 < alpha <=
+    1` or a `ValueError` is raised. Left alone it is 0.3, which smooths
+    heavily; `alpha=1` returns gap-free data unchanged.
 
-???+ returns "None"
-This method modifies `self` in-place and does not return a value.
+
+### Returns
+
+
+Nothing; the series is modified in place.
+
+
+### Examples
+
+
+The third period has no observation, so it is filled with the previous
+filtered value of 1.5 rather than left missing:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
+    >>> x.exp_smooth(alpha=0.5)
+    >>> x.get_data()[:, 0].tolist()
+    [1.0, 1.5, 1.5, 2.75, 3.875]
+
+
+### Algorithm
+
+
+Writing $S_t$ for the filtered value and $X_t$ for the observation, the
+recursion is
+
+$$
+S_t = \alpha \, X_t + (1 - \alpha) \, S_{t-1}
+$$
+
+started at the first period that carries an observation, with $S_0 =
+X_0$.
+
+
+**See Also.** `dp.exp_smooth(x, alpha=0.5)` leaves `x` unchanged and
+returns a filtered copy.
 
 ············································································
         """
@@ -345,43 +422,7 @@ This method modifies `self` in-place and does not return a value.
             alpha=alpha,
         )
 
-    # ==========================================================================
-    #  ### `exp_smooth(span=..., alpha=0.3)`
-    #
-    #  Simple exponential smoothing filter. Smooths each variant of the
-    #  series in place by exponentially weighted averaging.
-    #
-    #  Each filtered value is a weighted average of the current
-    #  observation and the previous filtered value, so the weight given to
-    #  older data falls off geometrically. Use it to strip short-lived
-    #  noise out of a series while keeping its level.
-    #
-    #  **Parameters.** `alpha` is the weight on the current observation,
-    #  so a larger value tracks the data more closely and smooths less. It
-    #  must satisfy `0 < alpha <= 1` or a `ValueError` is raised. Left
-    #  alone it is 0.3, which smooths heavily; `alpha=1` returns gap-free
-    #  data unchanged. For `span`, see the shared block at the top of this
-    #  file.
-    #
-    #  **Returns.** Nothing; the series is modified in place.
-    #
-    #  **Examples.** The third period has no observation, so it is filled
-    #  with the previous filtered value of 1.5 rather than left missing:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> x = dp.Series(start=dp.qq(2020, 1),
-    #      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
-    #      >>> x.exp_smooth(alpha=0.5)
-    #      >>> x.get_data()[:, 0].tolist()
-    #      [1.0, 1.5, 1.5, 2.75, 3.875]
-    #
-    #  `dp.exp_smooth(x, alpha=0.5)` leaves `x` unchanged; see the final
-    #  block of this file.
-    #
-    # ==========================================================================
-
-    @_dm.reference(category="filtering")
+    @_dm.reference(category="filtering", add_heading=False, )
     def double_exp_smooth(
         self,
         alpha: float = _DEFAULT_ALPHA,
@@ -391,29 +432,92 @@ This method modifies `self` in-place and does not return a value.
         r"""
 ············································································
 
-==Double exponential smoothing filter (Holt's method)==
+## `double_exp_smooth`
 
-Apply double exponential smoothing to each variant of the time series.
-Captures both level and slope components using two smoothing parameters.
+==Double exponential smoothing filter. Smooths each variant of the series in place while tracking a trend, using Holt's two-parameter method.==
 
-### Input arguments ###
+    self.double_exp_smooth(alpha=0.3, beta=0.3, span=...)
+
+It carries both a level and a slope, so unlike `exp_smooth` it follows
+a rising or falling series instead of lagging behind it. The argument
+order here is not the one the other three filters use: `alpha` and
+`beta` come first and `span` last.
+
+
+**Input arguments.**
+
 
 ???+ input "alpha"
-Level smoothing parameter (0 < alpha <= 1). Controls how quickly the
-level component adapts to new observations.
+    Smooths the level. It must satisfy `0 < alpha <= 1`; breaching
+    either bound raises `ValueError`. Left alone it is 0.3.
 
 ???+ input "beta"
-Slope smoothing parameter (0 <= beta <= 1). Controls how quickly the
-slope component adapts to changes in the slope.
+    Smooths the slope. It must satisfy `0 <= beta <= 1`, so zero is
+    allowed here although it is not for `alpha`; breaching either bound
+    raises `ValueError`. Left alone it is 0.3.
 
 ???+ input "span"
-Time span to apply the filter to. If `span=...` (default), uses the
-full span of the time series.
+    The periods to filter over. See **Univariate time series filters**.
+    Alone among the four filters it comes last here, not first.
 
-### Returns ###
 
-???+ returns "None"
-This method modifies `self` in-place and does not return a value.
+Given fewer than two observations the method quietly falls back to
+simple exponential smoothing.
+
+
+### Returns
+
+
+Nothing; the series is modified in place.
+
+
+### Examples
+
+
+A single missing observation does more than leave a hole. The forecast
+written into the gap is fed back into the recursion as though it had
+been observed, which lifts the following value to 6.0 -- above every
+number in the data. Compare a series with no gap:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1.0, 3.0, 2.0, 5.0, 4.0]))
+    >>> x.double_exp_smooth(0.5, 0.2)
+    >>> x.get_data()[:, 0].tolist()
+    [1.0, 3.0, 3.5, 5.1, 5.39]
+
+against the same series with the middle observation missing:
+
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1.0, 3.0, np.nan, 5.0, 4.0]))
+    >>> x.double_exp_smooth(0.5, 0.2)
+    >>> x.get_data()[:, 0].tolist()
+    [1.0, 3.0, 5.0, 6.0, 5.9]
+
+The second observation comes back unchanged in both, because the
+starting slope is fitted to the first two observations.
+
+
+### Algorithm
+
+
+Holt's recursion carries a level $L_t$ and a slope $T_t$, updated as
+
+$$
+L_t = \alpha \, X_t + (1 - \alpha) \, (L_{t-1} + T_{t-1})
+$$
+
+$$
+T_t = \beta \, (L_t - L_{t-1}) + (1 - \beta) \, T_{t-1}
+$$
+
+and writes the level back into the series. It starts with $L_0 = X_0$
+and a slope taken from the first two observations.
+
+
+**See Also.** `dp.double_exp_smooth(x, 0.5, 0.2)` leaves `x` unchanged
+and returns a filtered copy.
 
 ············································································
         """
@@ -430,59 +534,7 @@ This method modifies `self` in-place and does not return a value.
             beta=beta,
         )
 
-    # ==========================================================================
-    #  ### `double_exp_smooth(alpha=0.3, beta=0.3, span=...)`
-    #
-    #  Double exponential smoothing filter. Smooths each variant of the
-    #  series in place while tracking a trend, using Holt's two-parameter
-    #  method.
-    #
-    #  It carries both a level and a slope, so unlike `exp_smooth` it
-    #  follows a rising or falling series instead of lagging behind it.
-    #  The argument order here is not the one the other three filters use:
-    #  `alpha` and `beta` come first and `span` last.
-    #
-    #  **Parameters.** `alpha` smooths the level and must satisfy
-    #  `0 < alpha <= 1`. `beta` smooths the slope and must satisfy
-    #  `0 <= beta <= 1`, so zero is allowed here although it is not for
-    #  `alpha`; breaching either bound raises `ValueError`. Both are 0.3
-    #  when left alone. Given fewer than two observations the method
-    #  quietly falls back to simple exponential smoothing. For `span`, see
-    #  the shared block at the top of this file.
-    #
-    #  **Returns.** Nothing; the series is modified in place.
-    #
-    #  **Examples.** A single missing observation does more than leave a
-    #  hole. The forecast written into the gap is fed back into the
-    #  recursion as though it had been observed, which lifts the following
-    #  value to 6.0 -- above every number in the data. Compare a series
-    #  with no gap:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> x = dp.Series(start=dp.qq(2020, 1),
-    #      ...     values=np.array([1.0, 3.0, 2.0, 5.0, 4.0]))
-    #      >>> x.double_exp_smooth(0.5, 0.2)
-    #      >>> x.get_data()[:, 0].tolist()
-    #      [1.0, 3.0, 3.5, 5.1, 5.39]
-    #
-    #  against the same series with the middle observation missing:
-    #
-    #      >>> x = dp.Series(start=dp.qq(2020, 1),
-    #      ...     values=np.array([1.0, 3.0, np.nan, 5.0, 4.0]))
-    #      >>> x.double_exp_smooth(0.5, 0.2)
-    #      >>> x.get_data()[:, 0].tolist()
-    #      [1.0, 3.0, 5.0, 6.0, 5.9]
-    #
-    #  The second observation comes back unchanged in both, because the
-    #  starting slope is fitted to the first two observations.
-    #
-    #  `dp.double_exp_smooth(x, 0.5, 0.2)` leaves `x` unchanged; see the
-    #  final block of this file.
-    #
-    # ==========================================================================
-
-    @_dm.reference(category="filtering")
+    @_dm.reference(category="filtering", add_heading=False, )
     def decay_avg(
         self,
         span: Span | Iterable[Period] | EllipsisType = ...,
@@ -491,37 +543,72 @@ This method modifies `self` in-place and does not return a value.
         r"""
 ············································································
 
-==Decay average filter with geometrically decaying weights==
+## `decay_avg`
 
-Apply a decay average filter to each variant of the time series.
-Weights decay geometrically backwards in time: [1, decay, decay^2, decay^3, ...].
-Implemented as a recursive algorithm for efficient time evolution tracking.
+==Decay average filter with geometrically decaying weights. Replaces each variant of the series in place with a weighted average of every observation up to that period, weighted so that older data counts for less.==
 
-### Input arguments ###
+    self.decay_avg(span=..., decay=0.9)
 
-???+ input "decay"
-Decay factor for weights (0 < decay < 1). Higher values give more weight
-to historical observations. Common values: 0.9, 0.8, 0.7.
+The weights going backwards in time are 1, `decay`, `decay` squared, and
+so on, so older data fades out gradually rather than dropping out at the
+edge of a fixed window.
+
+
+**Input arguments.**
+
 
 ???+ input "span"
-Time span to apply the filter to. If `span=...` (default), uses the
-full span of the time series.
+    The periods to filter over. See **Univariate time series filters**
+    for what `span` does, and note that it comes first here, so in
+    `x.decay_avg(0.5)` the `0.5` is taken as `span`.
 
-### Returns ###
+???+ input "decay"
+    Sets how fast the past fades, and higher values keep more of it.
+    The check is `0 < decay <= 1`, so `decay=1` is accepted and
+    silently gives the plain cumulative average of `cum_avg`, while
+    `decay=0` raises `ValueError`. Left alone it is 0.9.
 
-???+ returns "None"
-This method modifies `self` in-place and does not return a value.
 
-### Notes ###
+### Returns
 
-The filter uses the recursive formula:
-DA_t = (X_t + decay * DA_{t-1} * N_{t-1}) / (1 + decay * N_{t-1})
 
-where DA_t is the decay average at time t, X_t is the observation
-at time t, and N_{t-1} is the effective count of previous observations.
+Nothing; the series is modified in place.
 
-For missing observations, the previous decay average is propagated
-and the effective count is scaled by the decay factor.
+
+### Examples
+
+
+Across the gap in the third period the previous value is repeated, and
+the weight carried by the past is scaled down by `decay` even though no
+new observation arrived. Values are rounded here only to keep the line
+short:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
+    >>> x.decay_avg(decay=0.9)
+    >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
+    [1.0, 1.5263, 1.5263, 2.5006, 3.2614]
+
+
+### Algorithm
+
+
+Writing $\delta$ for the `decay`,
+
+$$
+DA_t = \frac{X_t + \delta \, DA_{t-1} \, N_{t-1}}{1 + \delta \, N_{t-1}}
+$$
+
+where $N_t = 1 + \delta \, N_{t-1}$ is the effective number of
+observations behind the current value, started at the first observed
+period with $DA_0 = X_0$ and $N_0 = 1$.
+
+
+**See Also.** `cum_avg` does the same thing as `decay_avg(decay=1)`.
+`dp.decay_avg(x, decay=0.9)` leaves `x` unchanged and returns a
+filtered copy.
 
 ············································································
         """
@@ -535,46 +622,7 @@ and the effective count is scaled by the decay factor.
             decay=decay,
         )
 
-    # ==========================================================================
-    #  ### `decay_avg(span=..., decay=0.9)`
-    #
-    #  Decay average filter with geometrically decaying weights. Replaces
-    #  each variant of the series in place with a weighted average of
-    #  every observation up to that period, weighted so that older data
-    #  counts for less.
-    #
-    #  The weights going backwards in time are 1, `decay`, `decay`
-    #  squared, and so on. Older data fades out gradually instead of
-    #  dropping out all at once, which is what separates this from a
-    #  moving average over a fixed window.
-    #
-    #  **Parameters.** `decay` sets how fast the past fades, and higher
-    #  values keep more of it. The check is `0 < decay <= 1`, so `decay=1`
-    #  is accepted and silently gives the plain cumulative average of
-    #  `cum_avg`, while `decay=0` raises `ValueError`. Left alone it is
-    #  0.9. For `span`, see the shared block at the top of this file.
-    #
-    #  **Returns.** Nothing; the series is modified in place.
-    #
-    #  **Examples.** Across the gap in the third period the previous value
-    #  is repeated, and the weight carried by the past is scaled down by
-    #  `decay` even though no new observation arrived. Values are rounded
-    #  here only to keep the line short:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> x = dp.Series(start=dp.qq(2020, 1),
-    #      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
-    #      >>> x.decay_avg(decay=0.9)
-    #      >>> [round(v, 4) for v in x.get_data()[:, 0].tolist()]
-    #      [1.0, 1.5263, 1.5263, 2.5006, 3.2614]
-    #
-    #  `dp.decay_avg(x, decay=0.9)` leaves `x` unchanged; see the final
-    #  block of this file.
-    #
-    # ==========================================================================
-
-    @_dm.reference(category="filtering")
+    @_dm.reference(category="filtering", add_heading=False, )
     def cum_avg(
         self,
         span: Span | Iterable[Period] | EllipsisType = ...,
@@ -582,32 +630,61 @@ and the effective count is scaled by the decay factor.
         r"""
 ············································································
 
-==Cumulative average filter==
+## `cum_avg`
 
-Apply a cumulative average filter to each variant of the time series.
-Computes the arithmetic mean of all observations from the start up to
-each time point.
+==Cumulative average filter. Replaces each variant of the series in place with the running mean of all observations up to and including each period.==
 
-### Input arguments ###
+    self.cum_avg(span=...)
+
+The divisor is the number of observations seen, not the number of
+periods elapsed, and the two part company as soon as there is a gap.
+
+
+**Input arguments.**
+
 
 ???+ input "span"
-Time span to apply the filter to. If `span=...` (default), uses the
-full span of the time series.
+    The periods to filter over. See **Univariate time series filters**.
+    There are no other arguments.
 
-### Returns ###
 
-???+ returns "None"
-This method modifies `self` in-place and does not return a value.
+### Returns
 
-### Notes ###
 
-The filter computes: CA_t = (X_1 + X_2 + ... + X_t) / t
+Nothing; the series is modified in place.
 
-where CA_t is the cumulative average at time t, and X_i are the
-observations from time 1 to t.
 
-For missing observations, the previous cumulative average is propagated.
-This is equivalent to decay_avg with decay=1.
+### Examples
+
+
+The third period has no observation, so the running mean does not move.
+The fourth then divides a total of 7.0 by the three observations seen,
+not by the four periods elapsed:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
+    >>> x.cum_avg()
+    >>> x.get_data()[:, 0].tolist()
+    [1.0, 1.5, 1.5, 2.3333333333333335, 3.0]
+
+
+### Algorithm
+
+
+With no gaps,
+
+$$
+CA_t = \frac{X_1 + X_2 + \cdots + X_t}{t}
+$$
+
+Once there is a gap the divisor is the number of observations seen
+rather than $t$, which is what the example above shows.
+
+
+**See Also.** `decay_avg(decay=1)` does exactly the same thing.
+`dp.cum_avg(x)` leaves `x` unchanged and returns a filtered copy.
 
 ············································································
         """
@@ -616,41 +693,6 @@ This is equivalent to decay_avg with decay=1.
             span=span,
         )
 
-    # ==========================================================================
-    #  ### `cum_avg(span=...)`
-    #
-    #  Cumulative average filter. Replaces each variant of the series
-    #  in place with the running mean of all observations up to and
-    #  including each period.
-    #
-    #  Use it when what you want is the average so far rather than the
-    #  average of the whole sample: a year-to-date mean, or a line that
-    #  settles down as the sample grows. The divisor is the number of
-    #  observations seen, not the number of periods elapsed, and the two
-    #  part company as soon as there is a gap.
-    #
-    #  **Parameters.** For `span`, see the shared block at the top of this
-    #  file. There are no other arguments.
-    #
-    #  **Returns.** Nothing; the series is modified in place.
-    #
-    #  **Examples.** The third period has no observation, so the running
-    #  mean does not move. The fourth then divides a total of 7.0 by the
-    #  three observations seen, not by the four periods elapsed:
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> x = dp.Series(start=dp.qq(2020, 1),
-    #      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
-    #      >>> x.cum_avg()
-    #      >>> x.get_data()[:, 0].tolist()
-    #      [1.0, 1.5, 1.5, 2.3333333333333335, 3.0]
-    #
-    #  **See Also.** `decay_avg(decay=1)` does exactly the same thing.
-    #  `dp.cum_avg(x)` leaves `x` unchanged; see the final block of this
-    #  file.
-    #
-    # ==========================================================================
     #]
     #]
 
@@ -668,51 +710,4 @@ for n in _functional_forms:
     exec(_tw.dedent(code, ), globals(), )
 
 __all__ = tuple(_functional_forms)
-
-
-# ==========================================================================
-#  ### `cum_avg(x, span=...)` and the other three functional forms
-#
-#  Module-level counterparts of the four filter methods that leave the
-#  original series untouched and hand back a filtered copy.
-#
-#  The loop above creates `exp_smooth`, `double_exp_smooth`, `decay_avg`
-#  and `cum_avg` as plain functions when the module is imported, by
-#  running the `FUNC_STRING` template from `_functionalize.py` through
-#  `exec`. Each one copies its first argument with `Series.copy()`, calls
-#  the method of the same name on the copy, and returns the copy. Since
-#  all four methods return `None`, the copy is the only thing handed back.
-#
-#  Reach for the functional form when you need to keep the unfiltered
-#  data, and for the method when you do not. Nothing else differs: the
-#  filtering, and everything in the shared block at the top of this file,
-#  is the same either way.
-#
-#  **Parameters.** The first argument is the series to filter, which is
-#  read but not changed. Everything after it is handed straight to the
-#  method, so the argument-order warning in the shared block applies here
-#  too -- in `cum_avg(x, 0.5)` the `0.5` becomes `span`.
-#
-#  **Returns.** A new `Series` holding the filtered values.
-#
-#  **Examples.** The function copies, the method overwrites:
-#
-#      >>> import numpy as np
-#      >>> import datapie as dp
-#      >>> x = dp.Series(start=dp.qq(2020, 1),
-#      ...     values=np.array([1.0, 2.0, np.nan, 4.0, 5.0]))
-#      >>> y = dp.cum_avg(x)
-#      >>> y.get_data()[:, 0].tolist()
-#      [1.0, 1.5, 1.5, 2.3333333333333335, 3.0]
-#      >>> x.get_data()[:, 0].tolist()
-#      [1.0, 2.0, nan, 4.0, 5.0]
-#      >>> x.cum_avg()
-#      >>> x.get_data()[:, 0].tolist()
-#      [1.0, 1.5, 1.5, 2.3333333333333335, 3.0]
-#
-#  **Notes.** The `__all__` above lists these four functions and not the
-#  methods, so `from datapie import cum_avg` always gives you the copying
-#  function.
-#
-# ==========================================================================
 

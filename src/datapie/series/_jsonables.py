@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
-    @_dm.reference(category="serialization", )
+    @_dm.reference(category="serialization", add_heading=False, )
     def to_jsonable(
         self,
         *,
@@ -38,44 +38,72 @@ class Mixin:
         r"""
 ................................................................................
 
-==Convert time series to a JSON-serializable dictionary==
+## `to_jsonable`
 
-This method converts the time series into a JSON-serializable dictionary format.
-It includes options to include or exclude the description and frequency of the
-series, as well as handling multiple variants.
+==Turns a time series into a plain dictionary that can be written out as JSON.==
 
     jsonable = self.to_jsonable(
+        *,
         period_to_string=Period.to_sdmx_string,
         include_description=True,
         include_frequency=True,
         allow_multiple_variants=False,
     )
 
+Every argument is keyword-only.
 
-### Input arguments ###
+
+**Input arguments.**
+
 
 ???+ input "period_to_string"
-    Function to convert a Period object to a string; choose from:
-    * Period.to_sdmx_string (default): Converts to SDMX format (e.g., "2023-Q1").
-    * Period.to_iso_string: Converts to ISO format (e.g., "2023-01-01").
-    * custom function taking a Period and returning a string.
+    Turns the start period into text. Left alone it writes the SDMX
+    form, `"2020-Q1"`; `Period.to_iso_string` writes `"2020-01-01"`
+    instead. Any function taking a `Period` and returning a string will
+    do. Whatever you choose here has to be matched by
+    `period_from_string` when the dictionary is read back.
 
 ???+ input "include_description"
-    If `True` (default), the `jsonable` dictionary includes the series
-    description.
+    Whether the `"description"` key appears at all. On when left alone.
 
 ???+ input "include_frequency"
-    If `True` (default), the `jsonable` dictionary includes the series
-    frequency; this is recommended for clarity and robustness.
+    Whether the `"frequency"` key appears at all. On when left alone,
+    and worth keeping: `from_jsonable` needs it to read non-daily ISO
+    periods.
 
 ???+ input "allow_multiple_variants"
-    Not implemented yet.
+    Not implemented. Setting it to `True` raises `NotImplementedError`.
 
 
-### Returns ###
+A series holding more than one variant cannot be written at all, and
+the two ways out are both closed: the `ValueError` you get tells you to
+pass `allow_multiple_variants=True`, which then raises
+`NotImplementedError`.
 
-???+ returns "jsonable"
-    A dictionary representing the time series in a JSON-serializable format.
+Missing observations are written through unchanged. That is no trouble
+in the dictionary itself, but `NaN` is not valid JSON, so handing the
+result to the standard `json` module -- as `Databox.series_to_json_file`
+does -- writes `{"values": [1.0, NaN, 3.0]}`, which a strict reader
+rejects.
+
+
+### Returns
+
+
+A dictionary holding `"description"`, `"frequency"`, `"start"` and
+`"values"`, the first two only if you asked for them. `"values"` is a
+tuple. For an empty series `"start"` is `None`, `"values"` is `()` and
+`"frequency"` is `"?"`.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1), values=np.array([1., 2.]))
+    >>> x.to_jsonable(include_description=False)
+    {'frequency': 'Q', 'start': '2020-Q1', 'values': (1.0, 2.0)}
 
 ................................................................................
         """
@@ -102,53 +130,12 @@ series, as well as handling multiple variants.
         #
         return jsonable
 
-    # ==========================================================================
-    #  ### `to_jsonable(*, period_to_string=Period.to_sdmx_string,
-    #   include_description=True, include_frequency=True,
-    #   allow_multiple_variants=False)`
-    #
-    #  Turns a time series into a plain dictionary that can be written out
-    #  as JSON.
-    #
-    #  **Parameters.** Every argument is keyword-only.
-    #
-    #  `period_to_string` turns the start period into text. Left alone it
-    #  writes the SDMX form such as `"2020-Q1"`; `Period.to_iso_string`
-    #  writes `"2020-01-01"` instead.
-    #
-    #  `include_description` and `include_frequency` decide whether those
-    #  two keys appear at all. Both are on when left alone.
-    #
-    #  `allow_multiple_variants` is not implemented. Setting it to `True`
-    #  raises `NotImplementedError`.
-    #
-    #  **Returns.** A dictionary holding `"description"`, `"frequency"`,
-    #  `"start"` and `"values"`, the first two only if you asked for them.
-    #  `"start"` is `None` for an empty series, and `"values"` is a tuple.
-    #
-    #  A series holding more than one variant cannot be written at all. The
-    #  `ValueError` you get tells you to pass `allow_multiple_variants=True`,
-    #  which then raises `NotImplementedError`.
-    #
-    #  Missing observations are written through unchanged. That is not a
-    #  problem here, but `NaN` is not valid JSON, so passing the result to
-    #  the standard `json` module -- as `Databox.series_to_json_file`
-    #  does -- produces a file that a strict reader will reject.
-    #
-    #  **Examples.**
-    #
-    #      >>> import datapie as dp
-    #      >>> import numpy as np
-    #      >>> x = dp.Series(start=dp.qq(2020, 1), values=np.array([1., 2.]))
-    #      >>> x.to_jsonable(include_description=False)
-    #      {'frequency': 'Q', 'start': '2020-Q1', 'values': (1.0, 2.0)}
-    #
-    # ==========================================================================
 
     @classmethod
     @_dm.reference(
         category="constructor",
         call_name="Series.from_jsonable",
+        add_heading=False,
     )
     def from_jsonable(
         klass,
@@ -162,46 +149,82 @@ series, as well as handling multiple variants.
         r"""
 ................................................................................
 
-==Create time series from a JSON-serializable dictionary==
+## `Series.from_jsonable`
 
-This class method creates a time series from a JSON-serializable dictionary.
+==Builds a time series from a dictionary of the kind `to_jsonable` produces.==
 
     self = Series.from_jsonable(
         jsonable,
+        *,
         period_from_string=Period.from_sdmx_string,
         frequency_included=True,
         description_included=True,
         allow_multiple_variants=False,
     )
 
+This is a class method: call it on the class, as
+`Series.from_jsonable(d)`, not on a series you already have. Everything
+after `jsonable` is keyword-only.
 
-### Input arguments ###
+
+**Input arguments.**
+
 
 ???+ input "jsonable"
-    A dictionary representing the time series in a JSON-serializable format.
+    The dictionary to read, laid out the way `to_jsonable` writes one.
 
 ???+ input "period_from_string"
-    Function to convert a string to a Period object; choose from:
-    * Period.from_sdmx_string (default): Parses SDMX format (e.g., "2023-Q1").
-    * Period.from_iso_string: Parses ISO format (e.g., "2023-01-01"), needs a `frequency` to be included for non-daily periods.
-    * custom function taking a string and a frequency, and returning a Period.
+    Parses the start period, and has to match the way it was written.
+    Left alone it reads the SDMX form, `"2020-Q1"`;
+    `Period.from_iso_string` reads `"2020-01-01"`, and for anything but
+    daily periods it needs the frequency to be present. Any function
+    taking a string and a `frequency=` keyword will do.
 
 ???+ input "frequency_included"
-    If `True` (default), the `jsonable` dictionary is expected to include the
-    series frequency represented as a single letter.
+    Whether the `"frequency"` key is there to be read. On when left
+    alone.
 
 ???+ input "description_included"
-    If `True` (default), the `jsonable` dictionary is expected to include the
-    series description.
+    Whether the `"description"` key is there to be read. On when left
+    alone; switched off, the new series gets an empty description
+    whatever the dictionary holds.
 
 ???+ input "allow_multiple_variants"
-    Not implemented yet.
+    Not implemented. Setting it to `True` raises `NotImplementedError`.
 
 
-### Returns ###
+The flags have to match the ones used when writing, and they are
+spelled differently at the two ends -- `include_frequency` going out
+against `frequency_included` coming back. Writing with
+`include_frequency=False` and reading with the default
+`frequency_included=True` raises `KeyError: 'frequency'`, and the same
+goes for the description. Reading ISO periods with the default SDMX
+parser raises `ValueError: not enough values to unpack (expected 2, got
+1)`, which does not obviously point at the parser.
 
-???+ returns "self"
-    A time series object created from the `jsonable` dictionary.
+
+### Returns
+
+
+A new series. When the stored start or values are empty you get an
+empty series instead, carrying the description if
+`description_included` was left on.
+
+
+### Examples
+
+
+A round trip, description included:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]), description="GDP")
+    >>> y = dp.Series.from_jsonable(x.to_jsonable())
+    >>> y.get_data()[:, 0].tolist()
+    [1.0, 2.0]
+    >>> y.get_description()
+    'GDP'
 
 ................................................................................
         """
@@ -236,54 +259,6 @@ This class method creates a time series from a JSON-serializable dictionary.
             description=description,
         )
 
-    # ==========================================================================
-    #  ### `Series.from_jsonable(jsonable, *,
-    #   period_from_string=Period.from_sdmx_string,
-    #   frequency_included=True, description_included=True,
-    #   allow_multiple_variants=False)`
-    #
-    #  Builds a time series from a dictionary of the kind `to_jsonable`
-    #  produces.
-    #
-    #  This one is called on the class rather than on a series, as
-    #  `Series.from_jsonable(d)`.
-    #
-    #  **Parameters.** Everything after `jsonable` is keyword-only.
-    #
-    #  `period_from_string` parses the start period and has to match the
-    #  way it was written. Left alone it reads the SDMX form, while
-    #  `Period.from_iso_string` reads ISO dates.
-    #
-    #  `frequency_included` and `description_included` say whether those
-    #  keys are there to be read. Both are on when left alone.
-    #
-    #  `allow_multiple_variants` is not implemented. Setting it to `True`
-    #  raises `NotImplementedError`.
-    #
-    #  **Returns.** A new series. When the stored start or values are
-    #  empty you get an empty series instead, and it carries the
-    #  description only if `description_included` was left on.
-    #
-    #  The flags have to match the ones used when writing, and they are
-    #  spelled differently at the two ends. Writing with
-    #  `include_frequency=False` and reading with the default
-    #  `frequency_included=True` raises `KeyError: 'frequency'`, and the
-    #  same goes for the description. Reading ISO dates with the default
-    #  SDMX parser raises `ValueError`.
-    #
-    #  **Examples.**
-    #
-    #      >>> import numpy as np
-    #      >>> import datapie as dp
-    #      >>> x = dp.Series(start=dp.qq(2020, 1),
-    #      ...     values=np.array([1., 2.]), description="GDP")
-    #      >>> y = dp.Series.from_jsonable(x.to_jsonable())
-    #      >>> y.get_data()[:, 0].tolist()
-    #      [1.0, 2.0]
-    #      >>> y.get_description()
-    #      'GDP'
-    #
-    # ==========================================================================
 
         #]
 

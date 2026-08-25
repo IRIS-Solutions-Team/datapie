@@ -152,6 +152,9 @@ input:
 
 ## `mov_sum`
 
+Called as `x.mov_sum(...)` (method form) or
+`datapie.mov_sum(x, ...)` (function form).
+
 ==Replaces every observation with the sum over the window ending at that period.==
 
     self.mov_sum(window=None)
@@ -193,6 +196,9 @@ Nothing; the series is modified in place.
 ································································
 
 ## `mov_avg`
+
+Called as `x.mov_avg(...)` (method form) or
+`datapie.mov_avg(x, ...)` (function form).
 
 ==Replaces every observation with the average over the window ending at that period.==
 
@@ -238,6 +244,9 @@ Nothing; the series is modified in place.
 
 ## `mov_mean`
 
+Called as `x.mov_mean(...)` (method form) or
+`datapie.mov_mean(x, ...)` (function form).
+
 ==Replaces every observation with the average over the window ending at that period.==
 
     self.mov_mean(window=None)
@@ -281,6 +290,9 @@ Nothing; the series is modified in place.
 ································································
 
 ## `mov_prod`
+
+Called as `x.mov_prod(...)` (method form) or
+`datapie.mov_prod(x, ...)` (function form).
 
 ==Replaces every observation with the product over the window ending at that period.==
 

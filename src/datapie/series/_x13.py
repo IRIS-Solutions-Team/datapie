@@ -93,6 +93,8 @@ class Mixin:
 
 ## `x13`
 
+Called as `x.x13(...)` (method form) or `datapie.x13(x, ...)` (function form).
+
 ==Runs the series through the X13-ARIMA-TRAMO-SEATS program and replaces its values with the component you asked for.==
 
     self.x13(

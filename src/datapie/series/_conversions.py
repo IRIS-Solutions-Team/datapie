@@ -59,6 +59,9 @@ class Mixin:
 
 ## `aggregate`
 
+Called as `x.aggregate(...)` (method form) or
+`datapie.aggregate(x, ...)` (function form).
+
 ==Converts a time series to a lower frequency by replacing the high-frequency observations within each low-frequency period with a single summary value.==
 
     self.aggregate(
@@ -194,6 +197,9 @@ away; the two observations it held are gone:
 ................................................................................
 
 ## `disaggregate`
+
+Called as `x.disaggregate(...)` (method form) or
+`datapie.disaggregate(x, ...)` (function form).
 
 ==Converts a time series to a higher frequency by spreading each low-frequency observation over the periods it covers.==
 

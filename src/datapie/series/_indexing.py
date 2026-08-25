@@ -184,6 +184,9 @@ Assignment writes in place:
 
 ## `reverse_variants`
 
+Called as `x.reverse_variants(...)` (method form) or
+`datapie.reverse_variants(x, ...)` (function form).
+
 ==Reverses the order of the variants, that is the columns, of the time series.==
 
     self.reverse_variants()
@@ -221,6 +224,9 @@ Nothing; the series is modified in place.
 ················································································
 
 ## `reverse_periods`
+
+Called as `x.reverse_periods(...)` (method form) or
+`datapie.reverse_periods(x, ...)` (function form).
 
 ==Reverses the order of the observations in time, leaving the periods where they are.==
 

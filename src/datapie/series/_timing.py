@@ -31,6 +31,9 @@ class Mixin:
 
 ## `shift`
 
+Called as `x.shift(...)` (method form) or
+`datapie.shift(x, ...)` (function form).
+
 ==Moves a time series in time, either by retiming it or by replacing each observation with an earlier one.==
 
     self.shift(by=-1, **kwargs)
@@ -136,6 +139,9 @@ instead of an earlier observation:
 ................................................................................
 
 ## `redate`
+
+Called as `x.redate(...)` (method form) or
+`datapie.redate(x, ...)` (function form).
 
 ==Restamps a time series onto new periods, keeping the observations and their order.==
 

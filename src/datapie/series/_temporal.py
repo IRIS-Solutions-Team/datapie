@@ -220,6 +220,8 @@ exactly:
 
 ## `diff`
 
+Called as `x.diff(...)` (method form) or `datapie.diff(x, ...)` (function form).
+
 ==Replaces every observation with its change from an earlier period, as a difference in levels.==
 
     self.diff(shift=-1)
@@ -263,6 +265,9 @@ Nothing; the series is modified in place.
 ································································
 
 ## `adiff`
+
+Called as `x.adiff(...)` (method form) or
+`datapie.adiff(x, ...)` (function form).
 
 ==Replaces every observation with its change from the previous period, scaled up to a yearly rate.==
 
@@ -316,6 +321,9 @@ Nothing; the series is modified in place.
 
 ## `diff_log`
 
+Called as `x.diff_log(...)` (method form) or
+`datapie.diff_log(x, ...)` (function form).
+
 ==Replaces every observation with the change in its logarithm from an earlier period.==
 
     self.diff_log(shift=-1)
@@ -362,6 +370,9 @@ Nothing; the series is modified in place.
 ································································
 
 ## `adiff_log`
+
+Called as `x.adiff_log(...)` (method form) or
+`datapie.adiff_log(x, ...)` (function form).
 
 ==Replaces every observation with the change in its logarithm from the previous period, scaled up to a yearly rate.==
 
@@ -414,6 +425,8 @@ Nothing; the series is modified in place.
 
 ## `roc`
 
+Called as `x.roc(...)` (method form) or `datapie.roc(x, ...)` (function form).
+
 ==Replaces every observation with its gross rate of change against an earlier period.==
 
     self.roc(shift=-1)
@@ -462,6 +475,8 @@ Nothing; the series is modified in place.
 ································································
 
 ## `aroc`
+
+Called as `x.aroc(...)` (method form) or `datapie.aroc(x, ...)` (function form).
 
 ==Replaces every observation with its gross rate of change against the previous period, compounded to a yearly rate.==
 
@@ -515,6 +530,8 @@ Nothing; the series is modified in place.
 
 ## `pct`
 
+Called as `x.pct(...)` (method form) or `datapie.pct(x, ...)` (function form).
+
 ==Replaces every observation with its percent change against an earlier period.==
 
     self.pct(shift=-1)
@@ -560,6 +577,8 @@ Nothing; the series is modified in place.
 ································································
 
 ## `apct`
+
+Called as `x.apct(...)` (method form) or `datapie.apct(x, ...)` (function form).
 
 ==Replaces every observation with its percent change against the previous period, compounded to a yearly rate.==
 
@@ -611,6 +630,9 @@ Nothing; the series is modified in place.
 
 ## `roc_from_pct`
 
+Called as `x.roc_from_pct(...)` (method form) or
+`datapie.roc_from_pct(x, ...)` (function form).
+
 ==Reads the values as percent changes and rewrites them as gross rates of change.==
 
     self.roc_from_pct()
@@ -658,6 +680,9 @@ Nothing; the series is modified in place.
 
 ## `pct_from_roc`
 
+Called as `x.pct_from_roc(...)` (method form) or
+`datapie.pct_from_roc(x, ...)` (function form).
+
 ==Reads the values as gross rates of change and rewrites them as percent changes.==
 
     self.pct_from_roc()
@@ -703,6 +728,9 @@ Nothing; the series is modified in place.
 ································································
 
 ## `pct_from_apct`
+
+Called as `x.pct_from_apct(...)` (method form) or
+`datapie.pct_from_apct(x, ...)` (function form).
 
 ==Reads the values as annualized percent changes and rewrites them as percent changes per period.==
 
@@ -752,6 +780,9 @@ Nothing; the series is modified in place.
 
 ## `roc_from_apct`
 
+Called as `x.roc_from_apct(...)` (method form) or
+`datapie.roc_from_apct(x, ...)` (function form).
+
 ==Reads the values as annualized percent changes and rewrites them as gross rates of change per period.==
 
     self.roc_from_apct()
@@ -799,6 +830,9 @@ Nothing; the series is modified in place.
 ································································
 
 ## `roc_from_aroc`
+
+Called as `x.roc_from_aroc(...)` (method form) or
+`datapie.roc_from_aroc(x, ...)` (function form).
 
 ==Raises every value to the power of the number of periods in a year.==
 
@@ -850,6 +884,9 @@ Nothing; the series is modified in place.
 
 ## `cum_diff`
 
+Called as `x.cum_diff(...)` (method form) or
+`datapie.cum_diff(x, ...)` (function form).
+
 ==Rebuilds a series of levels from a series of first differences.==
 
     self.cum_diff(shift=-1, initial=None, span=None)
@@ -896,6 +933,9 @@ Undoing the matching change calculation:
 ································································
 
 ## `cum_diff_log`
+
+Called as `x.cum_diff_log(...)` (method form) or
+`datapie.cum_diff_log(x, ...)` (function form).
 
 ==Rebuilds a series of levels from a series of log differences.==
 
@@ -946,6 +986,9 @@ Undoing the matching change calculation:
 
 ## `cum_pct`
 
+Called as `x.cum_pct(...)` (method form) or
+`datapie.cum_pct(x, ...)` (function form).
+
 ==Rebuilds a series of levels from a series of percent changes.==
 
     self.cum_pct(shift=-1, initial=None, span=None)
@@ -992,6 +1035,9 @@ Undoing the matching change calculation:
 ································································
 
 ## `cum_roc`
+
+Called as `x.cum_roc(...)` (method form) or
+`datapie.cum_roc(x, ...)` (function form).
 
 ==Rebuilds a series of levels from a series of gross rates of change.==
 

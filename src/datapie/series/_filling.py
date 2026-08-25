@@ -61,6 +61,9 @@ class Mixin:
 
 ## `fill_missing`
 
+Called as `x.fill_missing(...)` (method form) or
+`datapie.fill_missing(x, ...)` (function form).
+
 ==Replaces the missing observations in a time series using a chosen rule.==
 
     self.fill_missing(

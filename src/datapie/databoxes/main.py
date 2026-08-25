@@ -1459,6 +1459,9 @@ A `Span` encompassing the matching series.
 
 ## `overlay_by_span`
 
+Called as `x.overlay_by_span(...)` (method form) or
+`datapie.overlay_by_span(x, ...)` (function form).
+
 ==Writes each series of another Databox over the matching one here, across the whole span of the other.==
 
     self.overlay_by_span(
@@ -1526,6 +1529,9 @@ left alone, as are pairs whose frequencies differ or whose frequency is
 ................................................................................
 
 ## `overlay_by_observation`
+
+Called as `x.overlay_by_observation(...)` (method form) or
+`datapie.overlay_by_observation(x, ...)` (function form).
 
 ==Writes each series of another Databox over the matching one here, only where the other has an observation.==
 
@@ -1595,6 +1601,9 @@ left alone, as are pairs whose frequencies differ or whose frequency is
 
 ## `underlay_by_span`
 
+Called as `x.underlay_by_span(...)` (method form) or
+`datapie.underlay_by_span(x, ...)` (function form).
+
 ==Slides each series of another Databox underneath the matching one here, so this Databox wins across its whole span.==
 
     self.underlay_by_span(
@@ -1662,6 +1671,9 @@ left alone, as are pairs whose frequencies differ or whose frequency is
 ................................................................................
 
 ## `underlay_by_observation`
+
+Called as `x.underlay_by_observation(...)` (method form) or
+`datapie.underlay_by_observation(x, ...)` (function form).
 
 ==Slides each series of another Databox underneath the matching one here, filling only the periods this one leaves empty.==
 
@@ -1994,7 +2006,11 @@ Extra names can be supplied through `context`:
         return self.evaluate_expression(*args, **kwargs, )
 
     @classmethod
-    @_dm.reference(category="constructor", add_heading=False, )
+    @_dm.reference(
+        category="constructor",
+        call_name="Databox.steady",
+        add_heading=False,
+    )
     def steady(
         klass,
         steady_databoxable: SteadyDataboxableProtocol,
@@ -2076,7 +2092,11 @@ are not described here.
         return klass({ k: v for k, v in items })
 
     @classmethod
-    @_dm.reference(category="constructor", add_heading=False, )
+    @_dm.reference(
+        category="constructor",
+        call_name="Databox.zero",
+        add_heading=False,
+    )
     def zero(
         klass,
         steady_databoxable: SteadyDataboxableProtocol,

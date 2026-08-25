@@ -9,8 +9,10 @@ Findings are anchored on method and function names, not line numbers. Items
 marked *(observed)* were confirmed by running the code; everything else follows
 from reading it.
 
-**No source changes were made in this folder.** Everything is docstrings plus
-`add_heading=False` on decorators that already carried `@_dm.reference`.
+**Source changes in this folder are confined to `@_dm.reference` keywords.**
+Everything else is docstrings. The keywords touched are `add_heading=False`
+throughout, and `call_name=` on `steady` and `zero` in `main.py` — see bug 5
+under `main.py`.
 
 `_imports2.py` and `_imports3.py` are undocumented on purpose — see their block.
 
@@ -385,6 +387,20 @@ module. `series/_views.py` specialises the same base.
    all to a databox of series — *(observed)* — while `in_place=False` doubles
    them. *(observed)* The sense of the name is inverted from what a reader
    expects.
+5. **`steady` and `zero` linked to reference anchors that do not exist.** Both
+   carried a class-qualified heading — `Databox.steady`, `Databox.zero` — over a
+   decorator that left `call_name` at its default. documark takes the call name
+   from `__name__` when the keyword is absent, so the category index entry was
+   built as the text `steady` pointing at the anchor `#steady`, while the page
+   heading rendered as `Databox.steady`. The link had nothing to land on.
+   *(observed)* — `_documark_call_name` was `steady` and `_get_anchor` returned
+   `#steady`. Their three sibling constructors in the same file — `empty`,
+   `from_dict`, `from_array` — all declare a `Databox.`-qualified `call_name`;
+   these two were the only constructors that did not.
+   **Fixed:** `call_name="Databox.steady"` and `call_name="Databox.zero"` added
+   to the two decorators, written in the multi-line form `empty` already uses so
+   the lines stay inside 80 columns. Heading and `call_name` now agree, and the
+   anchors are `#databoxsteady` and `#databoxzero`. *(observed)*
 
 ### Notes
 

@@ -2637,6 +2637,8 @@ reset also erases the description.
 
 ## `abs`
 
+Called as `x.abs(...)` (method form) or `datapie.abs(x, ...)` (function form).
+
 ==Replaces every observation with its absolute value.==
 
     self.abs(*args, **kwargs)
@@ -2692,6 +2694,9 @@ In place against not in place:
 ················································································
 
 ## `round`
+
+Called as `x.round(...)` (method form) or
+`datapie.round(x, ...)` (function form).
 
 ==Rounds every observation in place.==
 
@@ -3129,6 +3134,9 @@ The second variant keeps coming back:
 ················································································
 
 ## `logistic`
+
+Called as `x.logistic(...)` (method form) or
+`datapie.logistic(x, ...)` (function form).
 
 ==Replaces every observation with its logistic transform.==
 

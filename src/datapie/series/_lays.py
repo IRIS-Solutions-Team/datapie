@@ -42,6 +42,9 @@ class Mixin:
 
 ## `overlay_by_span`
 
+Called as `x.overlay_by_span(...)` (method form) or
+`datapie.overlay_by_span(x, ...)` (function form).
+
 ==Writes the whole span of another series over this one, from the other series' first observation to its last.==
 
     self.overlay_by_span(other)
@@ -118,6 +121,9 @@ resulting time series, including any in-sample missing observations.
 ................................................................................
 
 ## `overlay_by_observation`
+
+Called as `x.overlay_by_observation(...)` (method form) or
+`datapie.overlay_by_observation(x, ...)` (function form).
 
 ==Writes the observations of another series over this one period by period, only where the other series has one.==
 
@@ -225,6 +231,9 @@ period.
 
 ## `underlay_by_span`
 
+Called as `x.underlay_by_span(...)` (method form) or
+`datapie.underlay_by_span(x, ...)` (function form).
+
 ==Slides another series in underneath this one, so this series wins across its whole span and `other` shows only outside it.==
 
     self.underlay_by_span(other)
@@ -300,6 +309,9 @@ resulting time series, including any in-sample missing observations.
 ................................................................................
 
 ## `underlay_by_observation`
+
+Called as `x.underlay_by_observation(...)` (method form) or
+`datapie.underlay_by_observation(x, ...)` (function form).
 
 ==Slides another series in underneath this one period by period, so `other` shows through only where this series has no observation.==
 

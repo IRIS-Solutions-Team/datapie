@@ -382,6 +382,9 @@ class Mixin:
 
 ## `hpf_trend`
 
+Called as `x.hpf_trend(...)` (method form) or
+`datapie.hpf_trend(x, ...)` (function form).
+
 ==Replaces the values of a time series with the trend component of the Hodrick-Prescott filter.==
 
     self.hpf_trend(*args, **kwargs)
@@ -425,6 +428,9 @@ Nothing; the series is modified in place.
 ································································
 
 ## `hpf_gap`
+
+Called as `x.hpf_gap(...)` (method form) or
+`datapie.hpf_gap(x, ...)` (function form).
 
 ==Replaces the values of a time series with the gap component of the Hodrick-Prescott filter.==
 

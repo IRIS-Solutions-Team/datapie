@@ -348,6 +348,9 @@ filter does write values:
 
 ## `exp_smooth`
 
+Called as `x.exp_smooth(...)` (method form) or
+`datapie.exp_smooth(x, ...)` (function form).
+
 ==Simple exponential smoothing filter. Smooths each variant of the series in place by exponentially weighted averaging.==
 
     self.exp_smooth(span=..., alpha=0.3)
@@ -433,6 +436,9 @@ returns a filtered copy.
 ············································································
 
 ## `double_exp_smooth`
+
+Called as `x.double_exp_smooth(...)` (method form) or
+`datapie.double_exp_smooth(x, ...)` (function form).
 
 ==Double exponential smoothing filter. Smooths each variant of the series in place while tracking a trend, using Holt's two-parameter method.==
 
@@ -545,6 +551,9 @@ and returns a filtered copy.
 
 ## `decay_avg`
 
+Called as `x.decay_avg(...)` (method form) or
+`datapie.decay_avg(x, ...)` (function form).
+
 ==Decay average filter with geometrically decaying weights. Replaces each variant of the series in place with a weighted average of every observation up to that period, weighted so that older data counts for less.==
 
     self.decay_avg(span=..., decay=0.9)
@@ -631,6 +640,9 @@ filtered copy.
 ············································································
 
 ## `cum_avg`
+
+Called as `x.cum_avg(...)` (method form) or
+`datapie.cum_avg(x, ...)` (function form).
 
 ==Cumulative average filter. Replaces each variant of the series in place with the running mean of all observations up to and including each period.==
 

@@ -850,6 +850,9 @@ class that does not override it, `IntegerPeriod` included. On
 
 ## `refrequent`
 
+Called as `x.refrequent(...)` (method form) or
+`datapie.refrequent(x, ...)` (function form).
+
 ==Convert the period to a different time frequency.==
 
     new_per = self.refrequent(new_freq, position="start", )
@@ -3545,6 +3548,9 @@ def refrequent(
 ................................................................................
 
 ## `refrequent`
+
+Called as `x.refrequent(...)` (method form) or
+`datapie.refrequent(x, ...)` (function form).
 
 ==Convert a period to a different frequency.==
 

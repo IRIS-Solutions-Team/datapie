@@ -1,20 +1,14 @@
 # Bug Log — `datapie/src/datapie/databoxes`
 
-Compiled with AI assistance while documenting this folder. I am new to the
-codebase and have not tried to judge which findings are intentional design and
-which are defects; everything observed is recorded, and a review from someone
-who knows the module would be welcome.
+Compiled while documenting this folder. Items marked *(observed)* were
+confirmed by running the code; the rest follow from reading it. Findings are
+anchored on method and function names, not line numbers.
 
-Findings are anchored on method and function names, not line numbers. Items
-marked *(observed)* were confirmed by running the code; everything else follows
-from reading it.
+I am new to the codebase and have not judged which findings are intentional
+design and which are defects — everything observed is recorded.
 
-**Source changes in this folder are confined to `@_dm.reference` keywords.**
-Everything else is docstrings. The keywords touched are `add_heading=False`
-throughout, and `call_name=` on `steady` and `zero` in `main.py` — see bug 5
-under `main.py`.
-
-`_imports2.py` and `_imports3.py` are undocumented on purpose — see their block.
+No logic was changed in this folder. `_imports2.py` and `_imports3.py` are
+covered in their own section at the end.
 
 ---
 
@@ -71,9 +65,8 @@ under `main.py`.
    block, `__unknown__,e,` with no data rows. *(observed)*
 7. A `span` whose frequency matches no series warns "No data exported" and
    writes an empty file — bug 1 applies. *(observed)*
-8. `to_sheet`, `to_csv` and `to_pickle` have no callers inside the package.
-   `to_sheet` carries `@_dm.no_reference`; `to_csv` and `to_pickle` carry no
-   decorator at all.
+8. `to_sheet`, `to_csv` and `to_pickle` have no callers inside the
+   package.
 9. `to_csv_file` layout confirmed: one block of columns per frequency side by
    side, each ending in an empty separator column, shorter blocks padded with
    empty rows; a multi-variant series takes one column per variant and heads the
@@ -167,15 +160,8 @@ under `main.py`.
    values, a two-variant series written as a `*` column, and quarterly and
    monthly blocks side by side all came back equal under `same_as`. *(observed)*
 10. `from_sheet`, `from_csv` and `from_pickle` have no callers inside the
-    package. `from_sheet` carries `@_dm.no_reference`; `from_csv` and
-    `from_pickle` carry no decorator at all.
-11. **The two constructors are decorated inconsistently.** `from_pickle_file`
-    carries no `call_name`, while `from_csv_file` has
-    `call_name="Databox.from_csv_file"`, so the reference lists one as
-    `Databox.from_csv_file` and the other as a bare `from_pickle_file`. The
-    categories differ too — `"constructor"` against `"import_export"` — although
-    both build a new `Databox`.
-12. `encoding` as a `pickle.load` argument is the one documented claim in this
+    package.
+11. `encoding` as a `pickle.load` argument is the one documented claim in this
     file taken from the standard library's documentation rather than exercised
     here.
 
@@ -185,22 +171,14 @@ under `main.py`.
 
 ### Bugs
 
-1. **The two reader `call_name` values are misspelled** —
-   `Databox.seres_from_jsonable` and `Databox.seres_from_json_file`, missing the
-   `i` of "series". They set the page anchors, so the `##` headings in the
-   docstrings carry the misspelling too: documark builds the index link from
-   `call_name` and the section anchor from the heading, and spelling one
-   correctly while the other stays wrong leaves two dead links on the generated
-   page. *(observed)* Fixing `call_name` would let both be spelled properly but
-   changes the published anchor.
-2. **A single multi-variant series makes the whole databox unwritable.**
+1. **A single multi-variant series makes the whole databox unwritable.**
    `series_to_jsonable` calls `Series.to_jsonable` per entry, which raises
    `ValueError: The series has multiple variants. Set
    allow_multiple_variants=True to serialize`; passing that flag raises
    `NotImplementedError: 'allow_multiple_variants=True is not implemented yet.'`
    *(observed)* both ways. Inherited from `series/_jsonables.py` bug 1, but at
    databox level one such series stops every other series being written too.
-3. **Missing observations are written as bare `NaN`, which is not valid JSON.**
+2. **Missing observations are written as bare `NaN`, which is not valid JSON.**
    *(observed)*: a series holding `nan` writes `NaN,` into the file. Python's
    own `json` reads it back without complaint, and so does
    `series_from_json_file`, so the round trip inside this package is clean.
@@ -210,7 +188,7 @@ under `main.py`.
    hook fires on the `NaN` token. That `NaN` is outside RFC 8259 is a fact about
    the specification, not something measured here — no non-Python reader was
    run.
-4. **`json_dump_settings={}` does not give compact output.** The body is
+3. **`json_dump_settings={}` does not give compact output.** The body is
    `json_dump_settings or {"indent": 4}`, and an empty dictionary is falsy, so
    it falls through to the indented default. *(observed)*: `{}` produced a
    169-byte indented file, `{"indent": 0}` a 97-byte one. Passing `{}` looks
@@ -232,10 +210,7 @@ under `main.py`.
 4. Round trip verified: names, values, descriptions and missing observations
    come back equal under `same_as`, through both the dictionary pair and the
    file pair. *(observed)*
-5. The two readers are `category="constructor"` while the two writers are
-   `category="import_export"`, so the four appear under two different headings
-   despite being two pairs. Same split as `_imports.py` note 11.
-6. The `_jsonables.py` module docstring is empty.
+5. The `_jsonables.py` module docstring is empty.
 
 ---
 
@@ -280,8 +255,6 @@ None.
    emits one warning per duplicate key; `error` and `critical` raise
    `wrongdoings.Error` and `wrongdoings.Critical` naming the duplicate key.
    *(observed)*
-5. `by_merging` is a public classmethod carrying no decorator, so it does not
-   reach the rendered page.
 
 ---
 
@@ -352,15 +325,35 @@ module. `series/_views.py` specialises the same base.
    expects a maximum split count, so the call raises `TypeError: 'str' object
    cannot be interpreted as an integer`. *(observed)*
 
-   **The blast radius is the `=` character, not assignment.** The guard above it
-   is only `if "=" in expression`. *(observed)*, failing: `a=b`, `a==b`, `a<=b`,
-   `x = y + 1`, any call using a keyword argument such as `round(a, ndigits=2)`,
-   and any default argument such as `(lambda x=1: x)(2)`. *(observed)*, passing:
-   `a+b`, `round(a, 2)`, `a.get_data()`, `[x for x in (1,2)]` and `{'k': 1}` —
-   dict literals survive because they use `:` rather than `=`. So no comparison
-   can be evaluated, and no keyword argument can be passed to any function
-   inside an expression. Fails identically through the `__call__` shortcut,
-   `db("a=b")`.
+   **What breaks is the `=` character, not assignment.** The guard above the
+   split is only `if "=" in expression`, so anything with an `=` anywhere in it
+   takes the broken path — whether or not it assigns to anything.
+
+   The sharpest way to see it is a pair of comparisons that differ by one
+   character. *(observed)* on a databox holding two series:
+
+   | Expression | Result
+   |------------|--------
+   | `a<b`      | works
+   | `a>b`      | works
+   | `a<=b`     | **`TypeError`**
+   | `a>=b`     | **`TypeError`**
+   | `a==b`     | **`TypeError`**
+   | `a!=b`     | **`TypeError`**
+
+   `<` and `>` carry no `=` and go through; `<=`, `>=`, `==` and `!=` all carry
+   one and fail. Nothing is being assigned in any of the six.
+
+   The same applies to keyword arguments and default arguments, which is where
+   it is most likely to be hit in ordinary use. *(observed)* failing:
+   `round(a, ndigits=2)` and `(lambda x=1: x)(2)`, alongside the assignments
+   `a=b` and `x = y + 1`. *(observed)* passing: `a+b`, `a-b`, `round(a, 2)`,
+   `a.get_data()`, `[x for x in (1,2)]` and `{'k': 1}` — a dict literal survives
+   because it uses `:` rather than `=`.
+
+   So no non-strict comparison can be evaluated, and no keyword argument can be
+   passed to any function inside an expression. Fails identically through the
+   `__call__` shortcut, `db("a<=b")`.
 
    **A second fault waits behind it:** the next line is `expression =
    "({lhs})-({rhs})"`, which is not an f-string, so even once the split is
@@ -387,20 +380,6 @@ module. `series/_views.py` specialises the same base.
    all to a databox of series — *(observed)* — while `in_place=False` doubles
    them. *(observed)* The sense of the name is inverted from what a reader
    expects.
-5. **`steady` and `zero` linked to reference anchors that do not exist.** Both
-   carried a class-qualified heading — `Databox.steady`, `Databox.zero` — over a
-   decorator that left `call_name` at its default. documark takes the call name
-   from `__name__` when the keyword is absent, so the category index entry was
-   built as the text `steady` pointing at the anchor `#steady`, while the page
-   heading rendered as `Databox.steady`. The link had nothing to land on.
-   *(observed)* — `_documark_call_name` was `steady` and `_get_anchor` returned
-   `#steady`. Their three sibling constructors in the same file — `empty`,
-   `from_dict`, `from_array` — all declare a `Databox.`-qualified `call_name`;
-   these two were the only constructors that did not.
-   **Fixed:** `call_name="Databox.steady"` and `call_name="Databox.zero"` added
-   to the two decorators, written in the multi-line form `empty` already uses so
-   the lines stay inside 80 columns. Heading and `call_name` now agree, and the
-   anchors are `#databoxsteady` and `#databoxzero`. *(observed)*
 
 ### Notes
 
@@ -439,40 +418,25 @@ module. `series/_views.py` specialises the same base.
 
 ## `_imports2.py` and `_imports3.py`
 
-**Neither file is documented, and neither is reachable.** `Databox` inherits
-`_merge.Mixin`, `_exports.Mixin`, `_imports.Mixin`, `_jsonables.Mixin`,
-`_views.Mixin`, `_descriptions.Mixin` and `dict`, and `databoxes/main.py`
-imports only `_imports` and `_exports`. A search of the whole `src` tree finds
-no reference to either module, to `read_csv`, or to `Inlay` outside the two
-files themselves. Both do import cleanly on their own.
+**Both are experiments, and neither is reachable.** `databoxes/main.py` imports
+only `_imports` and `_exports`, and a search of the whole `src` tree finds no
+reference to either module outside the two files themselves. `_imports.py` is
+the one in use.
 
-### `_imports3.py`
+`_imports3.py` is a cosmetic rework of `_imports.py`, not a fix. Compared
+function by function on the parsed body of each: same functions, every body
+identical apart from `/` markers on two nested helpers. **Every bug listed
+under `_imports.py` is present here verbatim**, so if this file is ever meant
+to replace it, the bugs travel with it. One change does alter behaviour — the
+`/` in `from_pickle_file(klass, file_name, /, **kwargs)` makes
+`from_pickle_file(file_name="x.pkl")` raise `TypeError`, where `_imports.py`
+accepts it.
 
-A cosmetic rework of `_imports.py`, not a fix. Compared function by function on
-the parsed body of each — same set of functions, none added, none removed, every
-body identical apart from `/` markers on two nested helpers. It renames `class
-Mixin` to `class Inlay`, adds positional-only `/` markers in seven places,
-indents the docstring bodies under their `???+ input` markers, and collapses one
-conditional onto a single line. The only change with a behavioural consequence
-is the `/` in `from_pickle_file(klass, file_name, /, **kwargs)`:
-`from_pickle_file(file_name="x.pkl")` works in `_imports.py` and raises
-`TypeError` here.
-
-**Every bug listed under `_imports.py` is present here verbatim.** If this file
-is meant to replace `_imports.py`, the bugs travel with it.
-
-### `_imports2.py`
-
-A different and unfinished experiment. It shares no function with `_imports.py`
-except `_remove_nonascii_from_start`. It offers a module-level
-`read_csv(file_path, **kwargs)` built on a `_SheetFileFactory` protocol, a
-`_ColumnwiseFileFactory` and a `_Block` class, none of which appear in the other
-two files. It carries its own `# FIXME: Make read_csv a class method`.
-
-**It does not do what its name says.** `_Block.create_databox_from_block` is
-annotated `-> Databox` and returns `self._data_array`, a numpy array.
-*(observed)* on a one-series file, `read_csv` returned `(array([[nan, 1.], [nan,
-2.]]),)` — a tuple of arrays, date column read as `nan`, no `Databox` anywhere.
-The names and descriptions gathered by `_Block.add_header` are never used.
+`_imports2.py` is a different and unfinished experiment, sharing no function
+with `_imports.py` except `_remove_nonascii_from_start`. It does not do what
+its name says: `_Block.create_databox_from_block` is annotated `-> Databox` and
+returns a numpy array. *(observed)* on a one-series file, its `read_csv`
+returned a tuple of arrays with the date column read as `nan` and no `Databox`
+anywhere. It carries its own `# FIXME`.
 
 Worth a decision on whether either file is being kept.

@@ -44,7 +44,7 @@ _DEFAULT_DISCARD_MISSING = False
 class Mixin:
     #[
 
-    @_dm.reference(category="conversion", add_heading=False, )
+    @_dm.reference(category="conversion", )
     def aggregate(
         self,
         target_freq: Frequency,
@@ -57,7 +57,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `aggregate`
+## `Series.aggregate`
 
 Called as `x.aggregate(...)` (method form) or
 `datapie.aggregate(x, ...)` (function form).
@@ -185,7 +185,7 @@ away; the two observations it held are gone:
         self._replace_start_and_values(new_start_date, new_data, )
 
 
-    @_dm.reference(category="conversion", add_heading=False, )
+    @_dm.reference(category="conversion", )
     def disaggregate(
         self,
         target_freq: Frequency,
@@ -196,7 +196,7 @@ away; the two observations it held are gone:
         r"""
 ................................................................................
 
-## `disaggregate`
+## `Series.disaggregate`
 
 Called as `x.disaggregate(...)` (method form) or
 `datapie.disaggregate(x, ...)` (function form).

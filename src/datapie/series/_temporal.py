@@ -210,7 +210,7 @@ exactly:
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def diff(
         self,
         shift: int | str = -1,
@@ -218,7 +218,7 @@ exactly:
         r"""
 ································································
 
-## `diff`
+## `Series.diff`
 
 Called as `x.diff(...)` (method form) or `datapie.diff(x, ...)` (function form).
 
@@ -259,12 +259,12 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def adiff(self, ) -> None:
         r"""
 ································································
 
-## `adiff`
+## `Series.adiff`
 
 Called as `x.adiff(...)` (method form) or
 `datapie.adiff(x, ...)` (function form).
@@ -311,7 +311,7 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def diff_log(
         self,
         shift: int | str = -1,
@@ -319,7 +319,7 @@ Nothing; the series is modified in place.
         r"""
 ································································
 
-## `diff_log`
+## `Series.diff_log`
 
 Called as `x.diff_log(...)` (method form) or
 `datapie.diff_log(x, ...)` (function form).
@@ -364,12 +364,12 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def adiff_log(self, ) -> None:
         r"""
 ································································
 
-## `adiff_log`
+## `Series.adiff_log`
 
 Called as `x.adiff_log(...)` (method form) or
 `datapie.adiff_log(x, ...)` (function form).
@@ -415,7 +415,7 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def roc(
         self,
         shift: int | str = -1,
@@ -423,7 +423,7 @@ Nothing; the series is modified in place.
         r"""
 ································································
 
-## `roc`
+## `Series.roc`
 
 Called as `x.roc(...)` (method form) or `datapie.roc(x, ...)` (function form).
 
@@ -467,14 +467,14 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def aroc(
         self,
     ) -> None:
         r"""
 ································································
 
-## `aroc`
+## `Series.aroc`
 
 Called as `x.aroc(...)` (method form) or `datapie.aroc(x, ...)` (function form).
 
@@ -520,7 +520,7 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def pct(
         self,
         shift: int | str = -1,
@@ -528,7 +528,7 @@ Nothing; the series is modified in place.
         r"""
 ································································
 
-## `pct`
+## `Series.pct`
 
 Called as `x.pct(...)` (method form) or `datapie.pct(x, ...)` (function form).
 
@@ -569,14 +569,14 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change", add_heading=False, )
+    @_dm.reference(category="temporal_change", )
     def apct(
         self,
     ) -> None:
         r"""
 ································································
 
-## `apct`
+## `Series.apct`
 
 Called as `x.apct(...)` (method form) or `datapie.apct(x, ...)` (function form).
 
@@ -621,14 +621,14 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change_conversion", add_heading=False, )
+    @_dm.reference(category="temporal_change_conversion", )
     def roc_from_pct(
         self,
     ) -> None:
         r"""
 ································································
 
-## `roc_from_pct`
+## `Series.roc_from_pct`
 
 Called as `x.roc_from_pct(...)` (method form) or
 `datapie.roc_from_pct(x, ...)` (function form).
@@ -671,14 +671,14 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change_conversion", add_heading=False, )
+    @_dm.reference(category="temporal_change_conversion", )
     def pct_from_roc(
         self,
     ) -> None:
         r"""
 ································································
 
-## `pct_from_roc`
+## `Series.pct_from_roc`
 
 Called as `x.pct_from_roc(...)` (method form) or
 `datapie.pct_from_roc(x, ...)` (function form).
@@ -720,14 +720,14 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change_conversion", add_heading=False, )
+    @_dm.reference(category="temporal_change_conversion", )
     def pct_from_apct(
         self,
     ) -> None:
         r"""
 ································································
 
-## `pct_from_apct`
+## `Series.pct_from_apct`
 
 Called as `x.pct_from_apct(...)` (method form) or
 `datapie.pct_from_apct(x, ...)` (function form).
@@ -771,14 +771,14 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change_conversion", add_heading=False, )
+    @_dm.reference(category="temporal_change_conversion", )
     def roc_from_apct(
         self,
     ) -> None:
         r"""
 ································································
 
-## `roc_from_apct`
+## `Series.roc_from_apct`
 
 Called as `x.roc_from_apct(...)` (method form) or
 `datapie.roc_from_apct(x, ...)` (function form).
@@ -822,14 +822,14 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_change_conversion", add_heading=False, )
+    @_dm.reference(category="temporal_change_conversion", )
     def roc_from_aroc(
         self,
     ) -> None:
         r"""
 ································································
 
-## `roc_from_aroc`
+## `Series.roc_from_aroc`
 
 Called as `x.roc_from_aroc(...)` (method form) or
 `datapie.roc_from_aroc(x, ...)` (function form).
@@ -877,12 +877,12 @@ Nothing; the series is modified in place.
 
 
 
-    @_dm.reference(category="temporal_cumulation", add_heading=False, )
+    @_dm.reference(category="temporal_cumulation", )
     def cum_diff(self, *args, **kwargs, ) -> None:
         r"""
 ································································
 
-## `cum_diff`
+## `Series.cum_diff`
 
 Called as `x.cum_diff(...)` (method form) or
 `datapie.cum_diff(x, ...)` (function form).
@@ -927,12 +927,12 @@ Undoing the matching change calculation:
 
 
 
-    @_dm.reference(category="temporal_cumulation", add_heading=False, )
+    @_dm.reference(category="temporal_cumulation", )
     def cum_diff_log(self, *args, **kwargs, ) -> None:
         r"""
 ································································
 
-## `cum_diff_log`
+## `Series.cum_diff_log`
 
 Called as `x.cum_diff_log(...)` (method form) or
 `datapie.cum_diff_log(x, ...)` (function form).
@@ -979,12 +979,12 @@ Undoing the matching change calculation:
 
 
 
-    @_dm.reference(category="temporal_cumulation", add_heading=False, )
+    @_dm.reference(category="temporal_cumulation", )
     def cum_pct(self, *args, **kwargs, ) -> None:
         r"""
 ································································
 
-## `cum_pct`
+## `Series.cum_pct`
 
 Called as `x.cum_pct(...)` (method form) or
 `datapie.cum_pct(x, ...)` (function form).
@@ -1029,12 +1029,12 @@ Undoing the matching change calculation:
 
 
 
-    @_dm.reference(category="temporal_cumulation", add_heading=False, )
+    @_dm.reference(category="temporal_cumulation", )
     def cum_roc(self, *args, **kwargs, ) -> None:
         r"""
 ································································
 
-## `cum_roc`
+## `Series.cum_roc`
 
 Called as `x.cum_roc(...)` (method form) or
 `datapie.cum_roc(x, ...)` (function form).

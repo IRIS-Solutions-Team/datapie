@@ -69,7 +69,7 @@ _X13_RUNNER_VERSION_DISPATCH = {
 class Mixin:
     #[
 
-    @_dm.reference(category="filtering", add_heading=False, )
+    @_dm.reference(category="filtering", )
     def x13(
         self,
         *,
@@ -91,7 +91,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `x13`
+## `Series.x13`
 
 Called as `x.x13(...)` (method form) or `datapie.x13(x, ...)` (function form).
 

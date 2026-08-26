@@ -176,7 +176,6 @@ A quarterly series, its span, and its values:
     @_dm.reference(
         category="constructor",
         call_name="Series",
-        add_heading=False,
     )
     def __init__(
         self,
@@ -333,7 +332,7 @@ Leading missing values are trimmed away at construction:
         r"""
 ················································································
 
-## `copy`
+## `Series.copy`
 
 ==Returns an independent duplicate of the time series.==
 
@@ -439,7 +438,6 @@ A new `Series` with no observations, `start` equal to `None`, and
     @_dm.reference(
         category="constructor",
         call_name="Series.from_start_and_array",
-        add_heading=False,
     )
     def from_start_and_array(
         klass,
@@ -525,7 +523,7 @@ The array is shared, and the default trims:
         r"""
 ················································································
 
-## `reset`
+## `Series.reset`
 
 ==Empties the time series in place, keeping only its shape and element type.==
 
@@ -574,12 +572,12 @@ description too.
         )
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def shape(self, ) -> tuple[int, int]:
         r"""
 ················································································
 
-## `shape`
+## `Series.shape`
 
 ==Gives the number of periods and the number of variants as a pair.==
 
@@ -611,12 +609,12 @@ but keeps its column count.
         return self.data.shape
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def num_periods(self, ) -> int:
         r"""
 ················································································
 
-## `num_periods`
+## `Series.num_periods`
 
 ==Gives the number of periods from the first to the last observation.==
 
@@ -650,12 +648,12 @@ The gap in the middle still counts:
         return self.data.shape[0]
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def num_variants(self, ) -> int:
         r"""
 ················································································
 
-## `num_variants`
+## `Series.num_variants`
 
 ==Gives the number of variants, that is the number of columns, in the time series.==
 
@@ -688,7 +686,7 @@ A whole number. It stays what it was even when the series is emptied.
         r"""
 ················································································
 
-## `is_singleton`
+## `Series.is_singleton`
 
 ==Says whether the time series holds exactly one variant.==
 
@@ -719,12 +717,12 @@ and does not -- see its own block.
         return self.data.shape[1] == 1
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def span(self, ):
         r"""
 ················································································
 
-## `span`
+## `Series.span`
 
 ==Gives the time span running from the first to the last observation.==
 
@@ -761,12 +759,12 @@ nothing, but it has none of a span's methods.
     range = span
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def from_until(self, ):
         r"""
 ················································································
 
-## `from_until`
+## `Series.from_until`
 
 ==Gives the first and last period of the time series as a pair.==
 
@@ -797,12 +795,12 @@ empty series.
         return self.start, self.end
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def periods(self, ) -> tuple[Period, ...]:
         r"""
 ················································································
 
-## `periods`
+## `Series.periods`
 
 ==Lists every period from the start to the end of the time series.==
 
@@ -836,12 +834,12 @@ observations are all missing. Empty for an empty series.
     dates = periods
 
     @property
-    @_dm.reference(category="property", call_name="start", add_heading=False, )
+    @_dm.reference(category="property", call_name="start", )
     def _start(self):
         r"""
 ················································································
 
-## `start`
+## `Series.start`
 
 ==Gives the period of the first observation, and re-dates the whole series when you assign to it.==
 
@@ -904,7 +902,7 @@ Reading it, and re-dating with it:
         r"""
 ················································································
 
-## `start_period`
+## `Series.start_period`
 
 ==Gives the period of the first observation.==
 
@@ -942,12 +940,12 @@ the `start` block above. `start_period` cannot be assigned to.
     start_date = start_period
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def end(self):
         r"""
 ················································································
 
-## `end`
+## `Series.end`
 
 ==Gives the period of the last observation.==
 
@@ -993,12 +991,12 @@ having no data.
     end_date = end
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def frequency(self, ):
         r"""
 ················································································
 
-## `frequency`
+## `Series.frequency`
 
 ==Gives the date frequency of the time series.==
 
@@ -1033,12 +1031,12 @@ no start period, reports `Frequency.UNKNOWN`.
         )
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def is_empty(self, ) -> bool:
         r"""
 ················································································
 
-## `is_empty`
+## `Series.is_empty`
 
 ==Says whether the time series holds no observations at all.==
 
@@ -1069,12 +1067,12 @@ will usually have removed them already.
         return not self.data.size
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def has_missing(self, ):
         r"""
 ················································································
 
-## `has_missing`
+## `Series.has_missing`
 
 ==Says whether the time series has any missing observation inside its own span.==
 
@@ -1109,7 +1107,7 @@ otherwise, and `False` for an empty series.
         r"""
 ················································································
 
-## `any_missing`
+## `Series.any_missing`
 
 ==Says whether any observation is missing.==
 
@@ -1159,7 +1157,7 @@ extra argument after that picks variants.
         r"""
 ················································································
 
-## `where_missing`
+## `Series.where_missing`
 
 ==Lists the periods at which an observation is missing.==
 
@@ -1210,7 +1208,7 @@ file.
         r"""
 ················································································
 
-## `all_missing`
+## `Series.all_missing`
 
 ==Says whether every observation is missing.==
 
@@ -1254,7 +1252,7 @@ Combine it with `is_empty` if that distinction matters.
         r"""
 ················································································
 
-## `count_missing`
+## `Series.count_missing`
 
 ==Reports whether any observation is missing.==
 
@@ -1310,7 +1308,7 @@ Two missing values, one answer:
         r"""
 ················································································
 
-## `set_data`
+## `Series.set_data`
 
 ==Writes values into the time series at the periods you name, extending the span when they fall outside it.==
 
@@ -1438,7 +1436,7 @@ Writing before the start extends the series backwards:
         r"""
 ················································································
 
-## `alter_num_variants`
+## `Series.alter_num_variants`
 
 ==Changes the number of variants to the number you ask for, adding or dropping columns as needed.==
 
@@ -1493,7 +1491,7 @@ New columns repeat the last one:
         r"""
 ················································································
 
-## `expand_num_variants`
+## `Series.expand_num_variants`
 
 ==Adds variants until the series has `new_num` of them.==
 
@@ -1548,7 +1546,7 @@ Nothing; the series is modified in place.
         r"""
 ················································································
 
-## `shrink_num_variants`
+## `Series.shrink_num_variants`
 
 ==Drops variants from the right until the series has `new_num` of them.==
 
@@ -1607,7 +1605,7 @@ Asking for the count it already has wipes the data:
         r"""
 ················································································
 
-## `get_values`
+## `Series.get_values`
 
 ==Returns the observations as plain Python numbers rather than as a numpy array.==
 
@@ -1668,7 +1666,7 @@ Two variants in, one variant out:
         r"""
 ················································································
 
-## `get_data`
+## `Series.get_data`
 
 ==Returns the observations for the periods you ask for as a numpy array.==
 
@@ -1723,7 +1721,7 @@ Out-of-span periods come back missing, and order is preserved:
         r"""
 ················································································
 
-## `get_data_and_periods`
+## `Series.get_data_and_periods`
 
 ==Returns the observations together with the periods they belong to.==
 
@@ -1775,7 +1773,7 @@ first entry.
         r"""
 ················································································
 
-## `get_data_variant`
+## `Series.get_data_variant`
 
 ==Returns the observations of a single variant as a one-column numpy array.==
 
@@ -1827,7 +1825,7 @@ An out-of-range variant is not an error:
         r"""
 ················································································
 
-## `get_data_from_until`
+## `Series.get_data_from_until`
 
 ==Returns an unbroken block of observations between two periods.==
 
@@ -1887,7 +1885,7 @@ Asking beyond the end pads instead of failing:
         r"""
 ················································································
 
-## `get_data_variant_from_until`
+## `Series.get_data_variant_from_until`
 
 ==Returns an unbroken block of observations for a single variant.==
 
@@ -1940,7 +1938,7 @@ A two-dimensional numpy array with one column.
         r"""
 ················································································
 
-## `extract_variants`
+## `Series.extract_variants`
 
 ==Keeps only the variants you name, in the order you name them.==
 
@@ -1995,7 +1993,7 @@ Reordering and duplicating in one call:
         r"""
 ················································································
 
-## `set_start`
+## `Series.set_start`
 
 ==Moves the whole time series so that its first observation sits at a new period.==
 
@@ -2039,7 +2037,7 @@ place all the same -- the original is not preserved.
         r"""
 ················································································
 
-## `resolve_periods`
+## `Series.resolve_periods`
 
 ==Turns whatever period request you were given into a plain tuple of periods.==
 
@@ -2174,7 +2172,7 @@ The same answer three ways, and nothing on an empty series:
         r"""
 ················································································
 
-## `hstack`
+## `Series.hstack`
 
 ==Stacks other series and numbers alongside this one as extra variants.==
 
@@ -2240,7 +2238,7 @@ Two series of different length, lined up and padded:
         return new
 
 
-    @_dm.reference(category="homogenizing", add_heading=False, )
+    @_dm.reference(category="homogenizing", )
     def clip(
         self,
         new_start: Period | None,
@@ -2249,7 +2247,7 @@ Two series of different length, lined up and padded:
         r"""
 ················································································
 
-## `clip`
+## `Series.clip`
 
 ==Cuts the time series down to a shorter span.==
 
@@ -2320,7 +2318,7 @@ A wider request is ignored, a narrower one obeyed:
         r"""
 ················································································
 
-## `empty`
+## `Series.empty`
 
 ==Throws away every observation, keeping the object itself.==
 
@@ -2365,7 +2363,7 @@ as well.
         num_variants = num_variants if num_variants is not None else self.num_variants
         self.data = _np.empty((0, num_variants), dtype=self.data_type)
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def replace_where(
         self,
         test: Callable,
@@ -2374,7 +2372,7 @@ as well.
         r"""
 ················································································
 
-## `replace_where`
+## `Series.replace_where`
 
 ==Replaces every observation that passes a test with a single value.==
 
@@ -2444,12 +2442,12 @@ Blanking the first observation shortens the series:
 
     __or__ = __and__
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def trim(self, ) -> None:
         r"""
 ················································································
 
-## `trim`
+## `Series.trim`
 
 ==Drops missing rows from both ends of the time series.==
 
@@ -2635,7 +2633,7 @@ reset also erases the description.
         r"""
 ················································································
 
-## `abs`
+## `Series.abs`
 
 Called as `x.abs(...)` (method form) or `datapie.abs(x, ...)` (function form).
 
@@ -2693,7 +2691,7 @@ In place against not in place:
         r"""
 ················································································
 
-## `round`
+## `Series.round`
 
 Called as `x.round(...)` (method form) or
 `datapie.round(x, ...)` (function form).
@@ -2739,12 +2737,12 @@ and the original left alone.
     for n in ["gt", "lt", "ge", "le", "eq", "ne", ]:
         exec(f"def __{n}__(self, other): return self._binop(other, _op.{n}, )", )
 
-    @_dm.reference(category="comparison", add_heading=False, )
+    @_dm.reference(category="comparison", )
     def same_as(self, other: Self, ) -> bool:
         r"""
 ················································································
 
-## `same_as`
+## `Series.same_as`
 
 ==Says whether two time series carry the same information.==
 
@@ -2807,7 +2805,7 @@ The numbers agree, the labels do not:
         r"""
 ················································································
 
-## `apply`
+## `Series.apply`
 
 ==Runs a numpy function over the data and wraps the result back up as a time series where that makes sense.==
 
@@ -2919,7 +2917,7 @@ across time gives a bare array of two numbers:
         r"""
 ················································································
 
-## `iter_dates_values`
+## `Series.iter_dates_values`
 
 ==Steps through the time series period by period, giving the period and its observations together.==
 
@@ -2975,7 +2973,7 @@ Iterating it consumes it; call the method again for a second pass.
         r"""
 ················································································
 
-## `iter_variants`
+## `Series.iter_variants`
 
 ==Steps through the variants of the time series, giving each one back as a separate single-variant series.==
 
@@ -3025,7 +3023,7 @@ last variant. To split a series by variant, copy it and call
         r"""
 ················································································
 
-## `iter_own_data_variants_from_until`
+## `Series.iter_own_data_variants_from_until`
 
 ==Steps through the variants of the time series, giving each one back as a flat numpy array of values over a chosen span.==
 
@@ -3081,7 +3079,7 @@ are freshly built and writing into them is harmless.
         r"""
 ················································································
 
-## `iter_data_variants_from_until`
+## `Series.iter_data_variants_from_until`
 
 ==Steps through the variants as flat numpy arrays, and then repeats the last one for ever.==
 
@@ -3133,7 +3131,7 @@ The second variant keeps coming back:
         r"""
 ················································································
 
-## `logistic`
+## `Series.logistic`
 
 Called as `x.logistic(...)` (method form) or
 `datapie.logistic(x, ...)` (function form).

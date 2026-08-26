@@ -337,7 +337,7 @@ filter does write values:
         """
         pass
 
-    @_dm.reference(category="filtering", add_heading=False, )
+    @_dm.reference(category="filtering")
     def exp_smooth(
         self,
         span: Span | Iterable[Period] | EllipsisType = ...,
@@ -346,7 +346,7 @@ filter does write values:
         r"""
 ············································································
 
-## `exp_smooth`
+## `Series.exp_smooth`
 
 Called as `x.exp_smooth(...)` (method form) or
 `datapie.exp_smooth(x, ...)` (function form).
@@ -425,7 +425,7 @@ returns a filtered copy.
             alpha=alpha,
         )
 
-    @_dm.reference(category="filtering", add_heading=False, )
+    @_dm.reference(category="filtering")
     def double_exp_smooth(
         self,
         alpha: float = _DEFAULT_ALPHA,
@@ -435,7 +435,7 @@ returns a filtered copy.
         r"""
 ············································································
 
-## `double_exp_smooth`
+## `Series.double_exp_smooth`
 
 Called as `x.double_exp_smooth(...)` (method form) or
 `datapie.double_exp_smooth(x, ...)` (function form).
@@ -540,7 +540,7 @@ and returns a filtered copy.
             beta=beta,
         )
 
-    @_dm.reference(category="filtering", add_heading=False, )
+    @_dm.reference(category="filtering")
     def decay_avg(
         self,
         span: Span | Iterable[Period] | EllipsisType = ...,
@@ -549,7 +549,7 @@ and returns a filtered copy.
         r"""
 ············································································
 
-## `decay_avg`
+## `Series.decay_avg`
 
 Called as `x.decay_avg(...)` (method form) or
 `datapie.decay_avg(x, ...)` (function form).
@@ -631,7 +631,7 @@ filtered copy.
             decay=decay,
         )
 
-    @_dm.reference(category="filtering", add_heading=False, )
+    @_dm.reference(category="filtering")
     def cum_avg(
         self,
         span: Span | Iterable[Period] | EllipsisType = ...,
@@ -639,7 +639,7 @@ filtered copy.
         r"""
 ············································································
 
-## `cum_avg`
+## `Series.cum_avg`
 
 Called as `x.cum_avg(...)` (method form) or
 `datapie.cum_avg(x, ...)` (function form).

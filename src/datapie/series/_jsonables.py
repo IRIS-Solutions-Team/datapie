@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
-    @_dm.reference(category="serialization", add_heading=False, )
+    @_dm.reference(category="serialization", )
     def to_jsonable(
         self,
         *,
@@ -38,7 +38,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `to_jsonable`
+## `Series.to_jsonable`
 
 ==Turns a time series into a plain dictionary that can be written out as JSON.==
 
@@ -135,7 +135,6 @@ tuple. For an empty series `"start"` is `None`, `"values"` is `()` and
     @_dm.reference(
         category="constructor",
         call_name="Series.from_jsonable",
-        add_heading=False,
     )
     def from_jsonable(
         klass,

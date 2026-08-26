@@ -49,7 +49,7 @@ Method = Literal[
 class Mixin:
     #[
 
-    @_dm.reference(category="homogenizing", add_heading=False, )
+    @_dm.reference(category="homogenizing", )
     def fill_missing(
         self,
         method: Method,
@@ -59,7 +59,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `fill_missing`
+## `Series.fill_missing`
 
 Called as `x.fill_missing(...)` (method form) or
 `datapie.fill_missing(x, ...)` (function form).

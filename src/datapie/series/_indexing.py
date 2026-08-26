@@ -177,12 +177,12 @@ Assignment writes in place:
         """
         return self._get_data_and_recreate(*index, )
 
-    @_dm.reference(category="indexing", add_heading=False, )
+    @_dm.reference(category="indexing", )
     def reverse_variants(self, ) -> None:
         r"""
 ················································································
 
-## `reverse_variants`
+## `Series.reverse_variants`
 
 Called as `x.reverse_variants(...)` (method form) or
 `datapie.reverse_variants(x, ...)` (function form).
@@ -218,12 +218,12 @@ Nothing; the series is modified in place.
         """
         self.data = self.data[:, ::-1]
 
-    @_dm.reference(category="indexing", add_heading=False, )
+    @_dm.reference(category="indexing", )
     def reverse_periods(self, ) -> None:
         r"""
 ················································································
 
-## `reverse_periods`
+## `Series.reverse_periods`
 
 Called as `x.reverse_periods(...)` (method form) or
 `datapie.reverse_periods(x, ...)` (function form).

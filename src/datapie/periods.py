@@ -279,13 +279,12 @@ rather than a `NotImplementedError`.
     @_dm.reference(
         category="property",
         call_name="frequency",
-        add_heading=False,
     )
     def _frequency():
         r"""
 ................................................................................
 
-## `frequency`
+## `Period.frequency`
 
 ==Time frequency of the time period, as a read-only property.==
 
@@ -310,7 +309,6 @@ positional arguments but 1 was given`.
         call_name="Time period constructors",
         call_name_is_code=False,
         priority=20,
-        add_heading=False,
     )
     def __init__(self, serial: int = 0, ) -> None:
         r"""
@@ -374,7 +372,7 @@ returns a `Span` instead -- see the constructor entries themselves.
         r"""
 ................................................................................
 
-## `copy`
+## `Period.copy`
 
 ==Create a copy of the time period.==
 
@@ -401,7 +399,6 @@ A new `Period` of the same class, equal to `self`.
         call_name="Time period arithmetics",
         call_name_is_code=False,
         priority=30,
-        add_heading=False,
     )
     def time_period_arithmetics():
         r"""
@@ -442,7 +439,6 @@ one period is subtracted from another.
         call_name="Time period comparison",
         call_name_is_code=False,
         priority=20,
-        add_heading=False,
     )
     def time_period_comparison():
         r"""
@@ -479,7 +475,6 @@ sit in the same set or dictionary without ever being compared.
     @_dm.reference(
         category="constructor",
         call_name="Period.from_iso_string",
-        add_heading=False,
     )
     def from_iso_string(
         iso_string: str,
@@ -538,7 +533,6 @@ A `Period` of the class matching `frequency`.
     @_dm.reference(
         category="constructor",
         call_name="Period.from_python_date",
-        add_heading=False,
     )
     def from_python_date(
         python_date: _dt.date,
@@ -595,31 +589,73 @@ A `Period` of the class matching `frequency`.
         r"""
 ................................................................................
 
-==Create time period from SDMX string==
+## `Period.from_sdmx_string`
 
-Create a time period from an SDMX string representation. The SDMX string
-format is frequency specific and represents the time period as a string
-literal.
+==Creates a time period from its SDMX string form, working out the frequency from the shape of the string unless you name it.==
 
     period = Period.from_sdmx_string(
         sdmx_string,
-        frequency=Frequency.DAILY,
+        frequency=None,
     )
 
-### Input arguments ###
+This is the counterpart of `to_sdmx_string`, and it recognises the four
+shapes that method writes:
+
+| String         | Frequency  | Period
+|----------------|------------|--------
+| `2020`         | Yearly     | `yy(2020)`
+| `2020-H1`      | Half-yearly| `hh(2020,1)`
+| `2020-Q1`      | Quarterly  | `qq(2020,1)`
+| `2020-01`      | Monthly    | `mm(2020,1)`
+| `2020-01-15`   | Daily      | `dd(2020,1,15)`
+
+Integer periods are the exception. `ii(1).to_sdmx_string()` writes `(1)`,
+but the pattern this function matches against expects a trailing comma, so
+`(1)` is not recognised and raises as though it were nonsense. The string
+does not round-trip; see the `frequencies.py` log.
+
+
+**Input arguments.**
+
 
 ???+ input "sdmx_string"
-    SDMX string representation of the time period.
+    The text to read. Surrounding whitespace is stripped. A string
+    matching none of the shapes above raises `Error: Cannot determine
+    time frequency from "..."; probably not a valid SDMX string.`
 
 ???+ input "frequency"
-    Time frequency of the time period. If `None`, the frequency is inferred
-    from the SDMX string itself; supplying the frequency is more efficient
-    if it is known in advance.
+    Names the frequency instead of having it inferred, which saves the
+    pattern match when you already know it. **It is not checked against
+    the string.** A frequency that disagrees is trusted and the parse
+    then fails inside the target class, so
+    `Period.from_sdmx_string("2020-Q1", Frequency.MONTHLY)` raises
+    `ValueError: invalid literal for int() with base 10: 'Q1'` rather
+    than saying the frequency was wrong.
 
-### Returns ###
 
-???+ returns "period"
-    Time period object created from the SDMX string.
+### Returns
+
+
+A new period of the resolved frequency.
+
+
+### Examples
+
+
+The frequency follows from the shape of the string:
+
+    >>> import datapie as dp
+    >>> dp.Period.from_sdmx_string("2020-Q1")
+    qq(2020,1)
+    >>> dp.Period.from_sdmx_string("2020")
+    yy(2020)
+    >>> dp.Period.from_sdmx_string("2020-01-15")
+    dd(2020,1,15)
+
+A round trip through the string form:
+
+    >>> dp.Period.from_sdmx_string(dp.mm(2020, 7).to_sdmx_string())
+    mm(2020,7)
 
 ................................................................................
         """
@@ -630,7 +666,6 @@ literal.
     @_dm.reference(
         category="constructor",
         call_name="Period.from_ymd",
-        add_heading=False,
     )
     def from_ymd(freq: Frequency, *args, ) -> Self:
         r"""
@@ -678,7 +713,6 @@ A `Period` of the class matching `freq`.
     @_dm.reference(
         category="constructor",
         call_name="Period.from_year_segment",
-        add_heading=False,
     )
     def from_year_segment(freq: Frequency, *args, ) -> Self:
         r"""
@@ -736,22 +770,51 @@ A `Period` of the class matching `freq`.
         r"""
 ................................................................................
 
-==Create time period for today==
+## `Period.today`
 
-Create a time period for the current date. The time period is created based
-on the time frequency specified.
+==Creates the period containing today's date, at the frequency you ask for.==
 
     period = Period.today(freq)
 
-### Input arguments ###
+Reads the system date once and converts it, so the result depends on
+the clock of the machine it runs on.
+
+
+**Input arguments.**
+
 
 ???+ input "freq"
-    Time frequency of the time period.
+    The frequency of the period to create, either a `Frequency` member
+    or the integer behind it -- `Period.today(4)` and
+    `Period.today(Frequency.QUARTERLY)` give the same period.
 
-### Returns ###
+    Only the calendar frequencies work. `Frequency.INTEGER` has no
+    calendar, and asking for it raises `KeyError` naming the current
+    year, because the integer period class has no `from_ymd`. `None`
+    raises `KeyError: None`.
 
-???+ returns "period"
-    Time period object for the current date.
+
+### Returns
+
+
+A new period of the requested frequency, the one that contains today.
+
+
+### Examples
+
+
+Today at daily frequency is today:
+
+    >>> import datetime
+    >>> import datapie as dp
+    >>> today = dp.Period.today(dp.Frequency.DAILY)
+    >>> today.to_python_date() == datetime.date.today()
+    True
+
+The integer value of the frequency does just as well:
+
+    >>> dp.Period.today(4) == dp.Period.today(dp.Frequency.QUARTERLY)
+    True
 
 ................................................................................
         """
@@ -763,7 +826,7 @@ on the time frequency specified.
         r"""
 ................................................................................
 
-## `start`
+## `Period.start`
 
 ==The period itself, as a read-only property.==
 
@@ -784,7 +847,7 @@ that a period and a `Span` can be handed to the same code: both answer
         r"""
 ................................................................................
 
-## `end`
+## `Period.end`
 
 ==The period itself, as a read-only property.==
 
@@ -800,12 +863,12 @@ a legacy alias.
     end_date = end
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def year(self, ) -> int:
         r"""
 ................................................................................
 
-## `year`
+## `Period.year`
 
 ==Calendar year of the time period, as a read-only property.==
 
@@ -820,12 +883,12 @@ among them -- returns `None` instead of raising.
         ...
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def segment(self, ) -> int:
         r"""
 ................................................................................
 
-## `segment`
+## `Period.segment`
 
 ==Segment of the period within its calendar year.==
 
@@ -843,12 +906,12 @@ class that does not override it, `IntegerPeriod` included. On
         """
         ...
 
-    @_dm.reference(category="refrequency", add_heading=False, )
+    @_dm.reference(category="refrequency", )
     def refrequent(self, new_freq: Frequency, *args ,**kwargs, ) -> Self:
         r"""
 ................................................................................
 
-## `refrequent`
+## `Period.refrequent`
 
 Called as `x.refrequent(...)` (method form) or
 `datapie.refrequent(x, ...)` (function form).
@@ -903,12 +966,12 @@ A new `Period` of the class matching `new_freq`.
     convert_to_new_freq = refrequent
     convert = refrequent
 
-    @_dm.reference(category="conversion", add_heading=False, )
+    @_dm.reference(category="conversion", )
     def to_ymd(self, **kwargs, ) -> tuple[int, int, int]:
         r"""
 ................................................................................
 
-## `to_ymd`
+## `Period.to_ymd`
 
 ==Calendar year, month and day of the time period.==
 
@@ -951,12 +1014,12 @@ A `(year, month, day)` tuple of integers.
         """
         return self.to_ymd(**kwargs, )
 
-    @_dm.reference(category="print", add_heading=False, )
+    @_dm.reference(category="print", )
     def to_iso_string(self, **kwargs, ) -> str:
         r"""
 ................................................................................
 
-## `to_iso_string`
+## `Period.to_iso_string`
 
 ==ISO-8601 representation of the time period.==
 
@@ -994,12 +1057,12 @@ A `yyyy-mm-dd` string.
         year, month, day = self.to_ymd(**kwargs, )
         return f"{year:04g}-{month:02g}-{day:02g}"
 
-    @_dm.reference(category="print", add_heading=False, )
+    @_dm.reference(category="print", )
     def to_sdmx_string(self, ) -> str:
         r"""
 ................................................................................
 
-## `to_sdmx_string`
+## `Period.to_sdmx_string`
 
 ==SDMX representation of the time period.==
 
@@ -1033,12 +1096,12 @@ The SDMX string for this period.
         """
         return self.to_sdmx_string()
 
-    @_dm.reference(category="print", add_heading=False, )
+    @_dm.reference(category="print", )
     def to_compact_string(self, ) -> str:
         r"""
 ................................................................................
 
-## `to_compact_string`
+## `Period.to_compact_string`
 
 ==Short representation of the time period, with a two-digit year.==
 
@@ -1077,43 +1140,67 @@ The compact string for this period.
         r"""
 ................................................................................
 
+## `Period.to_python_date`
 
-==Convert time period to Python date object==
-
-
-Convert a time period to a Python date object. The date object is created based
-on the year, month, and day of the time period.
-
+==Converts the period to a `datetime.date`, choosing where inside the period to land.==
 
     date = self.to_python_date(
-        position="middle",
+        position="start",
     )
 
+A period covers a stretch of calendar, and a `datetime.date` is a
+single day, so the conversion has to pick one. `position` makes that
+choice.
 
-### Input arguments ###
+
+**Input arguments.**
 
 
 ???+ input "position"
-    Position that determines the day of the month and the month of the year
-    of time periods with time frequency lower than daily. The position can
-    be one of the following:
+    Which day of the period to return, one of `"start"`, `"middle"` or
+    `"end"`. Each period class carries its own table:
 
-    * `"start"`: Start of the time period (placed on the 1st day of the
-    first month within the original period).
+    | Frequency    | `"start"` | `"middle"` | `"end"`
+    |--------------|-----------|------------|---------
+    | Yearly       | 1 Jan     | 30 Jun     | 31 Dec
+    | Half-yearly  | 1st day   | 15 Mar, 15 Sep | last day
+    | Quarterly    | 1st day   | 15th of the middle month | last day
+    | Monthly      | 1st day   | 15th       | last day
+    | Daily        | the day itself | the day itself | the day itself
 
-    * `"middle"`: Middle of the time period (placed on the 15th day of the
-    middle month within the original period).
-
-    * `"end"`: End of the time period (placed on the last day of the last
-    month within the original period).
-
-
-### Returns ###
+    Note that the yearly `"middle"` is 30 June, not the 15th of a
+    middle month -- a year has no single middle month. February's
+    `"end"` is resolved against the actual year, so leap years give the
+    29th.
 
 
-???+ returns "date"
-    Python date object representing the time period.
+### Returns
 
+
+A `datetime.date`.
+
+Integer periods have no calendar at all. `ii(5).to_python_date()` does
+not raise a helpful error: it recurses until Python gives up with
+`RecursionError: maximum recursion depth exceeded`.
+
+
+### Examples
+
+
+The three positions of one quarter:
+
+    >>> import datapie as dp
+    >>> dp.qq(2020, 3).to_python_date()
+    datetime.date(2020, 7, 1)
+    >>> dp.qq(2020, 3).to_python_date("middle")
+    datetime.date(2020, 8, 15)
+    >>> dp.qq(2020, 3).to_python_date("end")
+    datetime.date(2020, 9, 30)
+
+A year is the exception to the "15th of the middle month" rule:
+
+    >>> dp.yy(2020).to_python_date("middle")
+    datetime.date(2020, 6, 30)
 
 ................................................................................
         """
@@ -1153,18 +1240,48 @@ on the year, month, and day of the time period.
         r"""
 ................................................................................
 
-==Get distance from origin time period==
+## `Period.get_distance_from_origin`
 
-Get the distance of the time period from the origin time period. The origin time
-period is currently set to the beginning of year 2020 for all calendar periods,
-and to 0 for integer periods.
+==Counts how many periods separate this one from the package's origin period.==
 
     distance = self.get_distance_from_origin()
 
-### Returns ###
+The origin is the start of 2020 for every calendar frequency, and 0 for
+integer periods. So `yy(2020)`, `hh(2020,1)`, `qq(2020,1)`, `mm(2020,1)`
+and `dd(2020,1,1)` all sit at distance 0, each counted in its own units.
 
-???+ returns "distance"
-    Distance of the `self` time period from the origin time period.
+
+**Input arguments.**
+
+
+None.
+
+
+### Returns
+
+
+An integer, counted in periods of this period's own frequency. It is
+negative for periods before the origin -- `qq(2019,1)` is `-4` and
+`mm(2019,1)` is `-12`.
+
+
+### Examples
+
+
+The origin itself, and one year either side of it:
+
+    >>> import datapie as dp
+    >>> dp.qq(2020, 1).get_distance_from_origin()
+    0
+    >>> dp.qq(2019, 1).get_distance_from_origin()
+    -4
+    >>> dp.mm(2021, 1).get_distance_from_origin()
+    12
+
+Integer periods count from zero instead:
+
+    >>> dp.ii(5).get_distance_from_origin()
+    5
 
 ................................................................................
         """
@@ -1379,7 +1496,6 @@ See documentation for [time period comparison](#time-period-comparison).
 
     @_dm.reference(
         category="arithmetics_comparison",
-        add_heading=False,
     )
     def shift(
         self,
@@ -1388,7 +1504,7 @@ See documentation for [time period comparison](#time-period-comparison).
         r"""
 ................................................................................
 
-## `shift`
+## `Period.shift`
 
 ==Move the period, either by a number of periods or to a named landmark.==
 
@@ -1988,7 +2104,7 @@ A `YearlyPeriod`, or a `Span` of them if `...` was passed.
 ................................................................................
 """
 yy.__name__ = "irispie.yy"
-yy = _dm.reference(category="constructor", add_heading=False, )(yy)
+yy = _dm.reference(category="constructor", )(yy)
 
 
 hh = _period_constructor_with_ellipsis(HalfyearlyPeriod.from_year_segment, )
@@ -2013,7 +2129,7 @@ A `HalfyearlyPeriod`, or a `Span` of them if `...` was passed.
 ................................................................................
 """
 hh.__name__ = "irispie.hh"
-hh = _dm.reference(category="constructor", add_heading=False, )(hh)
+hh = _dm.reference(category="constructor", )(hh)
 
 
 qq = _period_constructor_with_ellipsis(QuarterlyPeriod.from_year_segment)
@@ -2038,7 +2154,7 @@ A `QuarterlyPeriod`, or a `Span` of them if `...` was passed.
 ................................................................................
 """
 qq.__name__ = "irispie.qq"
-qq = _dm.reference(category="constructor", add_heading=False, )(qq)
+qq = _dm.reference(category="constructor", )(qq)
 
 
 mm = _period_constructor_with_ellipsis(MonthlyPeriod.from_year_segment)
@@ -2063,7 +2179,7 @@ A `MonthlyPeriod`, or a `Span` of them if `...` was passed.
 ................................................................................
 """
 mm.__name__ = "irispie.mm"
-mm = _dm.reference(category="constructor", add_heading=False, )(mm)
+mm = _dm.reference(category="constructor", )(mm)
 
 
 ii = _period_constructor_with_ellipsis(IntegerPeriod)
@@ -2090,13 +2206,12 @@ An `IntegerPeriod`, or a `Span` of them if `...` was passed.
 ................................................................................
 """
 ii.__name__ = "irispie.ii"
-ii = _dm.reference(category="constructor", add_heading=False, )(ii)
+ii = _dm.reference(category="constructor", )(ii)
 
 
 @_dm.reference(
     category="constructor",
     call_name="irispie.dd",
-    add_heading=False,
 )
 def dd(year: int, month: int | None, day: int) -> DailyPeriod:
     r"""
@@ -2230,7 +2345,6 @@ unchanged and `__exit__` does nothing.
         category="constructor",
         call_name="Span",
         priority=20,
-        add_heading=False,
     )
     def __init__(
         self,
@@ -2333,19 +2447,40 @@ A new `Span`.
         r"""
 ................................................................................
 
-==Create a copy of the time span==
+## `Span.copy`
 
-    new_span = span.copy()
+==Creates an independent copy of the time span.==
 
-### Input arguments ###
+    new_span = self.copy()
 
-???+ input "span"
-    The time span to be copied.
+The copy carries the same start, end and step. What it buys you is
+freedom to use the in-place `shift`, `shift_start` and `shift_end`
+without disturbing the span you started from.
 
-### Returns ###
 
-???+ returns "new_span"
-    A new time span object that is a copy of the original time span.
+**Input arguments.**
+
+
+None.
+
+
+### Returns
+
+
+A new `Span` covering the same periods in the same direction.
+
+
+### Examples
+
+
+Shifting the copy leaves the original where it was:
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 4)
+    >>> other = span.copy()
+    >>> other.shift(4)
+    >>> str(span.start), str(other.start)
+    ('2020-Q1', '2021-Q1')
 
 ................................................................................
         """
@@ -2445,30 +2580,55 @@ sentinels, so the span is unresolved rather than empty.
         r"""
 ................................................................................
 
-==Create a reversed span==
+## `Span.reverse`
 
-Create a new time span with the start and end periods swapped, and the
-step size negated.
+==Creates a new span running the other way, from this one's end back to its start.==
 
-    other = self.reverse()
+    new_span = self.reverse()
+
+Swaps the two endpoints and negates the step, so a forward span comes
+back as a backward one over the same stretch of calendar. The span it
+is called on is left alone; the in-place counterpart of this method
+does not exist.
 
 
-### Returns ###
+**Input arguments.**
 
-???+ returns "other"
-    A new time span with the start and end periods swapped, and the
-    step size negated.
+
+None.
+
+
+### Returns
+
+
+A new `Span`. Reversing twice gives back the original.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 3)
+    >>> [str(p) for p in span.reverse()]
+    ['2020-Q3', '2020-Q2', '2020-Q1']
+    >>> [str(p) for p in span]
+    ['2020-Q1', '2020-Q2', '2020-Q3']
+
+The step flips sign with it:
+
+    >>> span.reverse().step
+    -1
 
 ................................................................................
         """
         return type(self)(self._end, self._start, -self._step, )
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def refrequent(self, new_freq: Frequency | int, ) -> Self:
         r"""
 ................................................................................
 
-## `refrequent`
+## `Span.refrequent`
 
 ==Convert the span to a different time frequency.==
 
@@ -2527,26 +2687,45 @@ A new `Span` at the new frequency.
         r"""
 ................................................................................
 
-==Shift the end of the time span==
+## `Span.shift_end`
 
-Shifts the end of the time span by a specified number of periods. This
-operation modifies the end boundary of the time span, effectively changing its
-length. Adjusting the end allows for extension or reduction of the span
-depending on the direction and magnitude of the shift.
+==Moves the end of the span, changing its length, in place.==
 
     self.shift_end(by)
 
-### Input arguments ###
+Only the end moves; the start stays where it is, so the span gets
+longer or shorter. Use `shift` to move both ends together and keep the
+length.
+
+
+**Input arguments.**
+
 
 ???+ input "by"
-    The number of periods by which the end will be shifted. This can be
-    positive (to extend the span by moving the end forward) or negative
-    (to reduce the span by moving the end backward).
+    The number of periods to move the end by. For a forward span a
+    positive `by` extends it and a negative one shortens it. Shortening
+    past the start does not raise; it produces a span that yields no
+    periods.
 
-### Returns ###
 
-???+ returns "None"
-    This method modifies `self` in-place and does not return a value.
+### Returns
+
+
+Nothing. The span is modified in place.
+
+
+### Examples
+
+
+Two quarters added to the end of a four-quarter span:
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 4)
+    >>> span.shift_end(2)
+    >>> str(span.start), str(span.end)
+    ('2020-Q1', '2021-Q2')
+    >>> len(list(span))
+    6
 
 ................................................................................
         """
@@ -2560,24 +2739,43 @@ depending on the direction and magnitude of the shift.
         r"""
 ................................................................................
 
-==Shift the start period of the time span==
+## `Span.shift_start`
 
-Shifts the start period of the time span by a specified number of periods. This
-operation adjusts the start boundary of the time span, effectively changing its
-length depending on the direction and magnitude of the shift.
+==Moves the start of the span, changing its length, in place.==
 
     self.shift_start(by)
 
-### Input arguments ###
+The mirror image of `shift_end`: only the start moves, so a forward
+span grows when `by` is negative and shrinks when it is positive.
+
+
+**Input arguments.**
+
 
 ???+ input "by"
-    The number of periods by which the start period will be shifted. This can be
-    positive (to move the start period forward, reducing the span length) or
-    negative (to move it backward, increasing the span length).
+    The number of periods to move the start by. For a forward span a
+    negative `by` reaches further back and lengthens the span, while a
+    positive one moves the start forward and shortens it.
 
-### Returns ###
 
-This method modifies the object in place and does not return a value.
+### Returns
+
+
+Nothing. The span is modified in place.
+
+
+### Examples
+
+
+One quarter added to the front of a four-quarter span:
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 4)
+    >>> span.shift_start(-1)
+    >>> str(span.start), str(span.end)
+    ('2019-Q4', '2020-Q4')
+    >>> len(list(span))
+    5
 
 ................................................................................
         """
@@ -2591,28 +2789,42 @@ This method modifies the object in place and does not return a value.
         r"""
 ................................................................................
 
-==Convert time span periods to ISO-8601 representations==
+## `Span.to_iso_strings`
 
-Converts each period within the time span to an ISO-8601 string format.
+==Writes every period of the span as an ISO-8601 date string.==
 
-    iso_strings = self.to_iso_strings(*, position="start", )
+    iso_strings = self.to_iso_strings(*args, **kwargs, )
 
-
-### Input arguments ###
-
-
-???+ input "position"
-    The position within each period to use when converting to an ISO-8601
-    date string. See the documentation for the
-    [`to_ymd`](periods.md#to_ymd) method of time [`Periods`](periods.md).
+Each period is handed to its own `to_iso_string`, so the day returned
+for a period longer than a day depends on `position`, exactly as it
+does for a single period.
 
 
-### Returns ###
+**Input arguments.**
 
 
-???+ returns "iso_strings"
-    A tuple of ISO-8601 date strings representing each period in the time
-    span.
+???+ input "*args, **kwargs"
+    Forwarded unchanged to `to_iso_string` on each period. The one worth
+    knowing is `position`, which picks the day inside each period and is
+    `"start"` unless you change it.
+
+
+### Returns
+
+
+A tuple of strings, one per period, in the order the span runs -- so a
+reversed span comes back in reverse.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 2)
+    >>> span.to_iso_strings()
+    ('2020-01-01', '2020-04-01')
+    >>> span.to_iso_strings(position="end")
+    ('2020-03-31', '2020-06-30')
 
 ................................................................................
         """
@@ -2623,35 +2835,52 @@ Converts each period within the time span to an ISO-8601 string format.
         r"""
 ................................................................................
 
-==Convert time span periods to SDMX representations==
+## `Span.to_sdmx_strings`
 
-Converts each period within the time span to a SDMX string format.
+==Writes every period of the span as an SDMX string.==
 
-    sdmx_strings = self.to_sdmx_strings()
+    sdmx_strings = self.to_sdmx_strings(*args, **kwargs, )
 
-
-### Returns ###
-
-
-???+ returns "sdmx_strings"
-    A tuple of SDMX strings representing each period in the time span.
+Each period is handed to its own `to_sdmx_string`, giving the same
+frequency-specific forms `Period.from_sdmx_string` reads back:
+`2020-Q1` for quarterly, `2020-01` for monthly, `2020` for yearly.
 
 
-### See also ###
+**Input arguments.**
 
-* [`to_sdmx_string`](periods.md#to_sdmx_string) method of time
-[`Periods`](periods.md)
+
+???+ input "*args, **kwargs"
+    Forwarded unchanged to `to_sdmx_string` on each period; normally
+    called with none. Unlike `to_iso_strings` there is no `position` to
+    give -- passing one raises `TypeError:
+    QuarterlyPeriod.to_sdmx_string() got an unexpected keyword argument
+    'position'`.
+
+
+### Returns
+
+
+A tuple of strings, one per period, in the order the span runs.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 3)
+    >>> span.to_sdmx_strings()
+    ('2020-Q1', '2020-Q2', '2020-Q3')
 
 ................................................................................
         """
         return tuple(t.to_sdmx_string(*args, **kwargs, ) for t in self)
 
-    @_dm.reference(category="print", add_heading=False, )
+    @_dm.reference(category="print", )
     def to_compact_strings(self, *args, **kwargs, ) -> tuple[str]:
         r"""
 ................................................................................
 
-## `to_compact_strings`
+## `Span.to_compact_strings`
 
 ==Compact string for every period in the span.==
 
@@ -2701,30 +2930,49 @@ A tuple of compact strings, in iteration order.
         r"""
 ................................................................................
 
-==Add an offset to the time span==
+## `+`
 
-Shifts both the start and end of the time span by a specified number of periods.
-This method is used to adjust the entire span forward or backward in time. It
-can be used either by adding the offset to the span (`span + offset`) or the
-offset to the span (`offset + span`), effectively creating a new time span that
-begins and ends earlier or later than the original.
+==Shifts the whole span by a number of periods, leaving its length unchanged.==
 
     new_span = self + offset
     new_span = offset + self
 
-### Input arguments ###
+Both ends move together, so the span keeps its length, its step and its
+direction, and simply sits somewhere else on the timeline. Either
+operand order works. This returns a new span; `shift` is the in-place
+counterpart.
+
+
+**Input arguments.**
 
 
 ???+ input "offset"
-    The number of periods by which to shift the time span. This must be an
-    integer, where positive values indicate a forward shift and negative values
-    indicate a backward shift.
+    The number of periods to move by, positive forward and negative
+    back. A non-integer is not rejected: the offset is added to each
+    endpoint's serial and truncated, so `span + 1.5` moves the span one
+    period forward and `span + -1.5` moves it one period back.
 
-### Returns ###
 
-???+ returns "new_span"
-    A new `Span` object representing the time span shifted by the specified
-    number of periods.
+### Returns
+
+
+A new `Span` with the same step and the same number of periods.
+
+
+### Examples
+
+
+The same shift written both ways:
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 2)
+    >>> str((span + 4).start), str((4 + span).start)
+    ('2021-Q1', '2021-Q1')
+
+The original is untouched:
+
+    >>> str(span.start)
+    '2020-Q1'
 
 ................................................................................
         """
@@ -2818,7 +3066,6 @@ A new `Span` with the same endpoints and the new step.
     @_dm.reference(
         category="arithmetics",
         call_name="-",
-        add_heading=False,
     )
     def __sub__(self, offset: Period | int, ) -> range | Self:
         r"""
@@ -2888,27 +3135,41 @@ A new `Span` for an integer; a `range` (or `None`) for a period.
         r"""
 ................................................................................
 
-==Shift the entire time span==
+## `Span.shift`
 
-Shifts the entire time span forward or backward by a specified number of
-periods. This method adjusts both the start and end of the span simultaneously,
-keeping the length of the span unchanged but moving it entirely to a new
-position in the timeline.
+==Moves the whole span by a number of periods, in place, keeping its length.==
 
     self.shift(by)
 
-### Input arguments ###
+Both ends move together, so the span keeps its length, its step and its
+direction. The copy-returning counterpart is `+`, which leaves the
+original alone.
+
+
+**Input arguments.**
 
 
 ???+ input "by"
-    The number of periods to shift the time span. Positive values shift the span
-    forward, while negative values shift it backward.
+    The number of periods to move by, positive forward and negative
+    back.
 
-### Returns ###
 
-???+ returns "None"
-    This method modifies `self` in-place and does not return a value.
+### Returns
 
+
+Nothing. The span is modified in place.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> span = dp.qq(2020, 1) >> dp.qq(2020, 2)
+    >>> span.shift(4)
+    >>> str(span.start), str(span.end)
+    ('2021-Q1', '2021-Q2')
+    >>> len(list(span))
+    2
 
 ................................................................................
         """

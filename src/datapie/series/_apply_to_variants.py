@@ -37,7 +37,7 @@ class Mixin:
         r"""
 ················································································
 
-## `_apply_to_variants`
+## `Series._apply_to_variants`
 
 ==Runs a function over each variant of the series in turn, replacing that variant's values with what the function returns.==
 
@@ -184,7 +184,7 @@ A failing `func` still leaves the series extended:
         r"""
 ················································································
 
-## `_create_extended_data_array`
+## `Series._create_extended_data_array`
 
 ==Builds a copy of the series data padded out to cover a requested span, and the periods that copy runs over.==
 

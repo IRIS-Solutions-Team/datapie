@@ -152,8 +152,7 @@ and discarded without error.
 
 
     @classmethod
-    @_dm.reference(
-        category="constructor", call_name="Chartpack", add_heading=False, )
+    @_dm.reference(category="constructor", call_name="Chartpack", )
     def _constructor_doc():
         r"""
 ················································································
@@ -203,7 +202,7 @@ A new `Chartpack` holding no figures.
         r"""
 ················································································
 
-## `copy`
+## `Chartpack.copy`
 
 ==Create a copy of the chartpack, with its figures and their charts copied too.==
 
@@ -242,7 +241,7 @@ A new `Chartpack`.
         r"""
 ················································································
 
-## `set_span`
+## `Chartpack.set_span`
 
 ==Set the plotting span on every chart in the pack.==
 
@@ -277,7 +276,7 @@ Nothing; the charts are modified in place.
         r"""
 ················································································
 
-## `set_highlight`
+## `Chartpack.set_highlight`
 
 ==Set the highlighted span on every figure in the pack.==
 
@@ -314,7 +313,7 @@ Nothing; the figures are modified in place.
         r"""
 ················································································
 
-## `modify_figure_titles`
+## `Chartpack.modify_figure_titles`
 
 ==Rewrite every figure title through a function of your own.==
 
@@ -347,7 +346,7 @@ Nothing; the figures are modified in place.
         for f in self.figures:
             f.title = f.title.format(**kwargs, ) if f.title else f.title
 
-    @_dm.reference(category="plot", add_heading=False, )
+    @_dm.reference(category="plot", )
     def plot(
         self,
         input_db: _databoxes.Databox,
@@ -358,7 +357,7 @@ Nothing; the figures are modified in place.
         r"""
 ················································································
 
-## `plot`
+## `Chartpack.plot`
 
 ==Build one plotly figure per figure in the pack, evaluating every chart expression against a databox.==
 
@@ -422,7 +421,7 @@ built whether or not they are returned or shown.
         r"""
 ················································································
 
-## `format_figure_titles`
+## `Chartpack.format_figure_titles`
 
 ==Apply `str.format` to every figure title.==
 
@@ -455,12 +454,12 @@ Nothing; the figures are modified in place.
 
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def num_figures(self, ) -> int:
         r"""
 ················································································
 
-## `num_figures`
+## `Chartpack.num_figures`
 
 ==Number of figures in the chartpack, as a read-only property.==
 
@@ -476,12 +475,12 @@ Nothing; the figures are modified in place.
         """
         self.figures.append(figure, )
 
-    @_dm.reference(category="add", add_heading=False, )
+    @_dm.reference(category="add", )
     def add_figure(self, figure_string: str, **kwargs, ) -> None:
         r"""
 ················································································
 
-## `add_figure`
+## `Chartpack.add_figure`
 
 ==Add a figure to the chartpack and return it, so charts can be added to it.==
 
@@ -526,7 +525,7 @@ while returning it.
 
 
     @staticmethod
-    @_dm.reference(category="add", call_name="add_chart", add_heading=False, )
+    @_dm.reference(category="add", call_name="add_chart", )
     def _add_chart_doc():
         r"""
 ················································································

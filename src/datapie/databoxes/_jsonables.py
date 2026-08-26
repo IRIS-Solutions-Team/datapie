@@ -26,12 +26,12 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
-    @_dm.reference(category="import_export", add_heading=False, )
+    @_dm.reference(category="import_export", )
     def series_to_jsonable(self, **kwargs, ) -> dict[str, Any]:
         r"""
 ................................................................................
 
-## `series_to_jsonable`
+## `Databox.series_to_jsonable`
 
 ==Turns every time series in the databox into a plain dictionary that can be written out as JSON.==
 
@@ -92,7 +92,7 @@ The entry that is not a series does not survive:
         }
         #]
 
-    @_dm.reference(category="import_export", add_heading=False, )
+    @_dm.reference(category="import_export", )
     def series_to_json_file(
         self,
         file_name: str,
@@ -103,7 +103,7 @@ The entry that is not a series does not survive:
         r"""
 ................................................................................
 
-## `series_to_json_file`
+## `Databox.series_to_json_file`
 
 ==Writes every time series in the databox to a JSON file.==
 
@@ -175,8 +175,7 @@ Nothing.
     @classmethod
     @_dm.reference(
         category="constructor",
-        call_name="Databox.seres_from_jsonable",
-        add_heading=False,
+        call_name="Databox.series_from_jsonable",
     )
     def series_from_jsonable(
         klass,
@@ -186,7 +185,7 @@ Nothing.
         r"""
 ................................................................................
 
-## `Databox.seres_from_jsonable`
+## `Databox.series_from_jsonable`
 
 ==Builds a databox from a dictionary of the kind `series_to_jsonable` produces.==
 
@@ -248,8 +247,7 @@ A new databox holding one time series per entry.
     @classmethod
     @_dm.reference(
         category="constructor",
-        call_name="Databox.seres_from_json_file",
-        add_heading=False,
+        call_name="Databox.series_from_json_file",
     )
     def series_from_json_file(
         klass,
@@ -260,7 +258,7 @@ A new databox holding one time series per entry.
         r"""
 ................................................................................
 
-## `Databox.seres_from_json_file`
+## `Databox.series_from_json_file`
 
 ==Builds a databox from a JSON file of the kind `series_to_json_file` writes.==
 

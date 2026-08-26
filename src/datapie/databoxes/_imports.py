@@ -71,7 +71,6 @@ class Mixin:
     @_dm.reference(
         category="constructor",
         call_name="Databox.from_csv_file",
-        add_heading=False,
     )
     def from_csv_file(
         klass,
@@ -314,7 +313,7 @@ A new `Databox`, exactly as `from_csv_file` would build it.
     from_csv = from_csv_file
 
     @classmethod
-    @_dm.reference(category="import_export", add_heading=False, )
+    @_dm.reference(category="import_export", )
     def from_pickle_file(
         klass,
         file_name: str,
@@ -323,7 +322,7 @@ A new `Databox`, exactly as `from_csv_file` would build it.
         r"""
 ................................................................................
 
-## `from_pickle_file`
+## `Databox.from_pickle_file`
 
 ==Reads back a databox written by `to_pickle_file`.==
 

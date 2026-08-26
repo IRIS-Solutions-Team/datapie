@@ -108,7 +108,7 @@ A new databox. None of the inputs is changed.
         self.merge(databoxes, *args, **kwargs, )
         return self
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def merge(
         self: Self,
         other: Self | Iterable[Self],
@@ -119,7 +119,7 @@ A new databox. None of the inputs is changed.
         r"""
 ................................................................................
 
-## `merge`
+## `Databox.merge`
 
 ==Merges other databoxes into this one, deciding what happens to keys that appear more than once.==
 

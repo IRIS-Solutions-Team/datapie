@@ -30,7 +30,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `broadcast_variants`
+## `Series.broadcast_variants`
 
 ==Copies the single variant of a time series out into `num_variants` identical variants.==
 

@@ -112,7 +112,6 @@ batch processing, importing and exporting data, and more.
     @_dm.reference(
         category="constructor",
         call_name="Databox.empty",
-        add_heading=False,
     )
     def empty(klass, ) -> Self:
         """
@@ -145,7 +144,7 @@ A new Databox holding nothing.
         return klass()
 
     @classmethod
-    @_dm.reference(category="constructor", call_name="Databox.from_dict", add_heading=False, )
+    @_dm.reference(category="constructor", call_name="Databox.from_dict", )
     def from_dict(
         klass,
         _dict: dict,
@@ -194,7 +193,7 @@ A new Databox holding the same items.
         return self
 
     @classmethod
-    @_dm.reference(category="constructor", call_name="Databox.from_array", add_heading=False, )
+    @_dm.reference(category="constructor", call_name="Databox.from_array", )
     def from_array(
         klass,
         array: _np.ndarray,
@@ -307,7 +306,7 @@ warning at the top of this entry.
             # self[name] = series_constructor(values=values, description=description, )
         return self
 
-    @_dm.reference(category="retrieval", add_heading=False, )
+    @_dm.reference(category="retrieval", )
     def array_from_series(
         self,
         names: Iterable[str],
@@ -317,7 +316,7 @@ warning at the top of this entry.
         r"""
 ................................................................................
 
-## `array_from_series`
+## `Databox.array_from_series`
 
 ==Collects the values of several time series into one numpy array, one row per series.==
 
@@ -392,7 +391,7 @@ one column per period, both in the order asked for.
         while True:
             yield { k: next(v, ) for k, v in dict_variant_iter.items() }
 
-    @_dm.reference(category="information", add_heading=False, )
+    @_dm.reference(category="information", )
     def get_names(
         self, 
         test: None | Callable = None,
@@ -401,7 +400,7 @@ one column per period, both in the order asked for.
         """
 ················································································
 
-## `get_names`
+## `Databox.get_names`
 
 ==Lists the names of the items in the Databox, optionally only those passing a test.==
 
@@ -452,12 +451,12 @@ A tuple of names. Every name in the Databox when no test is given.
             keys = tuple(k for k in keys if test(k, ))
         return keys
 
-    @_dm.reference(category="information", add_heading=False, )
+    @_dm.reference(category="information", )
     def get_missing_names(self, names: Iterable[str], ) -> tuple[str]:
         """
 ················································································
 
-## `get_missing_names`
+## `Databox.get_missing_names`
 
 ==Reports which of the names you ask about the Databox does not hold.==
 
@@ -496,12 +495,12 @@ given. Empty when the Databox holds them all.
         return tuple(i for i in names if i not in self)
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def num_items(self, ) -> int:
         r"""
 ················································································
 
-## `num_items`
+## `Databox.num_items`
 
 ==Gives the number of items held in the Databox.==
 
@@ -533,12 +532,12 @@ A whole number, zero for an empty Databox.
         """
         return len(self.keys())
 
-    @_dm.reference(category="copying", add_heading=False, )
+    @_dm.reference(category="copying", )
     def to_dict(self: Self) -> dict:
         r"""
 ................................................................................
 
-## `to_dict`
+## `Databox.to_dict`
 
 ==Converts a Databox to a plain dictionary.==
 
@@ -573,7 +572,7 @@ A plain `dict` holding the same items.
         """
         return { k: v for k, v in self.items() }
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def copy(
         self: Self,
         source_names: SourceNames = None,
@@ -583,7 +582,7 @@ A plain `dict` holding the same items.
         """
 ................................................................................
 
-## `copy`
+## `Databox.copy`
 
 ==Returns a new Databox holding deep copies of the items you name, under the names you give them.==
 
@@ -661,7 +660,7 @@ A new Databox. The original is not changed.
             else not self.get_missing_names(names, )
         )
 
-    @_dm.reference(category="copying", add_heading=False, )
+    @_dm.reference(category="copying", )
     def shallow(
         self: Self,
         source_names: SourceNames = None,
@@ -671,7 +670,7 @@ A new Databox. The original is not changed.
         r"""
 ................................................................................
 
-## `shallow`
+## `Databox.shallow`
 
 ==Returns a new Databox referring to the same items, rather than to copies of them.==
 
@@ -749,7 +748,7 @@ A new Databox sharing the original's items.
         print("\n".join(content_view, ))
         print()
 
-    @_dm.reference(category="validation", add_heading=False, )
+    @_dm.reference(category="validation", )
     def validate(
         self: Self,
         validators: dict[str, Callable] | None,
@@ -763,7 +762,7 @@ A new Databox sharing the original's items.
         r"""
 ················································································
 
-## `validate`
+## `Databox.validate`
 
 ==Checks Databox items against tests and reports the ones that fail.==
 
@@ -859,7 +858,7 @@ A validator is a *sequence*, and the second entry is the message:
                 when_fails_stream.add(f"{message}: {key}", )
         when_fails_stream._raise()
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def rename(
         self: Self,
         #
@@ -870,7 +869,7 @@ A validator is a *sequence*, and the second entry is the message:
         r"""
 ................................................................................
 
-## `rename`
+## `Databox.rename`
 
 ==Renames items in the Databox, keeping their values where they are.==
 
@@ -932,7 +931,7 @@ Nothing; the Databox is modified in place.
         for s, t in zip(source_names, target_names, ):
             self[t] = self.pop(s)
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def remove(
         self: Self,
         remove_names: SourceNames = None,
@@ -941,7 +940,7 @@ Nothing; the Databox is modified in place.
         """
 ................................................................................
 
-## `remove`
+## `Databox.remove`
 
 ==Removes the named items from the Databox.==
 
@@ -996,7 +995,7 @@ Nothing; the Databox is modified in place and the removed items are gone.
         for n in remove_names:
             del self[n]
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def keep(
         self: Self,
         #
@@ -1006,7 +1005,7 @@ Nothing; the Databox is modified in place and the removed items are gone.
         r"""
 ················································································
 
-## `keep`
+## `Databox.keep`
 
 ==Keeps the named items in the Databox and removes every other one.==
 
@@ -1060,7 +1059,7 @@ Nothing; the Databox is modified in place and everything not named is gone.
             del self[n]
 
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def apply(
         self,
         func: Callable,
@@ -1073,7 +1072,7 @@ Nothing; the Databox is modified in place and everything not named is gone.
 ················································································
 
 
-## `apply`
+## `Databox.apply`
 
 ==Applies a function to the items you name, optionally writing what it returns back over them.==
 
@@ -1154,7 +1153,7 @@ according to `when_fails`.
                 when_fails_stream.add(f"{s}: {repr(e)}", )
         when_fails_stream._raise()
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def generate(
         self,
         func: Callable,
@@ -1167,7 +1166,7 @@ according to `when_fails`.
 ················································································
 
 
-## `generate`
+## `Databox.generate`
 
 ==Builds new items from existing ones by applying a function, leaving the originals in place.==
 
@@ -1269,7 +1268,7 @@ handled according to `when_fails`.
                 output[n] = _max_abs(self[n] - other[n], )
         return output
 
-    @_dm.reference(category="information", add_heading=False, )
+    @_dm.reference(category="information", )
     def filter(
         self,
         #
@@ -1280,7 +1279,7 @@ handled according to `when_fails`.
 ················································································
 
 
-## `filter`
+## `Databox.filter`
 
 ==Selects the names of items passing a test on the name, on the value, or on both.==
 
@@ -1340,7 +1339,7 @@ the Databox.
             if name_test(name) and value_test(self[name], )
         )
 
-    @_dm.reference(category="information", add_heading=False, )
+    @_dm.reference(category="information", )
     def get_series_names_by_frequency(
         self,
         frequency: Frequency,
@@ -1348,7 +1347,7 @@ the Databox.
         r"""
 ················································································
 
-## `get_series_names_by_frequency`
+## `Databox.get_series_names_by_frequency`
 
 ==Lists the names of the time series held at one date frequency.==
 
@@ -1389,7 +1388,7 @@ empty result rather than an error.
             return isinstance(x, Series) and x.frequency == frequency
         return self.filter(value_test=_is_series_with_frequency, )
 
-    @_dm.reference(category="information", add_heading=False, )
+    @_dm.reference(category="information", )
     def get_span_by_frequency(
         self,
         frequency: Frequency,
@@ -1397,7 +1396,7 @@ empty result rather than an error.
         r"""
 ················································································
 
-## `get_span_by_frequency`
+## `Databox.get_span_by_frequency`
 
 ==Gives the span covering every time series held at one date frequency.==
 
@@ -1447,7 +1446,7 @@ A `Span` encompassing the matching series.
         max_end_date = max(end_periods, key=_op.attrgetter("serial"), )
         return Span(min_start_date, max_end_date, )
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def overlay_by_span(
         self,
         other: Self,
@@ -1457,7 +1456,7 @@ A `Span` encompassing the matching series.
 ................................................................................
 
 
-## `overlay_by_span`
+## `Databox.overlay_by_span`
 
 Called as `x.overlay_by_span(...)` (method form) or
 `datapie.overlay_by_span(x, ...)` (function form).
@@ -1519,7 +1518,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
 """
         self._lay(other, Series.overlay_by_span, **kwargs, )
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def overlay_by_observation(
         self,
         other: Self,
@@ -1528,7 +1527,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
         r"""
 ................................................................................
 
-## `overlay_by_observation`
+## `Databox.overlay_by_observation`
 
 Called as `x.overlay_by_observation(...)` (method form) or
 `datapie.overlay_by_observation(x, ...)` (function form).
@@ -1589,7 +1588,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
         """
         self._lay(other, Series.overlay_by_observation, **kwargs, )
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def underlay_by_span(
         self,
         other: Self,
@@ -1599,7 +1598,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
 ................................................................................
 
 
-## `underlay_by_span`
+## `Databox.underlay_by_span`
 
 Called as `x.underlay_by_span(...)` (method form) or
 `datapie.underlay_by_span(x, ...)` (function form).
@@ -1661,7 +1660,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
         """
         self._lay(other, Series.underlay_by_span, **kwargs, )
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def underlay_by_observation(
         self,
         other: Self,
@@ -1670,7 +1669,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
         r"""
 ................................................................................
 
-## `underlay_by_observation`
+## `Databox.underlay_by_observation`
 
 Called as `x.underlay_by_observation(...)` (method form) or
 `datapie.underlay_by_observation(x, ...)` (function form).
@@ -1755,7 +1754,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
                 continue
             func(self[n], other[n], **kwargs, )
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def clip_series(
         self,
         new_start_date: Period | None = None,
@@ -1765,7 +1764,7 @@ left alone, as are pairs whose frequencies differ or whose frequency is
 ................................................................................
 
 
-## `clip_series`
+## `Databox.clip_series`
 
 ==Shortens the time series in the Databox to a new start and end period.==
 
@@ -1827,7 +1826,7 @@ gone.
     # Legacy alias for backward compatibility
     clip = clip_series
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def prepend(
         self,
         other: Self,
@@ -1836,7 +1835,7 @@ gone.
         """
 ................................................................................
 
-## `prepend`
+## `Databox.prepend`
 
 ==Adds earlier observations from another Databox in front of the ones held here.==
 
@@ -1887,7 +1886,7 @@ taken, and the 99s it holds where `a` already has values are ignored:
         other.clip(None, end_prepending, )
         self.underlay_by_span(other, )
 
-    @_dm.reference(category="evaluation", add_heading=False, )
+    @_dm.reference(category="evaluation", )
     def evaluate_expression(
         self,
         expression: str,
@@ -1898,7 +1897,7 @@ taken, and the 99s it holds where `a` already has values are ignored:
 ................................................................................
 
 
-## `evaluate_expression`
+## `Databox.evaluate_expression`
 
 ==Evaluates a string expression with the Databox entries as its variables.==
 
@@ -2006,11 +2005,7 @@ Extra names can be supplied through `context`:
         return self.evaluate_expression(*args, **kwargs, )
 
     @classmethod
-    @_dm.reference(
-        category="constructor",
-        call_name="Databox.steady",
-        add_heading=False,
-    )
+    @_dm.reference(category="constructor", )
     def steady(
         klass,
         steady_databoxable: SteadyDataboxableProtocol,
@@ -2092,11 +2087,7 @@ are not described here.
         return klass({ k: v for k, v in items })
 
     @classmethod
-    @_dm.reference(
-        category="constructor",
-        call_name="Databox.zero",
-        add_heading=False,
-    )
+    @_dm.reference(category="constructor", )
     def zero(
         klass,
         steady_databoxable: SteadyDataboxableProtocol,
@@ -2145,7 +2136,7 @@ are all passed straight through.
             raise ValueError("The 'deviation' argument is not allowed for the Databox.zero method")
         return klass.steady(steady_databoxable, span, deviation=True, **kwargs, )
 
-    @_dm.reference(category="manipulation", add_heading=False, )
+    @_dm.reference(category="manipulation", )
     def minus_control(
         self,
         model,
@@ -2154,7 +2145,7 @@ are all passed straight through.
         r"""
 ................................................................................
 
-## `minus_control`
+## `Databox.minus_control`
 
 ==Subtracts a control Databox from this one, series by series.==
 

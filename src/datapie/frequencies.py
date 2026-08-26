@@ -91,7 +91,6 @@ so does any code that has to ask what kind of period or series it is holding.
     @_dm.reference(
         category="constructor",
         call_name="Frequency.from_letter",
-        add_heading=False,
     )
     def from_letter(
         klass,
@@ -160,7 +159,6 @@ rather than a `ValueError` naming the input. An empty string raises
     @_dm.reference(
         category="constructor",
         call_name="Frequency.from_sdmx_string",
-        add_heading=False,
     )
     def from_sdmx_string(
         klass,
@@ -223,12 +221,12 @@ determine time frequency from "..."; probably not a valid SDMX string.`
         )
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def letter(self, ) -> str:
         r"""
 ................................................................................
 
-## `letter`
+## `Frequency.letter`
 
 ==Single-letter code for the frequency, as a read-only property.==
 
@@ -252,7 +250,7 @@ A one-character string: `I`, `Y`, `H`, `Q`, `M`, `W`, `D` or `?`.
         r"""
 ................................................................................
 
-## `to_jsonable`
+## `Frequency.to_jsonable`
 
 ==The frequency as a one-letter string, for JSON serialisation.==
 
@@ -306,12 +304,12 @@ The matching `Frequency` member.
         return klass.from_letter(jsonable, )
 
     @property
-    @_dm.reference(category="property", add_heading=False, )
+    @_dm.reference(category="property", )
     def is_regular(self, ) -> bool:
         r"""
 ................................................................................
 
-## `is_regular`
+## `Frequency.is_regular`
 
 ==True when the frequency divides a year evenly.==
 
@@ -547,7 +545,7 @@ and an exception would be in the way.
     >>> import datapie as dp
     >>> dp.is_sdmx_string("2020-Q1")
     True
-    >>> dp.is_sdmx_string("(1)")
+    >>> dp.is_sdmx_string("not a period")
     False
 
 ................................................................................

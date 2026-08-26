@@ -145,12 +145,12 @@ input:
         self._replace_data(new_data, )
 
 
-    @_dm.reference(category="moving", add_heading=False, )
+    @_dm.reference(category="moving", )
     def mov_sum(self, window: int | None = None, ) -> None:
         r"""
 ································································
 
-## `mov_sum`
+## `Series.mov_sum`
 
 Called as `x.mov_sum(...)` (method form) or
 `datapie.mov_sum(x, ...)` (function form).
@@ -190,12 +190,12 @@ Nothing; the series is modified in place.
         self.moving_window(_np.sum, window=window, )
 
 
-    @_dm.reference(category="moving", add_heading=False, )
+    @_dm.reference(category="moving", )
     def mov_avg(self, window: int | None = None, ) -> None:
         r"""
 ································································
 
-## `mov_avg`
+## `Series.mov_avg`
 
 Called as `x.mov_avg(...)` (method form) or
 `datapie.mov_avg(x, ...)` (function form).
@@ -237,12 +237,12 @@ Nothing; the series is modified in place.
         self.moving_window(_np.mean, window=window, )
 
 
-    @_dm.reference(category="moving", add_heading=False, )
+    @_dm.reference(category="moving", )
     def mov_mean(self, window: int | None = None, ) -> None:
         r"""
 ································································
 
-## `mov_mean`
+## `Series.mov_mean`
 
 Called as `x.mov_mean(...)` (method form) or
 `datapie.mov_mean(x, ...)` (function form).
@@ -284,12 +284,12 @@ Nothing; the series is modified in place.
         self.moving_window(_np.mean, window=window, )
 
 
-    @_dm.reference(category="moving", add_heading=False, )
+    @_dm.reference(category="moving", )
     def mov_prod(self, window: int | None = None, ) -> None:
         r"""
 ································································
 
-## `mov_prod`
+## `Series.mov_prod`
 
 Called as `x.mov_prod(...)` (method form) or
 `datapie.mov_prod(x, ...)` (function form).

@@ -32,7 +32,7 @@ LayMethod = Literal["by_span", "by_observation"]
 class Mixin:
     #[
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def overlay_by_span(
         self: Series,
         other: Series,
@@ -40,7 +40,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `overlay_by_span`
+## `Series.overlay_by_span`
 
 Called as `x.overlay_by_span(...)` (method form) or
 `datapie.overlay_by_span(x, ...)` (function form).
@@ -112,7 +112,7 @@ resulting time series, including any in-sample missing observations.
 
 
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def overlay_by_observation(
         self,
         other,
@@ -120,7 +120,7 @@ resulting time series, including any in-sample missing observations.
         r"""
 ................................................................................
 
-## `overlay_by_observation`
+## `Series.overlay_by_observation`
 
 Called as `x.overlay_by_observation(...)` (method form) or
 `datapie.overlay_by_observation(x, ...)` (function form).
@@ -221,7 +221,7 @@ period.
 
 
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def underlay_by_span(
         self,
         other,
@@ -229,7 +229,7 @@ period.
         r"""
 ................................................................................
 
-## `underlay_by_span`
+## `Series.underlay_by_span`
 
 Called as `x.underlay_by_span(...)` (method form) or
 `datapie.underlay_by_span(x, ...)` (function form).
@@ -300,7 +300,7 @@ resulting time series, including any in-sample missing observations.
 
 
 
-    @_dm.reference(category="multiple", add_heading=False, )
+    @_dm.reference(category="multiple", )
     def underlay_by_observation(
         self,
         other,
@@ -308,7 +308,7 @@ resulting time series, including any in-sample missing observations.
         r"""
 ................................................................................
 
-## `underlay_by_observation`
+## `Series.underlay_by_observation`
 
 Called as `x.underlay_by_observation(...)` (method form) or
 `datapie.underlay_by_observation(x, ...)` (function form).

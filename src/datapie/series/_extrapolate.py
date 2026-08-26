@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
-    @_dm.reference(category="homogenizing", add_heading=False, )
+    @_dm.reference(category="homogenizing", )
     def extrapolate(
         self: Self,
         ar_coeffs: Iterable[Real],
@@ -43,7 +43,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `extrapolate`
+## `Series.extrapolate`
 
 Called as `x.extrapolate(...)` (method form) or
 `datapie.extrapolate(x, ...)` (function form).

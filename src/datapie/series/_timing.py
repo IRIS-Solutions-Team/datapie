@@ -29,7 +29,7 @@ class Mixin:
         r"""
 ................................................................................
 
-## `shift`
+## `Series.shift`
 
 Called as `x.shift(...)` (method form) or
 `datapie.shift(x, ...)` (function form).
@@ -138,7 +138,7 @@ instead of an earlier observation:
         r"""
 ................................................................................
 
-## `redate`
+## `Series.redate`
 
 Called as `x.redate(...)` (method form) or
 `datapie.redate(x, ...)` (function form).

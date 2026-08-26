@@ -88,7 +88,7 @@ class Mixin:
         r"""
 ································································
 
-## `plot`
+## `Series.plot`
 
 ==Draws the series as a chart of the kind named by `chart_type`, handing the work to the matching `plot_*` method.==
 
@@ -159,7 +159,7 @@ Whatever the chosen method returns, which is `None` unless you pass
         r"""
 ································································
 
-## `plot_line`
+## `Series.plot_line`
 
 ==Draws each variant of the series as a line with markers.==
 
@@ -244,7 +244,7 @@ Nothing comes back until you ask for it:
         r"""
 ································································
 
-## `plot_bands`
+## `Series.plot_bands`
 
 ==Draws the variants of the series as shaded bands around a middle line, the way a fan chart shows a forecast.==
 
@@ -352,7 +352,7 @@ Three variants make one band and one midline:
         r"""
 ································································
 
-## `plot_area`
+## `Series.plot_area`
 
 ==Draws each variant of the series as a line with the space down to zero filled in.==
 
@@ -414,7 +414,7 @@ described there.
         r"""
 ································································
 
-## `plot_bar`
+## `Series.plot_bar`
 
 ==Draws each variant of the series as bars.==
 
@@ -508,7 +508,7 @@ The ready-made version fixes it for you:
         r"""
 ································································
 
-## `plot_histogram`
+## `Series.plot_histogram`
 
 ==Draws the distribution of each variant's values as a histogram.==
 

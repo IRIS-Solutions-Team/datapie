@@ -105,7 +105,7 @@ class _ExportBlock:
 class Mixin:
     #[
 
-    @_dm.reference(category="import_export", add_heading=False, )
+    @_dm.reference(category="import_export", )
     def to_csv_file(
         self,
         file_name: str,
@@ -130,7 +130,7 @@ class Mixin:
 
 ................................................................................
 
-## `to_csv_file`
+## `Databox.to_csv_file`
 
 ==Writes the time series held in a databox to a CSV file, one block of columns per date frequency.==
 
@@ -334,7 +334,7 @@ Nothing to export still empties the file:
         r"""
 ................................................................................
 
-## `to_sheet`
+## `Databox.to_sheet`
 
 
 ==Writes the databox to a CSV file, under an older name.==
@@ -369,7 +369,7 @@ you pass `return_info=True`.
     to_csv = to_csv_file
 
 
-    @_dm.reference(category="import_export", add_heading=False, )
+    @_dm.reference(category="import_export", )
     def to_pickle_file(
         self,
         file_name: str,
@@ -378,7 +378,7 @@ you pass `return_info=True`.
         r"""
 ................................................................................
 
-## `to_pickle_file`
+## `Databox.to_pickle_file`
 
 
 ==Writes the whole databox to a file in Python's own binary format.==

@@ -203,147 +203,138 @@ class Mixin:
     @_dm.reference(category="filtering", )
     def hpf(self, ):
         r"""
-    ················································································
+································································
 
-    ==Constrained Hodrick-Prescott filter==
+## `Series.hpf`
 
+==Reference for the constrained Hodrick-Prescott filter and the options every one of its forms takes.==
 
-    ### Functional form creating a new time `Series` object ###
-
-
-    trend, gap = irispie.hpf(
+    trend, gap = dp.hpf(
         self,
         span=None,
         smooth=None,
         log=False,
         level=None,
         change=None,
+        information="two_sided",
     )
 
+    self.hpf_trend(...)
+    self.hpf_gap(...)
 
-    ### Class method changing an existing time `Series` objects in-place ###
+**This method does nothing.** Calling `x.hpf()` raises
+`NotImplementedError` with an empty message. It exists to carry the
+options documentation for the forms that do work, and every one of them
+takes the arguments described below:
 
+| Form | Effect
+|------|--------
+| `dp.hpf(x, ...)` | Returns a new `(trend, gap)` pair; `x` untouched
+| `x.hpf_trend(...)` | Replaces `x`'s values with the trend, in place
+| `x.hpf_gap(...)` | Replaces `x`'s values with the gap, in place
+| `dp.hpf_trend(x, ...)` | Returns a new series holding the trend
+| `dp.hpf_gap(x, ...)` | Returns a new series holding the gap
 
-    self.hpf_trend(
-        span=None,
-        smooth=None,
-        log=False,
-        level=None,
-        change=None,
-    )
-
-    self.hpf_gap(
-        span=None,
-        smooth=None,
-        log=False,
-        level=None,
-        change=None,
-    )
-
-
-    ### Input arguments ###
+The filter splits a series into a smooth trend and the gap around it,
+subject to any level and change constraints you impose.
 
 
-    ???+ input "self"
-    A time `Series` object whose data are filtered. All the
-    observations contained in the input time series are used in the
-    Hodrick-Prescott filter calculations no matter the time `span`
-    specified; the time `span` only determines the time span of the output
-    series.
-
-    ???+ input "span"
-    Time span on which the trend component of the Hodrick-Prescott filter
-    is calculated. If `span=None`, the results are returned on
-    the time span of the original series, `self`.
-
-    ???+ input "smooth"
-    Smoothing parameter (also known as $\lambda$) for the Hodrick-Prescott filter. If `smooth=None`,
-    a default value is used based on the frequency of the input series `self`:
-
-    | Date frequency | Default `smooth` ($\lambda$)
-    |----------------|-----------------------------:
-    | `YEARLY`       |                         100
-    | `HALF-YEARLY`  |                         400
-    | `QUARTERLY`    |                       1,600
-    | `MONTHLY`      |                     144,000
-    | Otherwise      |                       1,600
-
-    ???+ input "log"
-    If `log=True`, the Hodrick-Prescott filter is calculated on the logarithm
-    of the input data, and the results are delogarithmized back to the original
-    scale.
-
-    ???+ input "level"
-    A `Series` object with the level constraints for the Hodrick-Prescott
-    filter (aka judgmental adjustments). If `level=None`, no level
-    constraints are imposed. If `log=True`, the level constraints are
-    logarithmized first before entering the calculations.
-
-    ???+ input "change"
-    A `Series` object with the change constraints for the Hodrick-Prescott
-    filter (aka judgmental adjustments). If `change=None`, no change
-    constraints are imposed. If `log=True`, the change constraints are
-    logarithmized first before entering the calculations; this effectively
-    means that for `log=True`, the `change` constraints need to be
-    expressed as gross rates of change (period on period).
+**Input arguments.** Every argument is keyword-only. Anything passed
+positionally raises `TypeError: _data_hpf() takes 1 positional argument
+but 2 were given`, naming an internal function you never called.
 
 
-    ### Returns ###
+???+ input "span"
+    The span the **output** covers. It does not restrict the
+    calculation: every observation in the input is used whatever `span`
+    says, and the result is clipped afterwards. Left alone the result
+    covers the input's own span.
+
+???+ input "smooth"
+    The smoothing parameter, $\lambda$. Left alone it is chosen from the
+    frequency of the input:
+
+    | Frequency     | Default `smooth`
+    |---------------|-----------------:
+    | `YEARLY`      | 100
+    | `HALFYEARLY`  | 400
+    | `QUARTERLY`   | 1,600
+    | `MONTHLY`     | 14,400
+    | anything else | 1,600
+
+    A larger value makes the trend smoother and pushes more of the
+    movement into the gap.
+
+???+ input "log"
+    Set to `True` to filter the logarithm of the data and convert the
+    result back. Level and change constraints are logarithmized first,
+    which means `change` then has to be given as gross rates of change
+    from one period to the next.
+
+    Note what this does to the gap: with `log=True` the gap comes back
+    as the data **divided by** the trend, not as the difference between
+    them.
+
+???+ input "level"
+    A `Series` of level constraints -- judgmental adjustments that pin
+    the trend to given values in given periods. Left alone the trend is
+    unconstrained.
+
+???+ input "change"
+    A `Series` of change constraints, pinning the period-on-period
+    change of the trend rather than its level. The constraint in the
+    first period of the filter span is dropped, there being no earlier
+    period to change from.
+
+???+ input "information"
+    `"two_sided"`, the default, or `"one_sided"`.
+
+    **`"one_sided"` is unreliable and best avoided while this stands.**
+    On perfectly ordinary series it fails with
+    `numpy.linalg.LinAlgError: Singular matrix` -- observed at 5, 6 and
+    7 quarterly periods under the default `smooth`, while 4 periods and
+    8 or more go through.
 
 
-    ???+ returns "trend"
-    A new `Series` object with the trend component of the Hodrick-Prescott
-    filter. The trend component is always returned on the entier time `span`
-    specified regardless of the actual time span of the original series.
-
-    ???+ returns "gap"
-    A new `Series` object with the trend component of the Hodrick-Prescott
-    filter. The gap component is calculated on the time `span` as the
-    difference between the actual observations and the trend component;
-    therefore, unline the `trend` series, the `gap` series is defined only
-    in time periods where the actual observations are available in the
-    original series.
-
-    ???+ returns "self"
-    The existing `Series` object with its values replaced in-place by the trend
-    component of the Hodrick-Prescott filter.
+### Returns
 
 
-    ### Details ###
+Which form you called decides what comes back. `dp.hpf` returns the
+pair `(trend, gap)`, both new series. `hpf_trend` and `hpf_gap` return
+nothing and modify the series in place. `dp.hpf_trend` and
+`dp.hpf_gap` return a new series each. This method itself returns
+nothing, because it raises before it can.
+
+The trend covers the whole span asked for. The gap exists only in
+periods where the input has an observation, so a series with holes in
+it yields a gap component with holes in the same places.
 
 
-    ???+ abstract "Time span of HP filter calculations"
-
-    The Hodrick-Prescott filter is calculated on a time span starting in
-    the period that is the first common period of
-
-    * the input data,
-    * the `span` argument,
-    * the level constraints, and
-    * the change constraints.
-
-    and ending in the period that is the last common period of the same
-    four data sources.
-
-    The actual time series returned is then clipped to comply with the
-    `span` argument if necessary.
+### Details
 
 
-    ???+ abstract "Algorithm"
+???+ abstract "Time span of the filter calculations"
 
-    The constrained Hodrick-Prescott filter is a method for decomposing a
-    time series into a lower-frequency (trend) component and a
-    higher-frequency (cyclical) component subject to level and/or change
-    constraints. The filter is implemented as the following constrained
-    dynamic optimization problem
+    The filter runs on a span starting at the first period common to
+    the input data, the `span` argument, the level constraints and the
+    change constraints, and ending at the last period common to the
+    same four. The series returned is then clipped to `span` if needed.
+
+
+???+ abstract "Algorithm"
+
+    The constrained Hodrick-Prescott filter decomposes a series into a
+    lower-frequency trend and a higher-frequency cyclical component
+    subject to level and change constraints, as the constrained dynamic
+    optimization problem
 
     $$
     \begin{gathered}
     \min\nolimits_{\{\overline{y}_t\}}
         \left[
-            \lambda \sum_{t\in\Omega}
+            \sum_{t\in\Omega}
             \left( y_t - \overline{y}_t \right)^2
-            + \sum_{t=3}^{T}
+            + \lambda \sum_{t=3}^{T}
             \left( \Delta \overline{y}_t - \Delta \overline{y}_{t-1} \right)^2
         \right]
         \\[10pt]
@@ -353,26 +344,48 @@ class Mixin:
     \end{gathered}
     $$
 
-    where
+    where $y_t$ is the original data, $\overline{y}_t$ the trend,
+    $L_t$ the level constraint data, $C_t$ the change constraint data,
+    $\lambda$ the smoothing parameter, and $1, \dots, T$ the filter
+    span. $\Omega$ is the periods within that span where the original
+    data are available, $\Omega_L$ those where a level constraint is
+    given, and $\Omega_C$ those where a change constraint is given.
 
-    * $y_t$ is the original time series data,
-    * $\overline{y}_t$ is the calculated trend component,
-    * $L_t$ is the level constraint data,
-    * $C_t$ is the change constraint data,
-    * $\lambda$ is the smoothing parameter,
-    * $1, \dots, T$ is the HP filter time span (see above),
-    * $\Omega$ is the time periods within the filter time span where the original data are available,
-    * $\Omega_L$ is the time periods within the filter time span where the level constraint data are specified,
-    * $\Omega_C$ is the time periods within the filter time span where the change constraint data are specified.
-
-    The gap component, $\widehat{y}_t$, is then calculated as the difference between the
-    original data and the trend component,
+    The gap, $\widehat{y}_t$, is then
 
     $$
     \widehat{y}_t \equiv y_t - \overline{y}_t
     $$
 
-    ················································································
+
+### Examples
+
+
+Trend and gap add back up to the data they came from:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 3., 2., 5., 4., 7.]))
+    >>> trend, gap = dp.hpf(x)
+    >>> np.allclose(trend.get_data() + gap.get_data(), x.get_data())
+    True
+
+The in-place method keeps the trend and throws the gap away:
+
+    >>> y = x.copy()
+    >>> y.hpf_trend()
+    >>> np.allclose(y.get_data(), trend.get_data())
+    True
+
+The method this block documents raises rather than filtering:
+
+    >>> x.hpf()
+    Traceback (most recent call last):
+        ...
+    NotImplementedError
+
+································································
         """
         raise NotImplementedError
 
@@ -380,7 +393,7 @@ class Mixin:
         r"""
 ································································
 
-## `hpf_trend`
+## `Series.hpf_trend`
 
 Called as `x.hpf_trend(...)` (method form) or
 `datapie.hpf_trend(x, ...)` (function form).
@@ -427,7 +440,7 @@ Nothing; the series is modified in place.
         r"""
 ································································
 
-## `hpf_gap`
+## `Series.hpf_gap`
 
 Called as `x.hpf_gap(...)` (method form) or
 `datapie.hpf_gap(x, ...)` (function form).

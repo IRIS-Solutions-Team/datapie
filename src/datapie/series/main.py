@@ -60,7 +60,7 @@ __all__ = (
 )
 
 
-Dates = Period | Iterable[Period] | Span | EllipsisType | None
+Periods = Period | Iterable[Period] | Span | EllipsisType | None
 VariantsRequestType = int | Iterable[int] | slice | None
 ShiftType = int | Literal["yoy", "soy", "eopy", "tty", ]
 AxisType = Literal[0, 1]
@@ -150,6 +150,7 @@ variants of the data, stored as mutliple columns.
         frequency: Frequency | None = None,
         values: Any | None = None,
         func: Callable | None = None,
+        period_value_pairs: Iterable[tuple[Period, Any]] | None = None,
         populate: bool = True,
     ) -> None:
         """
@@ -175,6 +176,11 @@ variants of the data, stored as mutliple columns.
     )
 
 
+    self = Series(
+        period_value_pairs=period_value_pairs,
+    )
+
+
 ### Input arguments ###
 
 ???+ input "start"
@@ -194,6 +200,12 @@ variants of the data, stored as mutliple columns.
     should not take any input arguments, and should return a single (scalar)
     numerical value; the function will called once for each period and each
     variant.
+
+???+ input "period_value_pairs"
+    An iterable of two-element tuples, each consisting of a time
+    [`Period`](periods.md) and the corresponding value, e.g. `[(qq(2020,1), 1),
+    (qq(2020,2), 2), ]`. This is a convenience alternative to supplying the
+    `periods` and the `values` separately.
 
 
 ### Returns ###
@@ -216,7 +228,10 @@ variants of the data, stored as mutliple columns.
             periods = dates
         #
         if populate:
-            test = tuple(x is not None for x in (start, periods, values, func))
+            test = tuple(
+                x is not None
+                for x in (start, periods, values, func, period_value_pairs, )
+            )
             populator = _SERIES_POPULATOR.get(test, _invalid_constructor)
             populator(
                 self,
@@ -225,25 +240,27 @@ variants of the data, stored as mutliple columns.
                 frequency=frequency,
                 values=values,
                 func=func,
+                period_value_pairs=period_value_pairs,
             )
 
     # ==========================================================================
     #  ### `Series(*, start=None, values=None, periods=None, func=None,
-    #   num_variants=1, data_type=np.float64, description="",
-    #   frequency=None, populate=True)`
+    #   period_value_pairs=None, num_variants=1, data_type=np.float64,
+    #   description="", frequency=None, populate=True)`
     #
     #  Creates a new time series, either from a block of values pinned to a
     #  start period, or from an explicit list of periods.
     #
-    #  Every argument is keyword-only, and only three combinations are
+    #  Every argument is keyword-only, and only four combinations are
     #  accepted. `start` together with `values` lays the values out from
     #  `start` onwards, one row per period. `periods` together with `values`
     #  time stamps the values one by one. `periods` together with `func`
     #  calls `func` once for every period and every variant and stores what
-    #  it returns. Calling `Series()` with nothing at all gives you an empty
-    #  series you can fill later with `set_data`. Every other combination,
-    #  including `start` with `func`, raises `wrongdoings.Error("Invalid
-    #  Series object constructor")`.
+    #  it returns. `period_value_pairs` on its own carries the periods and
+    #  the values together, one pair per observation. Calling `Series()`
+    #  with nothing at all gives you an empty series you can fill later with
+    #  `set_data`. Every other combination, including `start` with `func`,
+    #  raises `wrongdoings.Error("Invalid Series object constructor")`.
     #
     #  **Parameters.** `start` is the time period of the first row of
     #  `values`. `periods` is any iterable of periods -- a tuple, a list, a
@@ -260,6 +277,12 @@ variants of the data, stored as mutliple columns.
     #  `func` is called with no arguments and must return one number. It is
     #  called separately for each period and each variant, so a random
     #  generator produces different draws in each cell.
+    #
+    #  `period_value_pairs` is any iterable of `(period, value)` two-tuples,
+    #  in any order and with gaps allowed. It is unzipped into `periods` and
+    #  `values` and then handled exactly as those two would be, so a value
+    #  that is itself a list is read as one entry per variant. An empty
+    #  iterable leaves the series empty rather than raising.
     #
     #  `num_variants` sets the number of columns, but only when the data
     #  cannot say otherwise. With a one-dimensional array or a tuple in
@@ -309,6 +332,13 @@ variants of the data, stored as mutliple columns.
     #      ...     values=np.array([np.nan, 2., 3.]))
     #      >>> x.start
     #      qq(2020,2)
+    #
+    #  Period-value pairs need not be contiguous or sorted:
+    #
+    #      >>> x = dp.Series(period_value_pairs=[
+    #      ...     (dp.qq(2020,3), 3.), (dp.qq(2020,1), 1.), ])
+    #      >>> x.start, x.get_data().tolist()
+    #      (qq(2020,1), [[1.0], [nan], [3.0]])
     #
     # ==========================================================================
 
@@ -537,13 +567,13 @@ variants of the data, stored as mutliple columns.
     #
     # ==========================================================================
 
-    def _create_periods_of_missing_values(self, num_rows=0) -> _np.ndarray:
+    def _create_periods_of_missing_values(self, num_rows: int =0, ) -> _np.ndarray:
         """
         """
         return _np.full(
             (num_rows, self.shape[1], ),
             _np.nan,
-            dtype=self.data_type
+            dtype=self.data_type,
         )
 
     @property
@@ -1112,7 +1142,7 @@ variants of the data, stored as mutliple columns.
 
     def set_data(
         self,
-        dates: Dates,
+        dates: Periods,
         data: Any | Series,
         variants: VariantsRequestType = None,
     ) -> None:
@@ -1196,34 +1226,34 @@ variants of the data, stored as mutliple columns.
     ) -> _np.ndarray:
         """
         """
-        dates, pos, variants, expanded_data = self._resolve_dates_and_positions(*args, )
+        periods, pos, variants, expanded_data, = self._resolve_periods_and_positions(*args, )
         data = expanded_data[_np.ix_(pos, variants)]
         num_variants = data.shape[1]
-        new = Series(num_variants=num_variants, data_type=self.data_type)
-        new.set_data(dates, data)
+        new = Series(num_variants=num_variants, data_type=self.data_type, )
+        if periods:
+            new.set_data(periods, data, )
         return new
 
-    def _resolve_dates_and_positions(
+    def _resolve_periods_and_positions(
         self,
-        dates: Dates,
+        periods: Periods,
         variants: VariantsRequestType = None,
     ) -> tuple[Iterable[Period], Iterable[int], Iterable[int], _np.ndarray]:
         """
         """
-        dates = self.resolve_periods(dates, )
         variants = self._resolve_variants(variants)
-        if not dates:
-            dates = ()
+        if not periods or all(p is None for p in periods):
+            periods = ()
             pos = ()
             data = self._create_periods_of_missing_values(num_rows=0, )[:, variants]
-            return dates, pos, variants, data
-        #
-        base_date = self.start or min(dates, )
-        pos, add_before, add_after = _get_date_positions(dates, base_date, self.shape[0], )
-        data = self._create_expanded_data(add_before, add_after, )
+            return periods, pos, variants, data,
+        periods = self.resolve_periods(periods, )
+        base_date = self.start or min(periods, )
+        pos, add_before, add_after = _get_date_positions(periods, base_date, self.shape[0], )
+        expanded_data = self._create_expanded_data(add_before, add_after, )
         if not isinstance(pos, Iterable):
             pos = (pos, )
-        return dates, pos, variants, data
+        return periods, pos, variants, expanded_data,
 
     def alter_num_variants(
         self,
@@ -1452,8 +1482,8 @@ variants of the data, stored as mutliple columns.
         dates: Iterable[Period] | None | EllipsisType = ...,
         *args,
     ) -> _np.ndarray:
-        periods, pos, variants, expanded_values = self._resolve_dates_and_positions(dates, *args, )
-        return expanded_values[_np.ix_(pos, variants)], periods
+        periods, pos, variants, expanded_values, = self._resolve_periods_and_positions(dates, *args, )
+        return expanded_values[_np.ix_(pos, variants)], periods,
 
     # ==========================================================================
     #  ### `get_data_and_periods(dates=..., *args)`
@@ -1486,7 +1516,7 @@ variants of the data, stored as mutliple columns.
 
     def get_data_variant(
         self,
-        dates: Dates,
+        dates: Periods,
         variant: Real | None = None,
     ) -> _np.ndarray:
         """
@@ -1532,9 +1562,10 @@ variants of the data, stored as mutliple columns.
     ) -> _np.ndarray:
         """
         """
-        _, pos, variants, expanded_data \
-            = self._resolve_dates_and_positions(from_until, *args, )
-        from_pos, to_pos = pos[0], pos[-1]+1
+        _, pos, variants, expanded_data = self._resolve_periods_and_positions(from_until, *args, )
+        if not pos:
+            return self._create_periods_of_missing_values(num_rows=0, )[:, variants]
+        from_pos, to_pos, = pos[0], pos[-1]+1,
         return expanded_data[from_pos:to_pos, variants]
 
     # ==========================================================================
@@ -2162,11 +2193,11 @@ This method modifies `self` in place and returns `None`.
     #
     # ==========================================================================
 
-    def _create_expanded_data(self, add_before, add_after):
-        return _np.pad(
-            self.data, ((add_before, add_after), (0, 0)),
-            mode="constant", constant_values=_np.nan,
-        )
+    def _create_expanded_data(self, add_before, add_after, ):
+        num_variants = self.num_variants
+        data_before = _np.full((add_before, num_variants), _np.nan, dtype=self.data_type, )
+        data_after = _np.full((add_after, num_variants), _np.nan, dtype=self.data_type, )
+        return _np.concatenate((data_before, self.data, data_after), axis=0, )
 
     def _check_data_shape(self, data, ):
         if data.shape[1] != self.data.shape[1]:
@@ -2522,6 +2553,11 @@ This method modifies `self` in place and returns `None`.
     ) -> None:
         """
         """
+        num_dimes = new_values.ndim
+        if num_dimes == 1:
+            new_values = new_values.reshape(-1, 1)
+        elif num_dimes > 2:
+            new_values = new_values.reshape(new_values.shape[0], -1)
         self.data = new_values
         self.trim()
 
@@ -2627,11 +2663,19 @@ This method modifies `self` in place and returns `None`.
     #
     # ==========================================================================
 
-    def iter_own_data_variants_from_until(self, from_until, ) -> Iterator[_np.ndarray]:
+    def iter_own_variants(self, ) -> Iterator[Self]:
+        r"""
         """
+        for data in self.iter_own_data_variants_from_until(..., ):
+            new = self.copy()
+            new._replace_data(data, )
+            yield new
+
+    def iter_own_data_variants_from_until(self, from_until, ) -> Iterator[_np.ndarray]:
+        r"""
         Iterates over the data variants from the given start date to the given end date
         """
-        if from_until == ...:
+        if from_until is ...:
             data_from_until = self.data
         else:
             data_from_until = self.get_data_from_until(from_until, )
@@ -2881,6 +2925,29 @@ def _from_periods_and_values(
     #]
 
 
+def _from_period_value_pairs(
+    self,
+    period_value_pairs: Iterable[tuple[Period, Any]],
+    frequency: Frequency | None = None,
+    **kwargs,
+) -> None:
+    r"""
+    Create a new time series from an iterable of period-value pairs
+    """
+    #[
+    period_value_pairs = tuple(period_value_pairs, )
+    if not period_value_pairs:
+        return
+    periods, values = zip(*period_value_pairs, )
+    _from_periods_and_values(
+        self,
+        periods=periods,
+        values=values,
+        frequency=frequency,
+    )
+    #]
+
+
 def _from_periods_and_func(
     self,
     periods: Iterable[Period] | str,
@@ -2951,10 +3018,14 @@ def _invalid_constructor(
     raise _wrongdoings.Error("Invalid Series object constructor")
 
 
+#
+# Keys are (start, periods, values, func, period_value_pairs, ) presence tests
+#
 _SERIES_POPULATOR = {
-    (False, False, False, False): lambda self, **kwargs: None,
-    (True, False, True, False): _from_start_and_values,
-    (False, True, True, False): _from_periods_and_values,
-    (False, True, False, True): _from_periods_and_func,
+    (False, False, False, False, False): lambda self, **kwargs: None,
+    (True, False, True, False, False): _from_start_and_values,
+    (False, True, True, False, False): _from_periods_and_values,
+    (False, True, False, True, False): _from_periods_and_func,
+    (False, False, False, False, True): _from_period_value_pairs,
 }
 

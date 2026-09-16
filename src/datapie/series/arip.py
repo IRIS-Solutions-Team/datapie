@@ -1,4 +1,5 @@
 """
+Autoregressive interpolation for frequency disaggregation
 """
 
 
@@ -29,7 +30,140 @@ def disaggregate_arip(
     target: Self | None = None,
     # indicator: _np.ndarray | None = None,
 ) -> Self:
-    """Autoregressive interpolation"""
+    r"""
+................................................................................
+
+## `disaggregate_arip`
+
+==Splits a low-frequency series into higher-frequency values by fitting a smooth autoregressive path that adds back up to the original data.==
+
+    disaggregate_arip(
+        self,
+        target_period_class,
+        model,
+        target=None,
+    )
+
+It looks for the smoothest high-frequency path consistent with what you
+already know. Each low-frequency observation is imposed as a
+constraint, so it is reproduced exactly by its own high-frequency
+values. This is the routine behind `Series.disaggregate(...,
+method="arip")` and is normally reached that way rather than called
+directly -- it is not exported under `datapie`, so calling it directly
+means importing it from this module by name.
+
+
+**Input arguments.**
+
+
+???+ input "self"
+    The low-frequency series to interpolate. It is read and not
+    changed.
+
+???+ input "target_period_class"
+    The period class of the frequency to move up to, such as
+    `QuarterlyPeriod`, rather than a `Frequency` value.
+
+???+ input "model"
+    A pair naming the form of the process and the way the high-frequency
+    values add back up. It has no default, and anything that is not a
+    pair raises `ValueError: too many values to unpack (expected 2)` --
+    including the bare string `"rate"`, which unpacks into its own
+    letters.
+
+    | Form | Suits a series that
+    |------|---------------------
+    | `"rate"`, `"multiplicative"` | grows by a rate
+    | `"diff"`, `"additive"` | grows by a constant amount
+
+    | Aggregation | The low-frequency figure is
+    |-------------|-----------------------------
+    | `"sum"` | the sum of its high-frequency values
+    | `"mean"`, `"avg"` | their average
+    | `"first"` | the first of them
+    | `"last"` | the last of them
+
+    An unrecognised name for either raises `KeyError` naming the name.
+
+    In place of a name the aggregation may be a tuple of weights, one
+    for each high-frequency period inside a single low-frequency period
+    -- four of them going from annual to quarterly, not twelve. A tuple
+    of the wrong length raises `ValueError: could not broadcast input
+    array from shape (12,) into shape (4,)`. Anything that is neither a
+    string nor iterable, such as `5` or `None`, raises `TypeError`.
+
+???+ input "target"
+    An optional high-frequency series of values to hold fixed, which is
+    how an indicator is imposed. Wherever it carries an observation the
+    result is pinned to it. Left as `None` nothing is pinned.
+
+    Take care when it covers every high-frequency period of a
+    low-frequency period: that period's own observation is then dropped
+    from the system, so the target replaces it rather than being
+    reconciled with it, and the high-frequency values no longer add up
+    to the low-frequency figure. Pinning all four quarters of 2020 to
+    `[1, 2, 3, 4]` against an annual 100 gives a first year summing to
+    10, while the years left alone still reproduce theirs exactly. A
+    target that pins only some of the periods inside a low-frequency
+    period keeps the constraint intact.
+
+
+### Returns
+
+
+A pair of the first high-frequency period and a plain array of
+interpolated values, one column per variant of the input. It does not
+return a `Series`; the caller assembles one. A series with no start
+period gives back `(None, None)`.
+
+
+### Examples
+
+
+Three years split into quarters, with each year's four quarters summing
+back to the annual figure:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> from datapie.series.arip import disaggregate_arip
+    >>> from datapie.periods import QuarterlyPeriod
+    >>> y = dp.Series(start=dp.yy(2020),
+    ...     values=np.array([100., 200., 300.]))
+    >>> start, data = disaggregate_arip(y, QuarterlyPeriod, ("rate", "sum"))
+    >>> start
+    qq(2020,1)
+    >>> data.shape
+    (12, 1)
+    >>> [round(v, 4) for v in data[:, 0].reshape(-1, 4).sum(1).tolist()]
+    [100.0, 200.0, 300.0]
+
+
+### Algorithm
+
+
+Under the rate form the high-frequency process is
+
+$$
+x_t = \rho \, x_{t-1} + e_t
+$$
+
+with $\rho$ the average gross rate of change of the observed series
+converted to the high frequency, and the shock scaled by $\sigma_t =
+\rho^t$. Under the diff form it is
+
+$$
+x_t = x_{t-1} + c + e_t
+$$
+
+with $c$ the average difference converted the same way and $\sigma_t =
+1$. Each low-frequency observation enters as $y_t = Z \, x_t$, where
+$Z$ holds the weights its aggregation stands for, and the whole system
+is solved at once, stacked in time rather than recursively. The same
+algorithm is set out with the state-space form under
+`Series.disaggregate`.
+
+................................................................................
+    """
     #[
     if not self.start_date:
         return None, None
@@ -66,71 +200,6 @@ def disaggregate_arip(
     return high_start_date, _np.column_stack(high_data, )
 
     #]
-
-
-# ==========================================================================
-#  ### `disaggregate_arip(self, target_period_class, model, target=None)`
-#
-#  Splits a low-frequency series into higher-frequency values by fitting a
-#  smooth autoregressive path that adds back up to the original data.
-#
-#  It looks for the smoothest high-frequency path consistent with what you
-#  already know. Each low-frequency observation is imposed as a
-#  constraint, so it is reproduced exactly by its own high-frequency
-#  values. This is the routine behind
-#  `Series.disaggregate(..., method="arip")` and is normally reached that
-#  way rather than called directly.
-#
-#  **Parameters.** `self` is the low-frequency series to interpolate. It
-#  is read and not changed. `target_period_class` is the period class of
-#  the frequency to move up to, such as `QuarterlyPeriod`, rather than a
-#  `Frequency` value.
-#
-#  `model` is a pair naming the form of the process and the way the
-#  high-frequency values add back up, and it has no default. The form is
-#  `"rate"` or `"multiplicative"` for a series that grows by a rate, or
-#  `"diff"` or `"additive"` for one that grows by a constant amount. The
-#  aggregation is `"sum"`, `"mean"`, `"avg"`, `"first"` or `"last"`,
-#  saying whether the low-frequency figure is the sum of its
-#  high-frequency values, their average, or the first or last of them. An
-#  unrecognised name for either raises `KeyError`.
-#
-#  In place of a name the aggregation may be a tuple of weights, one for
-#  each high-frequency period inside a single low-frequency period -- four
-#  of them going from annual to quarterly, not twelve.
-#
-#  `target` is an optional high-frequency series of values to hold fixed,
-#  which is how an indicator is imposed. Wherever it carries an
-#  observation the result is pinned to it. Take care when it covers every
-#  high-frequency period of a low-frequency period: that period's own
-#  observation is then dropped from the system, so the target replaces it
-#  rather than being reconciled with it, and the high-frequency values no
-#  longer add up to the low-frequency figure. Left as `None` nothing is
-#  pinned.
-#
-#  **Returns.** A pair of the first high-frequency period and a plain
-#  array of interpolated values, one column per variant of the input. It
-#  does not return a `Series`; the caller assembles one. A series with no
-#  start period gives back `(None, None)`.
-#
-#  **Examples.** Three years split into quarters, with each year's four
-#  quarters summing back to the annual figure:
-#
-#      >>> import numpy as np
-#      >>> import datapie as dp
-#      >>> from datapie.series.arip import disaggregate_arip
-#      >>> from datapie.periods import QuarterlyPeriod
-#      >>> y = dp.Series(start=dp.yy(2020),
-#      ...     values=np.array([100., 200., 300.]))
-#      >>> start, data = disaggregate_arip(y, QuarterlyPeriod, ("rate", "sum"))
-#      >>> start
-#      qq(2020,1)
-#      >>> data.shape
-#      (12, 1)
-#      >>> [round(v, 4) for v in data[:, 0].reshape(-1, 4).sum(1).tolist()]
-#      [100.0, 200.0, 300.0]
-#
-# ==========================================================================
 
 
 class _RateForm:
@@ -321,7 +390,100 @@ def disaggregate_arip_data(
     low_freq: int,
     high_freq: int,
 ) -> tuple[_np.ndarray, ...]:
-    """
+    r"""
+................................................................................
+
+## `disaggregate_arip_data`
+
+==Solves the interpolation problem on plain arrays, once for each variant of the data.==
+
+    disaggregate_arip_data(
+        low_data_variant_iterator,
+        target_data,
+        model,
+        num_low_periods,
+        low_freq,
+        high_freq,
+    )
+
+This is the numerical core that `disaggregate_arip` calls once it has
+worked out the periods and pulled the data out of the series. It knows
+nothing about time; everything it needs arrives as arrays and counts.
+
+For each variant it builds a linear system: a smoothness part, one row
+per low-frequency observation forcing the high-frequency values to
+aggregate back to it, and one row per fixed target value. Solving that
+system gives the high-frequency path.
+
+
+**Input arguments.**
+
+
+???+ input "low_data_variant_iterator"
+    Yields one array of low-frequency values per variant, each of
+    length `num_low_periods`. A variant of any other length raises
+    `Critical: Data variant has 2 periods, but 3 are required.`
+
+???+ input "target_data"
+    A flat array of high-frequency values with missing entries where
+    nothing is pinned. It must hold one value for every high-frequency
+    period, or it raises `Critical: Target data has 8 periods, but 12
+    are required.`
+
+    Where it supplies a complete set of values for one low-frequency
+    period, that period's own observation is struck out of the system
+    before solving. The target replaces the low-frequency constraint
+    there instead of being reconciled with it, so those high-frequency
+    values need not add back up to the low-frequency figure.
+
+    **The strike-out is written into the array the iterator handed
+    over.** `disaggregate_arip` passes copies and is unaffected, but if
+    you call this function with an array of your own, that observation
+    comes back replaced by a missing value in your array too:
+    `[100., 200., 300.]` becomes `[nan, 200., 300.]` under a target
+    covering the first four high-frequency periods.
+
+???+ input "model"
+    The pair described under `disaggregate_arip`.
+
+???+ input "num_low_periods"
+    How many low-frequency observations there are.
+
+???+ input "low_freq"
+    The low frequency as a plain integer, such as `1` for annual.
+
+???+ input "high_freq"
+    The high frequency as a plain integer, such as `4` for quarterly.
+    Its ratio to `low_freq` gives the number of high-frequency periods
+    inside each low one.
+
+
+### Returns
+
+
+A tuple holding one flat array per variant, each of `num_low_periods`
+times that ratio values. Nothing is returned about the periods; the
+caller supplies those.
+
+
+### Examples
+
+
+Three annual figures interpolated into twelve quarters, with nothing
+pinned:
+
+    >>> import numpy as np
+    >>> from datapie.series.arip import disaggregate_arip_data
+    >>> low = np.array([100., 200., 300.])
+    >>> target = np.full(12, np.nan)
+    >>> out = disaggregate_arip_data(iter([low]), target,
+    ...     ("rate", "sum"), 3, 1, 4)
+    >>> len(out)
+    1
+    >>> [round(v, 4) for v in out[0].reshape(-1, 4).sum(1).tolist()]
+    [100.0, 200.0, 300.0]
+
+................................................................................
     """
     where_finite_target, *_ = _np.nonzero(_np.isfinite(target_data, ))
     num_finite_target = where_finite_target.size
@@ -432,64 +594,4 @@ def disaggregate_arip_data(
     return high_data
 
 
-# ==========================================================================
-#  ### `disaggregate_arip_data(low_data_variant_iterator, target_data,
-#   model, num_low_periods, low_freq, high_freq)`
-#
-#  Solves the interpolation problem on plain arrays, once for each variant
-#  of the data.
-#
-#  This is the numerical core that `disaggregate_arip` calls once it has
-#  worked out the periods and pulled the data out of the series. It knows
-#  nothing about time; everything it needs arrives as arrays and counts.
-#  Reach for it directly only when you are working with arrays rather than
-#  with a `Series`.
-#
-#  For each variant it builds a linear system: a smoothness part, one row
-#  per low-frequency observation forcing the high-frequency values to
-#  aggregate back to it, and one row per fixed target value. Solving that
-#  system gives the high-frequency path.
-#
-#  **Parameters.** `low_data_variant_iterator` yields one array of
-#  low-frequency values per variant, each of length `num_low_periods`; a
-#  variant of any other length raises `Critical`. `target_data` is a flat
-#  array of high-frequency values with missing entries where nothing is
-#  pinned, and it must hold one value for every high-frequency period, or
-#  it also raises `Critical`.
-#
-#  Where `target_data` supplies a complete set of values for one
-#  low-frequency period, that period's own observation is struck out of
-#  the system before solving. The target replaces the low-frequency
-#  constraint there instead of being reconciled with it, so those
-#  high-frequency values need not add back up to the low-frequency figure.
-#  The strike-out is written into the array the iterator handed over.
-#  `disaggregate_arip` passes copies and is unaffected, but if you call
-#  this function with an array of your own, that observation is replaced
-#  by a missing value in your array too.
-#
-#  `model` is the pair described under `disaggregate_arip`.
-#  `num_low_periods` is how many low-frequency observations there are, and
-#  `low_freq` and `high_freq` are the two frequencies as plain integers,
-#  such as `1` and `4` for annual to quarterly. Their ratio gives the
-#  number of high-frequency periods inside each low one.
-#
-#  **Returns.** A tuple holding one flat array per variant, each of
-#  `num_low_periods` times that ratio values. Nothing is returned about
-#  the periods; the caller supplies those.
-#
-#  **Examples.** Three annual figures interpolated into twelve quarters,
-#  with nothing pinned:
-#
-#      >>> import numpy as np
-#      >>> from datapie.series.arip import disaggregate_arip_data
-#      >>> low = np.array([100., 200., 300.])
-#      >>> target = np.full(12, np.nan)
-#      >>> out = disaggregate_arip_data(iter([low]), target,
-#      ...     ("rate", "sum"), 3, 1, 4)
-#      >>> len(out)
-#      1
-#      >>> [round(v, 4) for v in out[0].reshape(-1, 4).sum(1).tolist()]
-#      [100.0, 200.0, 300.0]
-#
-# ==========================================================================
 

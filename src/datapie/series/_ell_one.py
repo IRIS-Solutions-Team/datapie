@@ -37,7 +37,77 @@ def lonf(
     r"""
 ................................................................................
 
-==L1-norm filter==
+## `lonf`
+
+==Splits a time series into a smooth trend and the gap around it, and returns the two as new series.==
+
+    trend_series, gap_series = lonf(
+        input_series,
+        order,
+        smooth,
+        span=None,
+    )
+
+This is an L1-norm relative of the Hodrick-Prescott filter: the trend
+comes out as a few straight segments joined at breaks rather than a
+curve that bends everywhere.
+
+
+**Input arguments.**
+
+
+???+ input "input_series"
+    The time series to filter. It is read and never modified.
+
+???+ input "order"
+    Which difference of the trend is held down, `1` or `2`, with no
+    default. `1` gives a trend of flat steps; `2` gives one of straight
+    sloping segments. Any other value raises `KeyError`.
+
+???+ input "smooth"
+    How hard the trend is held straight, with no default. The larger it
+    is, the smoother the trend and the more of the movement goes into
+    the gap; large enough and the trend flattens out altogether.
+
+???+ input "span"
+    The stretch of periods to filter. Left as `None` it is the whole
+    span the series covers, and it has to lie inside the observed data.
+
+
+Three failures are silent. A missing observation anywhere in the span
+empties both results, as does a `span` reaching beyond the observed
+data; and only the first variant is filtered, the rest dropped.
+
+
+### Returns
+
+
+A pair, `(trend_series, gap_series)`, both new `Series` starting at the
+first period of the resolved span, which added back together reproduce
+the input over that span.
+
+
+### Examples
+
+
+Trend and gap add back up to the data they came from:
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array(
+    ...         [1., 3., 2., 5., 4., 7., 6., 9., 8., 11., 10., 13.]))
+    >>> trend, gap = dp.lonf(x, 1, 1.0)
+    >>> np.allclose(trend.get_data() + gap.get_data(), x.get_data())
+    True
+
+One missing observation empties the result:
+
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 3., np.nan, 5., 4., 7.]))
+    >>> trend, gap = dp.lonf(x, 1, 1.0)
+    >>> trend.num_periods
+    0
 
 ................................................................................
     """
@@ -71,52 +141,6 @@ def lonf(
     gap_series = Series(start=start_period, values=gap_data_variants, )
 
     return trend_series, gap_series,
-
-# ==========================================================================
-#  ### `lonf(input_series, order, smooth, span=None)`
-#
-#  Splits a time series into a smooth trend and the gap around it, and
-#  returns the two as new series.
-#
-#  This is an L1-norm relative of the Hodrick-Prescott filter: the trend
-#  comes out as straight segments joined at a few breaks rather than a
-#  curve that bends everywhere.
-#
-#  **Parameters.** `input_series` is read and never modified. `order` must
-#  be `1` or `2` and has no default; any other value raises `KeyError`.
-#  `smooth` has no default either, and the larger it is, the smoother the
-#  trend and the more of the movement goes into the gap. `span` is the
-#  stretch of periods to filter, and left as `None` it is the whole span
-#  the series covers; it has to lie inside the observed data.
-#
-#  **Returns.** A pair, `(trend_series, gap_series)`, both new `Series`
-#  starting at the first period of the resolved span, which added back
-#  together reproduce the input over that span.
-#
-#  Two things happen quietly. A single missing observation anywhere in the
-#  span turns the whole result into an empty series rather than an error.
-#  Only the first variant is filtered, and any others are dropped.
-#
-#  **Examples.** Trend and gap add back up to the data they came from:
-#
-#      >>> import numpy as np
-#      >>> import datapie as dp
-#      >>> x = dp.Series(start=dp.qq(2020, 1),
-#      ...     values=np.array(
-#      ...         [1., 3., 2., 5., 4., 7., 6., 9., 8., 11., 10., 13.]))
-#      >>> trend, gap = dp.lonf(x, 1, 1.0)
-#      >>> np.allclose(trend.get_data() + gap.get_data(), x.get_data())
-#      True
-#
-#  One missing observation empties the result:
-#
-#      >>> x = dp.Series(start=dp.qq(2020, 1),
-#      ...     values=np.array([1., 3., np.nan, 5., 4., 7.]))
-#      >>> trend, gap = dp.lonf(x, 1, 1.0)
-#      >>> trend.num_periods
-#      0
-#
-# ==========================================================================
 
 _functional_forms = {"lonf", }
 __all__ = tuple(_functional_forms)

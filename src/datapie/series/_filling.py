@@ -147,11 +147,9 @@ periods stay missing and are trimmed:
         """
         fill_func = _FILL_METHOD_DISPATCH[method]
         data, span, = self.get_data_and_periods(span, )
-        new_data = [
-            fill_func(variant, method_args, span=span, ).T
-            for variant in data.T
-        ]
-        self.set_data(span, new_data, )
+        for variant in data.T:
+            fill_func(variant, method_args, span=span, )
+        self.set_data(span, data, )
 
     #]
 

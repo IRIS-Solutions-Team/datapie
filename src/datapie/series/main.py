@@ -383,6 +383,14 @@ shifting or clipping it, leaves the original alone.
         new._description = self._description
         return new
 
+    def _copy_with_no_data(self, ) -> Self:
+        r"""
+        """
+        new = type(self)(populate=False, )
+        new.start = self.start
+        new._description = self._description
+        return new
+
     @classmethod
     def void(
         klass,
@@ -703,7 +711,7 @@ A whole number. It stays what it was even when the series is emptied.
     self.is_singleton
 
 A read-only property. Some methods change what they return depending on
-it: `iter_dates_values` hands back bare values for a single-variant
+it: `iter_periods_and_values` hands back bare values for a single-variant
 series and lists for a multi-variant one, and `x13` does the same with
 the information it reports back. `get_values` looks as though it does,
 and does not -- see its own block.
@@ -1420,18 +1428,18 @@ Writing before the start extends the series backwards:
 
     def _resolve_periods_and_positions(
         self,
-        periods: Periods,
+        periods: Periods | None | EllipsisType = None,
         variants: VariantsRequestType = None,
     ) -> tuple[Iterable[Period], Iterable[int], Iterable[int], _np.ndarray]:
         """
         """
         variants = self._resolve_variants(variants)
-        if not periods or all(p is None for p in periods):
+        periods = self.resolve_periods(periods, )
+        if not periods:
             periods = ()
             pos = ()
             data = self._create_periods_of_missing_values(num_rows=0, )[:, variants]
             return periods, pos, variants, data,
-        periods = self.resolve_periods(periods, )
         base_date = self.start or min(periods, )
         pos, add_before, add_after = _get_date_positions(periods, base_date, self.shape[0], )
         expanded_data = self._create_expanded_data(add_before, add_after, )
@@ -1725,7 +1733,7 @@ Out-of-span periods come back missing, and order is preserved:
 
     def get_data_and_periods(
         self,
-        dates: Iterable[Period] | None | EllipsisType = ...,
+        periods: Iterable[Period] | None | EllipsisType = ...,
         *args,
     ) -> _np.ndarray:
         r"""
@@ -1735,7 +1743,7 @@ Out-of-span periods come back missing, and order is preserved:
 
 ==Returns the observations together with the periods they belong to.==
 
-    self.get_data_and_periods(dates=..., *args)
+    self.get_data_and_periods(periods=..., *args)
 
 `get_data` is this method with the periods thrown away.
 
@@ -1743,7 +1751,7 @@ Out-of-span periods come back missing, and order is preserved:
 **Input arguments.**
 
 
-???+ input "dates"
+???+ input "periods"
     Selects the periods, exactly as in `get_data`, and left alone covers
     the whole span.
 
@@ -1772,12 +1780,12 @@ first entry.
 
 ················································································
         """
-        periods, pos, variants, expanded_values, = self._resolve_dates_and_positions(dates, *args, )
-        return expanded_values[_np.ix_(pos, variants)], periods
+        periods, pos, variants, expanded_values, = self._resolve_periods_and_positions(periods, *args, )
+        return expanded_values[_np.ix_(pos, variants)], periods,
 
     def get_data_variant(
         self,
-        dates: Periods,
+        periods: Periods,
         variant: Real | None = None,
     ) -> _np.ndarray:
         r"""
@@ -1787,12 +1795,12 @@ first entry.
 
 ==Returns the observations of a single variant as a one-column numpy array.==
 
-    self.get_data_variant(dates, variant=None)
+    self.get_data_variant(periods, variant=None)
 
 **Input arguments.**
 
 
-???+ input "dates"
+???+ input "periods"
     Selects the periods, as in `get_data`.
 
 ???+ input "variant"
@@ -1825,7 +1833,7 @@ An out-of-range variant is not an error:
 ················································································
         """
         variant = variant if variant and variant<self.data.shape[1] else 0
-        return self.get_data(dates, variant, )
+        return self.get_data(periods, variant, )
 
     def get_data_from_until(
         self,
@@ -1882,6 +1890,8 @@ Asking beyond the end pads instead of failing:
 
 ················································································
         """
+        if all(p is None for p in from_until):
+            from_until = ()
         _, pos, variants, expanded_data = self._resolve_periods_and_positions(from_until, *args, )
         if not pos:
             return self._create_periods_of_missing_values(num_rows=0, )[:, variants]
@@ -2445,7 +2455,10 @@ Blanking the first observation shortens the series:
         for n in ("start", "data", "data_type", ):
             setattr(self, n, getattr(other, n, ))
 
-    def __and__(self, other):
+    def __iter__(self, ):
+        return self.iter_own_variants()
+
+    def __and__(self, other, ):
         """
         Implement the & operator as hstack
         """
@@ -2517,7 +2530,7 @@ reset also erases the description.
         num_variants = self.num_variants
         data_before = _np.full((add_before, num_variants), _np.nan, dtype=self.data_type, )
         data_after = _np.full((add_after, num_variants), _np.nan, dtype=self.data_type, )
-        return _np.concatenate((data_before, self.data, data_after), axis=0, )
+        return _np.concatenate((data_before, self.data, data_after, ), axis=0, )
 
     def _check_data_shape(self, data, ):
         if data.shape[1] != self.data.shape[1]:
@@ -2904,7 +2917,6 @@ across time gives a bare array of two numbers:
         new._replace_start_and_values(from_until[0], new_data, )
         return new
 
-
     def _replace_data(
         self,
         new_values,
@@ -2917,6 +2929,7 @@ across time gives a bare array of two numbers:
         elif num_dimes > 2:
             new_values = new_values.reshape(new_values.shape[0], -1)
         self.data = new_values
+        self.data_type = new_values.dtype
         self.trim()
 
     def _replace_start_and_values(
@@ -2929,15 +2942,15 @@ across time gives a bare array of two numbers:
         self.start = new_start
         self._replace_data(new_values, )
 
-    def iter_dates_values(self, unpack_singleton=True, ):
+    def iter_periods_and_values(self, unpack_singleton=True, ):
         r"""
 ················································································
 
-## `Series.iter_dates_values`
+## `Series.iter_periods_and_values`
 
 ==Steps through the time series period by period, giving the period and its observations together.==
 
-    self.iter_dates_values(unpack_singleton=True)
+    self.iter_periods_and_values(unpack_singleton=True)
 
 It saves lining up `periods` against `get_data` by hand.
 
@@ -2968,7 +2981,7 @@ Iterating it consumes it; call the method again for a second pass.
     >>> import numpy as np
     >>> import datapie as dp
     >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> list(x.iter_dates_values())
+    >>> list(x.iter_periods_and_values())
     [(qq(2020,1), 1.0), (qq(2020,2), 2.0)]
 
 ················································································
@@ -2982,8 +2995,8 @@ Iterating it consumes it; call the method again for a second pass.
             if self.is_singleton and unpack_singleton
             else _keep_data_row
         )
-        for date, data_row in zip(self.span, self.data, ):
-            yield date, data_row_func(data_row.tolist(), )
+        for period, data_row in zip(self.span, self.data, ):
+            yield period, data_row_func(data_row.tolist(), )
 
     def iter_variants(self, ) -> Iterator[Self]:
         r"""
@@ -3031,7 +3044,7 @@ last variant. To split a series by variant, copy it and call
 ················································································
         """
         for data in self.iter_data_variants_from_until(..., ):
-            new = self.copy()
+            new = self._copy_with_no_data()
             new._replace_data(data, )
             yield new
 
@@ -3039,7 +3052,7 @@ last variant. To split a series by variant, copy it and call
         r"""
         """
         for data in self.iter_own_data_variants_from_until(..., ):
-            new = self.copy()
+            new = self._copy_with_no_data()
             new._replace_data(data, )
             yield new
 

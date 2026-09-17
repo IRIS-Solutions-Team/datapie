@@ -194,7 +194,7 @@ A new Databox holding the same items.
 
     @classmethod
     @_dm.reference(category="constructor", call_name="Databox.from_array", )
-    def from_array(
+    def series_from_array(
         klass,
         array: _np.ndarray,
         names: Sequence[str],
@@ -208,35 +208,27 @@ A new Databox holding the same items.
         """
 ················································································
 
-## `Databox.from_array`
+## `Databox.series_from_array`
 
 ==Creates a new Databox with one time series per row or column of a numpy array.==
-
-**This method does not currently work, and everything below describes what it
-is meant to do rather than what it does.** The helper it delegates to,
-`_from_horizontal_array_and_constructor`, has its assignment line commented out
-and a debug `print` left in its place, so the call prints one line per name to
-standard output and creates no series at all. It returns an empty `Databox`, or
-`target_db` unchanged when one is given. Nothing in the package calls it.
 
 Convert a two-dimensional [numpy](https://numpy.org) array data into a
 Databox, with the individual time series created from the rows or columns
 of the numeric array.
 
-    self = Databox.from_array(
+    self = Databox.series_from_array(
         array,
         names,
         *,
-        descriptions=None,
+        target_db=None,
         periods=None,
         start=None,
-        target_db=None,
+        descriptions=None,
         orientation="vertical",
     )
 
 
 **Input arguments.**
-
 
 ???+ input "array"
     A numpy array containing the data to be included in the Databox.
@@ -274,37 +266,19 @@ warning at the top of this entry.
 
 ················································································
         """
-        array = array if orientation == "horizontal" else array.T
-        series_constructor = _get_series_constructor(start, periods, )
-        return klass._from_horizontal_array_and_constructor(
-            array,
-            names,
-            series_constructor,
-            descriptions=descriptions,
-            target_db=target_db,
-        )
-
-    @classmethod
-    def _from_horizontal_array_and_constructor(
-        klass,
-        array: _np.ndarray,
-        names: Iterable[str],
-        series_constructor: Callable,
-        *,
-        descriptions: Sequence[str] | None = None,
-        target_db: Self | None = None,
-    ) -> Self:
-        """
-        """
         self = target_db or klass()
-        descriptions = (
-            descriptions if descriptions is not None
-            else _it.repeat("", )
-        )
-        for name, values, description in zip(names, array, descriptions, ):
-            print(name, type(values), description, )
-            # self[name] = series_constructor(values=values, description=description, )
+        descriptions = _it.chain(descriptions or (), _it.repeat("", ), )
+        data_rows = array if orientation == "horizontal" else array.T
+        for name, values, description, in zip(names, data_rows, descriptions, ):
+            self[name] = Series(
+                start=start,
+                periods=periods,
+                values=values,
+                description=description,
+            )
         return self
+
+    from_array = series_from_array
 
     @_dm.reference(category="retrieval", )
     def array_from_series(
@@ -2271,7 +2245,7 @@ def _get_series_constructor(
     start: Period | None = None,
     periods: Iterable[Period] | None = None,
 ) -> Callable | None:
-    """
+    r"""
     """
     #[
     if start is not None:

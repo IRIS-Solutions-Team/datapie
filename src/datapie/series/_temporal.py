@@ -873,7 +873,7 @@ Nothing; the series is modified in place.
 ································································
         """
         factor = self.frequency.value or 1
-        self.data = self.data**factor
+        self.data = self.data**(1/factor)
 
 
 

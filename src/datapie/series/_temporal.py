@@ -281,9 +281,7 @@ There is no `shift`; it is always `-1`.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -385,9 +383,7 @@ There is no `shift`; it is always `-1`.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -490,9 +486,7 @@ ratio of `1.1` becomes `1.1**4`. There is no `shift`; it is always
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -591,9 +585,7 @@ not forty. There is no `shift`; it is always `-1`.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -644,9 +636,7 @@ plain rescaling and nothing is annualized either way.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -693,9 +683,7 @@ The inverse of `roc_from_pct`, and like it the frequency plays no part.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -743,9 +731,7 @@ annualized ten percent becomes about 2.41 percent a quarter.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -794,9 +780,7 @@ than a percentage.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns
@@ -849,9 +833,7 @@ de-annualizing behaviour.
 **Input arguments.**
 
 
-???+ input "self"
-    The series whose values are rewritten. There are no other
-    arguments.
+None.
 
 
 ### Returns

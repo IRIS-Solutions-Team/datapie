@@ -686,9 +686,6 @@ form that duplicates the values.
 
 **Input arguments.**
 
-???+ input "self"
-    The Databox object to copy.
-
 ???+ input "source_names"
     Names of the items to include in the copy. Can be a list of names, a single
     name, a callable returning `True` for names to include, or `None` to copy

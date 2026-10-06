@@ -31,10 +31,11 @@ from .. import wrongdoings as _wrongdoings
 from .. import descriptions as _descriptions
 
 from . import _merge
+from . import _executors
+from . import _jsonables
 from . import _imports
 from . import _exports
 from . import _views
-from . import _jsonables
 
 #]
 
@@ -72,6 +73,7 @@ class SteadyDataboxableProtocol(Protocol):
 )
 class Databox(
     _merge.Mixin,
+    _executors.Mixin,
     _exports.Mixin,
     _imports.Mixin,
     _jsonables.Mixin,
@@ -617,7 +619,10 @@ A new Databox. The original is not changed.
         if source_names is None and target_names is None:
             return new_databox
         source_names, target_names, *_ = self._resolve_source_target_names(
-            source_names, target_names, strict_names,
+            source_names=source_names,
+            target_names=target_names,
+            name_mapping=None,
+            strict_names=strict_names,
         )
         new_databox.rename(source_names, target_names, strict_names=strict_names, )
         new_databox.keep(target_names, strict_names=strict_names, )
@@ -702,7 +707,10 @@ A new Databox sharing the original's items.
 ................................................................................
         """
         source_names, target_names, *_ = self._resolve_source_target_names(
-            source_names, target_names, strict_names,
+            source_names=source_names,
+            target_names=target_names,
+            name_mapping=None,
+            strict_names=strict_names,
         )
         return type(self)(
             (t, self[s])
@@ -838,6 +846,7 @@ A validator is a *sequence*, and the second entry is the message:
         #
         source_names: SourceNames = None,
         target_names: TargetNames = None,
+        name_mapping: dict[str, str] | None = None,
         strict_names: bool = False,
     ) -> None:
         r"""
@@ -909,6 +918,7 @@ Nothing; the Databox is modified in place.
     def remove(
         self: Self,
         remove_names: SourceNames = None,
+        *,
         strict_names: bool = False,
     ) -> None:
         """
@@ -964,8 +974,12 @@ Nothing; the Databox is modified in place and the removed items are gone.
         """
         if remove_names is None:
             return
-        remove_names, *_ \
-            = self._resolve_source_target_names(remove_names, None, strict_names, )
+        remove_names, *_ = self._resolve_source_target_names(
+                source_names=remove_names,
+                target_names=None,
+                name_mapping=None,
+                strict_names=strict_names,
+            )
         for n in remove_names:
             del self[n]
 
@@ -1027,7 +1041,12 @@ Nothing; the Databox is modified in place and everything not named is gone.
         if keep_names is None:
             return
         keep_names, *_ \
-            = self._resolve_source_target_names(keep_names, None, strict_names, )
+            = self._resolve_source_target_names(
+            source_names=keep_names,
+            target_names=None,
+            name_mapping=None,
+            strict_names=strict_names,
+        )
         remove_names = set(self.keys()) - set(keep_names)
         for n in remove_names:
             del self[n]
@@ -1112,7 +1131,10 @@ according to `when_fails`.
 ················································································
         """
         source_names, *_ = self._resolve_source_target_names(
-            source_names, None, strict_names,
+            source_names=source_names,
+            target_names=None,
+            name_mapping=None,
+            strict_names=strict_names,
         )
         when_fails_stream = _wrongdoings.create_stream(
             when_fails,
@@ -1209,7 +1231,10 @@ handled according to `when_fails`.
 ················································································
         """
         source_names, target_names, *_ = self._resolve_source_target_names(
-            source_names, target_names, strict_names,
+            source_names=source_names,
+            target_names=target_names,
+            name_mapping=None,
+            strict_names=strict_names,
         )
         when_fails_stream = _wrongdoings.create_stream(
             when_fails,
@@ -2188,11 +2213,15 @@ supplies one per variable. Note that `gdp` keeps its description:
         self,
         source_names: SourceNames,
         target_names: TargetNames,
+        name_mapping: dict[str, str] | None = None,
         strict_names: bool = False,
     ) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
         """
         """
         context_names = self.get_names()
+        if name_mapping:
+            source_names = tuple(name_mapping.keys())
+            target_names = tuple(name_mapping.values())
         if source_names is None:
             source_names = context_names
         if isinstance(source_names, str):

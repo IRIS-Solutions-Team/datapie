@@ -21,6 +21,7 @@ text = "MIT"
 [project.urls]
 Homepage = "https://github.com/iris-solutions-team/datapie"
 Documentation = "https://iris-solutions-team.github.io/datapie-pages"
+Tutorials = "https://github.com/IRIS-Solutions-Team/datapie-tutorials"
 "Bug Tracker" = "https://github.com/iris-solutions-team/datapie/issues"
 
 [tool.hatch.build.targets.wheel]

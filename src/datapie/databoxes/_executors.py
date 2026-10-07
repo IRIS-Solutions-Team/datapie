@@ -5,21 +5,21 @@ r"""
 
 # Standard library imports
 import runpy
-from typing import Callable, Self
+from typing import Callable, Self, Any
 from types import ModuleType
 from collections.abc import Iterable
 
 #]
 
 
-def _hard_exclude(name: str, ) -> bool:
+def _hard_exclude(name: str, value: Any, ) -> bool:
     return (
         name.startswith("__")
-        or isinstance(name, ModuleType)
+        or isinstance(value, ModuleType)
     )
 
 
-def _default_exclude(name: str, ) -> bool:
+def _default_exclude(name: str, value: Any, ) -> bool:
     return name.startswith("_")
 
 
@@ -46,7 +46,7 @@ class Mixin:
         ```
         self = Databox.from_file(
             filename,
-            exclude=<name filter>,
+            exclude=<filter>,
         )
         ```
 
@@ -66,14 +66,17 @@ class Mixin:
             code.
 
         __`exclude`__ (function or `None`)
-        :   A name filter that lets you decide which of the script's names
-            should not be stored in the new databox; see _Excluded names_
-            below. The filter is a function that is handed one name at a time,
-            as a string, and answers `True` if that name should be left out or
-            `False` if it should be kept. If you do not specify `exclude`,
-            names beginning with a single underscore, such as `_tmp` or
-            `_helper`, are left out. If you specify `exclude=None`, no name
-            filter is applied.
+        :   A filter that lets you decide which of the objects created by the
+            script should not be stored in the new databox; see _Excluded
+            names_ below. The filter is a function that is handed two things
+            about each object, in this order: its name, as a string, and the
+            object itself. It answers `True` if the object should be left out
+            and `False` if it should be kept. The function must accept both
+            arguments, even if it only looks at one of them. If you do not
+            specify `exclude`, objects whose names begin with a single
+            underscore, such as `_tmp` or `_helper`, are left out. If you
+            specify `exclude=None`, no filter is applied, and only the fixed
+            exclusions described below remain.
 
         ### Returns
 
@@ -82,28 +85,33 @@ class Mixin:
 
         ### Excluded names
 
-        Whether a name created by the script is kept out of the databox is
-        decided in two steps, and a name is left out if either step excludes
-        it.
+        Whether an object created by the script is kept out of the databox is
+        decided in two steps, and an object is left out if either step
+        excludes it.
 
-        The first step is fixed and cannot be changed: any name that begins
-        with a double underscore, such as `__name__` or `__builtins__`, is
-        always left out. Python adds such names to every namespace for its own
-        purposes, and they are never meant to be data.
+        The first step is fixed and cannot be changed, and it always leaves
+        out two kinds of objects. The first kind are objects whose names begin
+        with a double underscore, such as `__name__` and `__builtins__`;
+        Python adds such names to every namespace for its own purposes, and
+        they are never meant to be data. The second kind are modules, such as
+        the one that `import numpy as np` brings in; these are tools the
+        script uses rather than results it produces. As a consequence, an
+        import never adds an item to the databox.
 
         The second step is custom and is controlled by the `exclude` argument.
-        By default, it leaves out all names that begin with a single
+        By default, it leaves out all objects whose names begin with a single
         underscore, following the usual convention that such names are private
-        or temporary. You can replace this rule with your own name filter, for
-        instance to leave out names with a certain prefix or to keep some
-        underscored names, or switch it off entirely with `exclude=None`, in
-        which case only the fixed step applies. Be aware that with
-        `exclude=None`, single-underscore names, including the `_requires`
-        helper, do end up in the databox.
+        or temporary. You can replace this rule with your own filter, which is
+        shown both the name and the value of each object and can therefore
+        decide on either one, for instance to leave out names with a certain
+        prefix, to keep some underscored names, or to leave out all objects of
+        a certain type. You can also switch the custom step off entirely with
+        `exclude=None`, in which case only the fixed step applies. Be aware
+        that with `exclude=None`, single-underscore names, including the
+        `_requires` helper, do end up in the databox.
 
-        Every name that passes both steps is stored, not only data. Modules
-        imported by the script (for instance `import numpy as np`) and
-        functions or classes defined in it are stored as well, unless
+        Every object that passes both steps is stored, not only data:
+        functions and classes defined in the script are stored as well, unless
         `exclude` filters them out.
 
         ### Details
@@ -140,7 +148,7 @@ class Mixin:
         ```
         self = Databox.from_string(
             source,
-            exclude=<name filter>,
+            exclude=<filter>,
         )
         ```
 
@@ -159,14 +167,17 @@ class Mixin:
             the calling code.
 
         __`exclude`__ (function or `None`)
-        :   A name filter that lets you decide which of the code's names
-            should not be stored in the new databox; see _Excluded names_
-            below. The filter is a function that is handed one name at a time,
-            as a string, and answers `True` if that name should be left out or
-            `False` if it should be kept. If you do not specify `exclude`,
-            names beginning with a single underscore, such as `_tmp` or
-            `_helper`, are left out. If you specify `exclude=None`, no name
-            filter is applied.
+        :   A filter that lets you decide which of the objects created by the
+            code should not be stored in the new databox; see _Excluded names_
+            below. The filter is a function that is handed two things about
+            each object, in this order: its name, as a string, and the object
+            itself. It answers `True` if the object should be left out and
+            `False` if it should be kept. The function must accept both
+            arguments, even if it only looks at one of them. If you do not
+            specify `exclude`, objects whose names begin with a single
+            underscore, such as `_tmp` or `_helper`, are left out. If you
+            specify `exclude=None`, no filter is applied, and only the fixed
+            exclusions described below remain.
 
         ### Returns
 
@@ -175,29 +186,34 @@ class Mixin:
 
         ### Excluded names
 
-        Whether a name created by the code is kept out of the databox is
-        decided in two steps, and a name is left out if either step excludes
-        it.
+        Whether an object created by the code is kept out of the databox is
+        decided in two steps, and an object is left out if either step
+        excludes it.
 
-        The first step is fixed and cannot be changed: any name that begins
-        with a double underscore, such as `__builtins__`, is always left out.
-        Python adds such names to every namespace for its own purposes, and
-        they are never meant to be data.
+        The first step is fixed and cannot be changed, and it always leaves
+        out two kinds of objects. The first kind are objects whose names begin
+        with a double underscore, such as `__builtins__`; Python adds such
+        names to every namespace for its own purposes, and they are never
+        meant to be data. The second kind are modules, such as the one that
+        `import numpy as np` brings in; these are tools the code uses rather
+        than results it produces. As a consequence, an import never adds an
+        item to the databox.
 
         The second step is custom and is controlled by the `exclude` argument.
-        By default, it leaves out all names that begin with a single
+        By default, it leaves out all objects whose names begin with a single
         underscore, following the usual convention that such names are private
-        or temporary. You can replace this rule with your own name filter, for
-        instance to leave out names with a certain prefix or to keep some
-        underscored names, or switch it off entirely with `exclude=None`, in
-        which case only the fixed step applies. Be aware that with
-        `exclude=None`, single-underscore names, including the `_requires`
-        helper, do end up in the databox.
+        or temporary. You can replace this rule with your own filter, which is
+        shown both the name and the value of each object and can therefore
+        decide on either one, for instance to leave out names with a certain
+        prefix, to keep some underscored names, or to leave out all objects of
+        a certain type. You can also switch the custom step off entirely with
+        `exclude=None`, in which case only the fixed step applies. Be aware
+        that with `exclude=None`, single-underscore names, including the
+        `_requires` helper, do end up in the databox.
 
-        Every name that passes both steps is stored, not only data. Modules
-        imported by the code (for instance `import numpy as np`) and functions
-        or classes defined in it are stored as well, unless `exclude` filters
-        them out.
+        Every object that passes both steps is stored, not only data:
+        functions and classes defined in the code are stored as well, unless
+        `exclude` filters them out.
 
         ### Details
 
@@ -232,7 +248,7 @@ class Mixin:
         ```
         self.execute_file(
             filename,
-            exclude=<name filter>,
+            exclude=<filter>,
         )
         ```
 
@@ -254,14 +270,17 @@ class Mixin:
             globals with the calling code.
 
         __`exclude`__ (function or `None`)
-        :   A name filter that lets you decide which of the script's names
-            should not be stored in the databox; see _Excluded names_ below.
-            The filter is a function that is handed one name at a time, as a
-            string, and answers `True` if that name should be left out or
-            `False` if it should be kept. If you do not specify `exclude`,
-            names beginning with a single underscore, such as `_tmp` or
-            `_helper`, are left out. If you specify `exclude=None`, no name
-            filter is applied.
+        :   A filter that lets you decide which of the objects created by the
+            script should not be stored in the databox; see _Excluded names_
+            below. The filter is a function that is handed two things about
+            each object, in this order: its name, as a string, and the object
+            itself. It answers `True` if the object should be left out and
+            `False` if it should be kept. The function must accept both
+            arguments, even if it only looks at one of them. If you do not
+            specify `exclude`, objects whose names begin with a single
+            underscore, such as `_tmp` or `_helper`, are left out. If you
+            specify `exclude=None`, no filter is applied, and only the fixed
+            exclusions described below remain.
 
         ### Returns
 
@@ -272,28 +291,34 @@ class Mixin:
 
         ### Excluded names
 
-        Whether a name created by the script is kept out of the databox is
-        decided in two steps, and a name is left out if either step excludes
-        it.
+        Whether an object created by the script is kept out of the databox is
+        decided in two steps, and an object is left out if either step
+        excludes it.
 
-        The first step is fixed and cannot be changed: any name that begins
-        with a double underscore, such as `__name__` or `__builtins__`, is
-        always left out. Python adds such names to every namespace for its own
-        purposes, and they are never meant to be data.
+        The first step is fixed and cannot be changed, and it always leaves
+        out two kinds of objects. The first kind are objects whose names begin
+        with a double underscore, such as `__name__` and `__builtins__`;
+        Python adds such names to every namespace for its own purposes, and
+        they are never meant to be data. The second kind are modules, such as
+        the one that `import numpy as np` brings in; these are tools the
+        script uses rather than results it produces. As a consequence, an
+        import never adds an item to the databox, and never replaces an
+        existing item of the same name.
 
         The second step is custom and is controlled by the `exclude` argument.
-        By default, it leaves out all names that begin with a single
+        By default, it leaves out all objects whose names begin with a single
         underscore, following the usual convention that such names are private
-        or temporary. You can replace this rule with your own name filter, for
-        instance to leave out names with a certain prefix or to keep some
-        underscored names, or switch it off entirely with `exclude=None`, in
-        which case only the fixed step applies. Be aware that with
-        `exclude=None`, single-underscore names, including the `_requires`
-        helper described below, do end up in the databox.
+        or temporary. You can replace this rule with your own filter, which is
+        shown both the name and the value of each object and can therefore
+        decide on either one, for instance to leave out names with a certain
+        prefix, to keep some underscored names, or to leave out all objects of
+        a certain type. You can also switch the custom step off entirely with
+        `exclude=None`, in which case only the fixed step applies. Be aware
+        that with `exclude=None`, single-underscore names, including the
+        `_requires` helper described below, do end up in the databox.
 
-        Every name that passes both steps is stored, not only data. Modules
-        imported by the script (for instance `import numpy as np`) and
-        functions or classes defined in it are stored as well, unless
+        Every object that passes both steps is stored, not only data:
+        functions and classes defined in the script are stored as well, unless
         `exclude` filters them out.
 
         ### Details
@@ -334,7 +359,7 @@ class Mixin:
         ```
         self.execute_string(
             source,
-            exclude=<name filter>,
+            exclude=<filter>,
         )
         ```
 
@@ -355,14 +380,17 @@ class Mixin:
             the calling code.
 
         __`exclude`__ (function or `None`)
-        :   A name filter that lets you decide which of the code's names
-            should not be stored in the databox; see _Excluded names_ below.
-            The filter is a function that is handed one name at a time, as a
-            string, and answers `True` if that name should be left out or
-            `False` if it should be kept. If you do not specify `exclude`,
-            names beginning with a single underscore, such as `_tmp` or
-            `_helper`, are left out. If you specify `exclude=None`, no name
-            filter is applied.
+        :   A filter that lets you decide which of the objects created by the
+            code should not be stored in the databox; see _Excluded names_
+            below. The filter is a function that is handed two things about
+            each object, in this order: its name, as a string, and the object
+            itself. It answers `True` if the object should be left out and
+            `False` if it should be kept. The function must accept both
+            arguments, even if it only looks at one of them. If you do not
+            specify `exclude`, objects whose names begin with a single
+            underscore, such as `_tmp` or `_helper`, are left out. If you
+            specify `exclude=None`, no filter is applied, and only the fixed
+            exclusions described below remain.
 
         ### Returns
 
@@ -373,29 +401,35 @@ class Mixin:
 
         ### Excluded names
 
-        Whether a name created by the code is kept out of the databox is
-        decided in two steps, and a name is left out if either step excludes
-        it.
+        Whether an object created by the code is kept out of the databox is
+        decided in two steps, and an object is left out if either step
+        excludes it.
 
-        The first step is fixed and cannot be changed: any name that begins
-        with a double underscore, such as `__builtins__`, is always left out.
-        Python adds such names to every namespace for its own purposes, and
-        they are never meant to be data.
+        The first step is fixed and cannot be changed, and it always leaves
+        out two kinds of objects. The first kind are objects whose names begin
+        with a double underscore, such as `__builtins__`; Python adds such
+        names to every namespace for its own purposes, and they are never
+        meant to be data. The second kind are modules, such as the one that
+        `import numpy as np` brings in; these are tools the code uses rather
+        than results it produces. As a consequence, an import never adds an
+        item to the databox, and never replaces an existing item of the same
+        name.
 
         The second step is custom and is controlled by the `exclude` argument.
-        By default, it leaves out all names that begin with a single
+        By default, it leaves out all objects whose names begin with a single
         underscore, following the usual convention that such names are private
-        or temporary. You can replace this rule with your own name filter, for
-        instance to leave out names with a certain prefix or to keep some
-        underscored names, or switch it off entirely with `exclude=None`, in
-        which case only the fixed step applies. Be aware that with
-        `exclude=None`, single-underscore names, including the `_requires`
-        helper described below, do end up in the databox.
+        or temporary. You can replace this rule with your own filter, which is
+        shown both the name and the value of each object and can therefore
+        decide on either one, for instance to leave out names with a certain
+        prefix, to keep some underscored names, or to leave out all objects of
+        a certain type. You can also switch the custom step off entirely with
+        `exclude=None`, in which case only the fixed step applies. Be aware
+        that with `exclude=None`, single-underscore names, including the
+        `_requires` helper described below, do end up in the databox.
 
-        Every name that passes both steps is stored, not only data. Modules
-        imported by the code (for instance `import numpy as np`) and functions
-        or classes defined in it are stored as well, unless `exclude` filters
-        them out.
+        Every object that passes both steps is stored, not only data:
+        functions and classes defined in the code are stored as well, unless
+        `exclude` filters them out.
 
         ### Details
 
@@ -488,15 +522,15 @@ def _update_from_namespace(
 ) -> None:
     r"""
     """
-    def _exclude(name):
+    def _exclude(name, value, ):
         return (
-            _hard_exclude(name, )
-            or (exclude is not None and exclude(name))
+            _hard_exclude(name, value, )
+            or (exclude is not None and exclude(name, value, ))
         )
     self.update(
         (name, value)
         for name, value in namespace.items()
-        if not _exclude(name)
+        if not _exclude(name, value, )
     )
 
 

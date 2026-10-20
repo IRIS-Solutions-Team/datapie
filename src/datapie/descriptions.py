@@ -36,27 +36,23 @@ class Mixin:
         self: HasDescriptionProtocol,
     ) -> str:
         r"""
-................................................................................
+==Get the object's description==
 
+#### Syntax
 
-==Get description attached to an object==
+    description = object.get_description()
 
-description = self.get_description()
+#### Input arguments
 
+!!! input "object"
 
-### Input arguments ###
+    The object whose description is requested.
 
-???+ input "self"
-An object from which to get the description.
+#### Returns
 
+!!! returns "description"
 
-### Returns ###
-
-???+ returns "description"
-The description attached to the object.
-
-
-................................................................................
+    The description as a string, or an empty string if none has been set.
         """
         return str(self._description or "")
 
@@ -66,30 +62,29 @@ The description attached to the object.
             description: str,
         ) -> None:
         r"""
-................................................................................
+==Set the object's description==
 
-==Set the description for an object==
+#### Syntax
 
-self.set_description(
-    description,
-)
+    object.set_description(
+        description,
+    )
 
+#### Input arguments
 
-### Input arguments ###
+!!! input "object"
 
-???+ input "self"
-An Iris Pie object to which to attach the description.
+    The object whose description is to be updated.
 
+!!! input "description"
 
-???+ input "description"
-The description to attach to the Iris Pie object.
+    The new description. An empty value clears the description.
 
+#### Returns
 
-### Returns ###
+!!! returns "None"
 
-This method modifies the Iris Pie object in place and returns `None`.
-
-................................................................................
+    Updates the description in place.
         """
         self._description = str(description or "")
 

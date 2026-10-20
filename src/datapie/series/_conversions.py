@@ -42,6 +42,207 @@ _DEFAULT_DISCARD_MISSING = False
 
 
 class Mixin:
+
+    @_dm.reference(category="temporal_change_conversion", )
+    def convert_roc(
+        self,
+        from_freq: Frequency,
+        to_freq: Frequency,
+    ) -> None:
+        r"""
+==Convert gross rates of change to another frequency==
+
+#### Syntax
+
+##### Method form
+
+    x.convert_roc(
+        from_freq,
+        to_freq,
+    )
+
+##### Function form
+
+    new_series = datapie.convert_roc(
+        x,
+        from_freq,
+        to_freq,
+    )
+
+    new_value = datapie.convert_roc(
+        roc,
+        from_freq,
+        to_freq,
+    )
+
+#### Input arguments
+
+!!! input "roc"
+    A gross rate of change, where `1` means no change, or a series of gross rates.
+
+!!! input "from_freq"
+    The frequency of the supplied changes, expressed as periods per year. Required.
+
+!!! input "to_freq"
+    The frequency to convert the changes to, expressed as periods per year. Required and nonzero.
+
+#### Method form returns
+
+!!! returns "None"
+    The values are changed in place. Their periods, start and series frequency are unchanged; observations are not resampled.
+
+#### Function form returns
+
+!!! returns "new_series"
+    With a series input, return a converted copy. The input is unchanged.
+
+!!! returns "new_value"
+    With a number input, return a number. The rate raised to the ratio of source to target frequencies.
+
+Every variant is converted separately, and missing values remain missing. Both frequencies must be supplied explicitly; they are not inferred from the series.
+
+??? note "Details"
+    Rates are converted by raising the gross rate to the ratio of source to target frequencies. Percentage changes are converted to gross rates first and back to percentages afterwards. Negative gross rates raised to fractional powers may produce complex scalar results or missing series values.
+
+#### See also
+
+[`convert_pct`](#convert_pct), [`convert_diff`](#convert_diff)
+        """
+        self.data = self.data.astype(float, copy=False, ) ** (float(from_freq) / float(to_freq))
+
+
+    @_dm.reference(category="temporal_change_conversion", )
+    def convert_pct(
+        self,
+        from_freq: Frequency,
+        to_freq: Frequency,
+    ) -> None:
+        r"""
+==Convert percentage changes to another frequency==
+
+#### Syntax
+
+##### Method form
+
+    x.convert_pct(
+        from_freq,
+        to_freq,
+    )
+
+##### Function form
+
+    new_series = datapie.convert_pct(
+        x,
+        from_freq,
+        to_freq,
+    )
+
+    new_value = datapie.convert_pct(
+        pct,
+        from_freq,
+        to_freq,
+    )
+
+#### Input arguments
+
+!!! input "pct"
+    A percentage change, where `0` means no change, or a series of percentage changes.
+
+!!! input "from_freq"
+    The frequency of the supplied changes, expressed as periods per year. Required.
+
+!!! input "to_freq"
+    The frequency to convert the changes to, expressed as periods per year. Required and nonzero.
+
+#### Method form returns
+
+!!! returns "None"
+    The values are changed in place. Their periods, start and series frequency are unchanged; observations are not resampled.
+
+#### Function form returns
+
+!!! returns "new_series"
+    With a series input, return a converted copy. The input is unchanged.
+
+!!! returns "new_value"
+    With a number input, return a number. The equivalent percentage change at the target frequency.
+
+Every variant is converted separately, and missing values remain missing. Both frequencies must be supplied explicitly; they are not inferred from the series.
+
+??? note "Details"
+    Rates are converted by raising the gross rate to the ratio of source to target frequencies. Percentage changes are converted to gross rates first and back to percentages afterwards. Negative gross rates raised to fractional powers may produce complex scalar results or missing series values.
+
+#### See also
+
+[`convert_roc`](#convert_roc), [`convert_diff`](#convert_diff)
+        """
+        self.data = 100*((1 + self.data.astype(float, copy=False, )/100) ** (float(from_freq) / float(to_freq)) - 1)
+
+
+    @_dm.reference(category="temporal_change_conversion", )
+    def convert_diff(
+        self,
+        from_freq: Frequency,
+        to_freq: Frequency,
+    ) -> None:
+        r"""
+==Scale additive changes to another frequency==
+
+#### Syntax
+
+##### Method form
+
+    x.convert_diff(
+        from_freq,
+        to_freq,
+    )
+
+##### Function form
+
+    new_series = datapie.convert_diff(
+        x,
+        from_freq,
+        to_freq,
+    )
+
+    new_value = datapie.convert_diff(
+        diff,
+        from_freq,
+        to_freq,
+    )
+
+#### Input arguments
+
+!!! input "diff"
+    An additive change, or a series of additive changes.
+
+!!! input "from_freq"
+    The frequency of the supplied changes, expressed as periods per year. Required.
+
+!!! input "to_freq"
+    The frequency to convert the changes to, expressed as periods per year. Required and nonzero.
+
+#### Method form returns
+
+!!! returns "None"
+    The values are changed in place. Their periods, start and series frequency are unchanged; observations are not resampled.
+
+#### Function form returns
+
+!!! returns "new_series"
+    With a series input, return a converted copy. The input is unchanged.
+
+!!! returns "new_value"
+    With a number input, return a number. The change multiplied by the ratio of source to target frequencies.
+
+Every variant is converted separately, and missing values remain missing. Both frequencies must be supplied explicitly; they are not inferred from the series.
+
+#### See also
+
+[`convert_roc`](#convert_roc), [`convert_pct`](#convert_pct)
+        """
+        self.data = self.data.astype(float, copy=False, ) * (float(from_freq) / float(to_freq))
+
     #[
 
     @_dm.reference(category="conversion", )
@@ -55,100 +256,59 @@ class Mixin:
         remove_missing: bool | None = None, # Legacy
     ) -> None:
         r"""
-................................................................................
+==Combine observations into lower-frequency values==
 
-## `Series.aggregate`
+#### Syntax
 
-Called as `x.aggregate(...)` (method form) or
-`datapie.aggregate(x, ...)` (function form).
+##### Method form
 
-==Converts a time series to a lower frequency by replacing the high-frequency observations within each low-frequency period with a single summary value.==
-
-    self.aggregate(
+    x.aggregate(
         target_freq,
-        method="mean",
-        discard_missing=False,
+        method=None,
+        discard_missing=None,
         select=None,
     )
 
-This is how quarterly data becomes annual, or daily data monthly.
-Aggregation covers whole calendar years, so a series that does not
-start in the first period of a year, or end in the last one, has an
-incomplete year at that end. An incomplete year contains missing
-observations and aggregates to a missing value, which is then trimmed
-off, taking the observations it held with it. Setting
-`discard_missing=True` drops the missing observations first and
-aggregates the part-year that remains.
+##### Function form
 
+    new_series = datapie.aggregate(
+        x,
+        target_freq,
+        method=None,
+        discard_missing=None,
+        select=None,
+    )
 
-**Input arguments.**
+#### Input arguments
 
+!!! input "target_freq"
+    The lower frequency to use. Passing the current frequency leaves the series unchanged.
 
-???+ input "target_freq"
-    The frequency to move down to. Asking for the frequency the series
-    already has returns silently without changing anything; asking for
-    a higher frequency raises `ValueError`.
+!!! input "method"
+    How to combine the values in each target period. The default, `None`, means `"mean"`. Accepted names are `"mean"`, `"geometric_mean"`, `"sum"`, `"prod"`, `"first"`, `"last"`, `"min"` and `"max"`. A function may also be supplied; it receives the values for one target period and returns one value.
 
-???+ input "method"
-    A function applied to the high-frequency values within each
-    low-frequency period, given either as one of the names below or as
-    a function of your own taking an array of values and returning one
-    number. Left alone it is `"mean"`.
+!!! input "discard_missing"
+    Whether to omit missing observations before combining values. The default, `None`, means `False`. A period with no remaining observations is missing.
 
-    | Method            | Description
-    |-------------------|-------------
-    | `"mean"`          | Arithmetic average of high-frequency values
-    | `"geometric_mean"`| Geometric average of high-frequency values
-    | `"sum"`           | Sum of high-frequency values
-    | `"prod"`          | Product of high-frequency values
-    | `"first"`         | Value in the first high-frequency period
-    | `"last"`          | Value in the last high-frequency period
-    | `"min"`           | Minimum of high-frequency values
-    | `"max"`           | Maximum of high-frequency values
+!!! input "select"
+    Optional positions within each target period; the default is `None`, using all values. Selection of several positions is not currently supported reliably.
 
-???+ input "discard_missing"
-    Drops the missing values within each low-frequency period before
-    the `method` is applied, as described above. `False` when left
-    alone.
+#### Method form returns
 
-???+ input "select"
-    Meant to pick only the high-frequency values at the given indexes,
-    but it does not work: passing a list raises `TypeError:
-    'numpy.float64' object is not iterable`. Leave it as `None`.
+!!! returns "None"
+    The series is changed in place.
 
+#### Function form returns
 
-### Returns
+!!! returns "new_series"
+    A new series with the result. The input series is unchanged.
 
+??? note "Details"
+    Aggregation includes complete calendar years, padding unavailable observations with missing values. Results for partial first or last periods therefore depend on `method` and `discard_missing`. Missing rows at the ends of the result are removed.
 
-Nothing; the series is converted in place.
+#### See also
 
-
-### Examples
-
-
-Two whole years of quarterly data averaged into annual data:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4., 5., 6., 7., 8.]))
-    >>> x.aggregate(dp.Frequency.YEARLY)
-    >>> x.get_data()[:, 0].tolist()
-    [2.5, 6.5]
-
-The same data starting in the third quarter of 2020. The first half of
-2020 is missing, so 2020 aggregates to a missing value and is trimmed
-away; the two observations it held are gone:
-
-    >>> x = dp.Series(start=dp.qq(2020, 3),
-    ...     values=np.array([3., 4., 5., 6., 7., 8.]))
-    >>> x.aggregate(dp.Frequency.YEARLY)
-    >>> x.start
-    yy(2021)
-    >>> x.get_data()[:, 0].tolist()
-    [6.5]
-
-................................................................................
+[`disaggregate`](#disaggregate)
         """
         # Resolve legacy options
         if remove_missing is not None and discard_missing is None:
@@ -194,140 +354,66 @@ away; the two observations it held are gone:
         **kwargs,
     ) -> Self:
         r"""
-................................................................................
+==Spread observations across higher-frequency periods==
 
-## `Series.disaggregate`
+#### Syntax
 
-Called as `x.disaggregate(...)` (method form) or
-`datapie.disaggregate(x, ...)` (function form).
+##### Method form
 
-==Converts a time series to a higher frequency by spreading each low-frequency observation over the periods it covers.==
-
-    self.disaggregate(
+    x.disaggregate(
         target_freq,
         method="flat",
-        **kwargs,
     )
 
-Only `"flat"` and `"arip"` fill every new period; `"first"`, `"middle"`
-and `"last"` put the number into one period of each block and leave the
-rest missing.
+##### Function form
 
+    new_series = datapie.disaggregate(
+        x,
+        target_freq,
+        method="flat",
+    )
 
-**Input arguments.**
+#### Input arguments
 
+!!! input "target_freq"
+    The higher frequency to use. Passing the current frequency leaves the series unchanged.
 
-???+ input "target_freq"
-    The frequency to move up to, and it must be higher than the one the
-    series already has. Asking for the frequency the series already has
-    returns silently without changing anything.
+!!! input "method"
+    The default, `"flat"`, repeats each value in every higher-frequency period without dividing it. `"first"`, `"middle"` and `"last"` put the value in one period of each block and leave the others missing. `"arip"` fits a smooth path using autoregressive interpolation.
 
-???+ input "method"
-    How each low-frequency value is spread over the high-frequency
-    periods it covers. Left alone it is `"flat"`, which repeats the
-    low-frequency value in every high-frequency period without dividing
-    it.
+!!! input "**kwargs"
+    Additional options for `"arip"`: `model` is required and `target` is optional, as described below. The other methods take no extra options.
 
-    | Method    | Description
-    |-----------|-------------
-    | `"flat"`  | Repeat the low-frequency value in every period
-    | `"first"` | Place the low-frequency value in the first high-frequency period
-    | `"middle"`| Place the low-frequency value in the middle high-frequency period
-    | `"last"`  | Place the low-frequency value in the last high-frequency period
-    | `"arip"`  | Interpolate using a smooth autoregressive process
+#### Autoregressive interpolation { #disaggregate_arip }
 
-???+ input "**kwargs"
-    Handed on to the chosen method. `"arip"` requires a `model`
-    argument, a pair naming the form of the process and the way the
-    high-frequency values aggregate back to the observed ones --
-    `model=("rate", "mean")`, for instance. Omitting it raises
-    `TypeError: disaggregate_arip() missing 1 required positional
-    argument: 'model'`. The algorithm is set out under Algorithm below.
+!!! input "model"
 
+    A pair choosing the kind of path and how its higher-frequency values
+    combine. Use `"rate"` for growth rates or `"diff"` for additive changes,
+    followed by `"sum"`, `"mean"`, `"first"` or `"last"`.
 
-### Returns
+!!! input "target"
 
+    An optional higher-frequency series whose available values are held
+    fixed. The default is `None`. The first target variant is used for
+    every input variant.
 
-Nothing; the series is converted in place.
+#### Method form returns
 
+!!! returns "None"
+    The series is changed in place.
 
-### Examples
+#### Function form returns
 
+!!! returns "new_series"
+    A new series with the result. The input series is unchanged.
 
-Annual data repeated across the quarters of each year:
+??? note "Details"
+    The repeat and placement methods use a fixed number of higher-frequency periods per observation, rather than variable calendar lengths. For a block with an even number of periods, `"middle"` uses the later of the two central positions. Missing rows at the ends of the result are removed.
 
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> y = dp.Series(start=dp.yy(2020),
-    ...     values=np.array([100., 200.]))
-    >>> y.disaggregate(dp.Frequency.QUARTERLY)
-    >>> y.get_data()[:, 0].tolist()
-    [100.0, 100.0, 100.0, 100.0, 200.0, 200.0, 200.0, 200.0]
+#### See also
 
-
-### Algorithm
-
-
-???+ details "ARIP algorithm"
-    Instead of repeating or placing the low-frequency value, `"arip"`
-    fits a smooth path through the higher-frequency periods that still
-    aggregates back to the observed data. Suited to a series that is a
-    level moving gradually, rather than a figure that should simply be
-    repeated.
-
-    The setting invokes an interpolation method that assumes the
-    underlying high-frequency process to be an autoregression. The
-    method can be described in its state-space recursive form, although
-    the numerical implementation is stacked-time.
-
-    The `"rate"` model:
-
-    $$
-    \begin{gathered}
-    x_t = \rho \, x_{t-1} + \epsilon_t \\[10pt]
-    y_t = Z \, x_t \\[10pt]
-    \epsilon_t \sim N(0, \sigma_t^2)
-    \end{gathered}
-    $$
-
-    The `"diff"` model:
-
-    $$
-    \begin{gathered}
-    x_t = x_{t-1} + c + \epsilon_t \\[10pt]
-    y_t = Z \, x_t \\[10pt]
-    \epsilon_t \sim N(0, 1)
-    \end{gathered}
-    $$
-
-    where
-
-    * $x_t$ is the underlying high-frequency process;
-
-    * $y_t$ is the observed low-frequency time series;
-
-    * $Z$ is an aggregation vector depending on the `aggregation`
-    specification,
-
-    | Aggregation | $Z$ vector
-    |-------------|-----------
-    | `"sum"`     | $(1, 1, \ldots, 1)$
-    | `"mean"`    | $\tfrac{1}{n}\,(1, 1, \ldots, 1)$
-    | `"first"`   | $(1, 0, \ldots, 0)$
-    | `"last"`    | $(0, 0, \ldots, 1)$
-
-    * $\rho$ is a gross rate of change estimated as the average rate of
-    change in the observed series, $y_t$, and converted to high
-    frequency;
-
-    * $c$ is a constant estimated as the average difference in the
-    observed series, $y_t$, and converted to high frequency;
-
-    * $\sigma_t$ is a time-varying standard deviation of the
-    high-frequency process, set to $\sigma_0 = 1$, and
-    $\sigma_t = \rho \, \sigma_{t-1}$.
-
-................................................................................
+[`aggregate`](#aggregate)
         """
         method_func = _CHOOSE_DISAGGREGATION_METHOD[method]
         #
@@ -358,6 +444,7 @@ Annual data repeated across the quarters of each year:
 _functional_forms = {
     "convert_roc",
     "convert_pct",
+    "convert_diff",
 }
 
 for n in ("aggregate", "disaggregate", ):
@@ -529,32 +616,62 @@ _CHOOSE_DISAGGREGATION_METHOD = {
 }
 
 
+@_dm.reference(category="temporal_change_conversion", )
 def convert_roc(
     roc: Real,
     from_freq: Frequency,
     to_freq: Frequency,
 ) -> Real:
+    r"""
+==Convert gross rates of change to another frequency==
+
+#### See also
+
+[`Series.convert_roc`](#convert_roc) for method, series-input and scalar-input forms.
     """
-    """
+    if hasattr(roc, "convert_roc"):
+        new = roc.copy()
+        new.convert_roc(from_freq, to_freq, )
+        return new
     return float(roc) ** (float(from_freq) / float(to_freq))
 
 
+@_dm.reference(category="temporal_change_conversion", )
 def convert_pct(
     pct: Real,
     from_freq: Frequency,
     to_freq: Frequency,
 ) -> Real:
+    r"""
+==Convert percentage changes to another frequency==
+
+#### See also
+
+[`Series.convert_pct`](#convert_pct) for method, series-input and scalar-input forms.
     """
-    """
+    if hasattr(pct, "convert_pct"):
+        new = pct.copy()
+        new.convert_pct(from_freq, to_freq, )
+        return new
     return 100*(convert_roc(1 + float(pct)/100, from_freq, to_freq) - 1)
 
 
+@_dm.reference(category="temporal_change_conversion", )
 def convert_diff(
     diff: Real,
     from_freq: Frequency,
     to_freq: Frequency,
 ) -> Real:
+    r"""
+==Scale additive changes to another frequency==
+
+#### See also
+
+[`Series.convert_diff`](#convert_diff) for method, series-input and scalar-input forms.
     """
-    """
+    if hasattr(diff, "convert_diff"):
+        new = diff.copy()
+        new.convert_diff(from_freq, to_freq, )
+        return new
     return float(diff) * (float(from_freq) / float(to_freq))
 

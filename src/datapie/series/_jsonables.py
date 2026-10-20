@@ -36,76 +36,53 @@ class Mixin:
         allow_multiple_variants: bool = False,
     ) -> dict:
         r"""
-................................................................................
+==Turn a single-variant series into a dictionary for JSON==
 
-## `Series.to_jsonable`
+#### Syntax
 
-==Turns a time series into a plain dictionary that can be written out as JSON.==
-
-    jsonable = self.to_jsonable(
-        *,
+    jsonable = series.to_jsonable(
         period_to_string=Period.to_sdmx_string,
         include_description=True,
         include_frequency=True,
         allow_multiple_variants=False,
     )
 
-Every argument is keyword-only.
+#### Input arguments
 
+!!! input "period_to_string"
+    A function that converts the start Period to text.
+    Default: `Period.to_sdmx_string`. Use a matching parser when reading it back.
 
-**Input arguments.**
+!!! input "include_description"
+    Whether to include the description. Default: `True`.
 
+!!! input "include_frequency"
+    Whether to include the frequency's one-letter code. Default: `True`.
 
-???+ input "period_to_string"
-    Turns the start period into text. Left alone it writes the SDMX
-    form, `"2020-Q1"`; `Period.to_iso_string` writes `"2020-01-01"`
-    instead. Any function taking a `Period` and returning a string will
-    do. Whatever you choose here has to be matched by
-    `period_from_string` when the dictionary is read back.
+!!! input "allow_multiple_variants"
+    Default: `False`. Only single-variant serialization is supported;
+    setting this to `True` raises `NotImplementedError`.
 
-???+ input "include_description"
-    Whether the `"description"` key appears at all. On when left alone.
+#### Returns
 
-???+ input "include_frequency"
-    Whether the `"frequency"` key appears at all. On when left alone,
-    and worth keeping: `from_jsonable` needs it to read non-daily ISO
-    periods.
+!!! returns "jsonable"
+    A dictionary with `"start"` and `"values"`, and optionally `"description"`
+    and `"frequency"`. Values are a tuple. For an empty single-variant series,
+    the start is `None`, values are empty, and frequency is `"?"` when included.
 
-???+ input "allow_multiple_variants"
-    Not implemented. Setting it to `True` raises `NotImplementedError`.
+#### Mutation
 
+Leaves the series unchanged. All input arguments are keyword-only.
 
-A series holding more than one variant cannot be written at all, and
-the two ways out are both closed: the `ValueError` you get tells you to
-pass `allow_multiple_variants=True`, which then raises
-`NotImplementedError`.
+#### Details
 
-Missing observations are written through unchanged. That is no trouble
-in the dictionary itself, but `NaN` is not valid JSON, so handing the
-result to the standard `json` module -- as `Databox.series_to_json_file`
-does -- writes `{"values": [1.0, NaN, 3.0]}`, which a strict reader
-rejects.
+A series with multiple variants cannot be serialized by this method.
+Missing observations remain numeric NaN values, not JSON `null`; further
+conversion may be needed for strict JSON.
 
+#### See also
 
-### Returns
-
-
-A dictionary holding `"description"`, `"frequency"`, `"start"` and
-`"values"`, the first two only if you asked for them. `"values"` is a
-tuple. For an empty series `"start"` is `None`, `"values"` is `()` and
-`"frequency"` is `"?"`.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1), values=np.array([1., 2.]))
-    >>> x.to_jsonable(include_description=False)
-    {'frequency': 'Q', 'start': '2020-Q1', 'values': (1.0, 2.0)}
-
-................................................................................
+`Series.from_jsonable`.
         """
         if allow_multiple_variants:
             raise NotImplementedError("allow_multiple_variants=True is not implemented yet.")
@@ -146,86 +123,57 @@ tuple. For an empty series `"start"` is `None`, `"values"` is `()` and
         allow_multiple_variants: bool = False,
     ) -> Self:
         r"""
-................................................................................
+==Create a series from a dictionary of saved observations==
 
-## `Series.from_jsonable`
+#### Syntax
 
-==Builds a time series from a dictionary of the kind `to_jsonable` produces.==
-
-    self = Series.from_jsonable(
+    new_series = Series.from_jsonable(
         jsonable,
-        *,
         period_from_string=Period.from_sdmx_string,
         frequency_included=True,
         description_included=True,
         allow_multiple_variants=False,
     )
 
-This is a class method: call it on the class, as
-`Series.from_jsonable(d)`, not on a series you already have. Everything
-after `jsonable` is keyword-only.
+#### Input arguments
 
+!!! input "jsonable"
+    A dictionary containing `"start"` and `"values"`, and the frequency
+    and description when their inclusion flags are enabled.
 
-**Input arguments.**
+!!! input "period_from_string"
+    A function that reads the start text and accepts a `frequency=` keyword.
+    Default: `Period.from_sdmx_string`. It must match the saved period format.
 
+!!! input "frequency_included"
+    Whether to read the `"frequency"` key. Default: `True`.
+    When disabled, no frequency is supplied to the period parser.
 
-???+ input "jsonable"
-    The dictionary to read, laid out the way `to_jsonable` writes one.
+!!! input "description_included"
+    Whether to read the `"description"` key. Default: `True`.
+    When disabled, the new series has an empty description.
 
-???+ input "period_from_string"
-    Parses the start period, and has to match the way it was written.
-    Left alone it reads the SDMX form, `"2020-Q1"`;
-    `Period.from_iso_string` reads `"2020-01-01"`, and for anything but
-    daily periods it needs the frequency to be present. Any function
-    taking a string and a `frequency=` keyword will do.
+!!! input "allow_multiple_variants"
+    Default: `False`. Setting this to `True` raises `NotImplementedError`.
 
-???+ input "frequency_included"
-    Whether the `"frequency"` key is there to be read. On when left
-    alone.
+#### Returns
 
-???+ input "description_included"
-    Whether the `"description"` key is there to be read. On when left
-    alone; switched off, the new series gets an empty description
-    whatever the dictionary holds.
+!!! returns "new_series"
+    A new Series. An empty start or empty values produces an empty series.
+    The usual constructor trimming of missing rows at either end applies.
 
-???+ input "allow_multiple_variants"
-    Not implemented. Setting it to `True` raises `NotImplementedError`.
+#### Mutation
 
+Leaves the dictionary unchanged. Arguments after `jsonable` are keyword-only.
 
-The flags have to match the ones used when writing, and they are
-spelled differently at the two ends -- `include_frequency` going out
-against `frequency_included` coming back. Writing with
-`include_frequency=False` and reading with the default
-`frequency_included=True` raises `KeyError: 'frequency'`, and the same
-goes for the description. Reading ISO periods with the default SDMX
-parser raises `ValueError: not enough values to unpack (expected 2, got
-1)`, which does not obviously point at the parser.
+#### Details
 
+The inclusion flags must match the dictionary's keys. Some period formats
+need a frequency to identify the intended kind of period.
 
-### Returns
+#### See also
 
-
-A new series. When the stored start or values are empty you get an
-empty series instead, carrying the description if
-`description_included` was left on.
-
-
-### Examples
-
-
-A round trip, description included:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2.]), description="GDP")
-    >>> y = dp.Series.from_jsonable(x.to_jsonable())
-    >>> y.get_data()[:, 0].tolist()
-    [1.0, 2.0]
-    >>> y.get_description()
-    'GDP'
-
-................................................................................
+`to_jsonable`.
         """
         if allow_multiple_variants:
             raise NotImplementedError("allow_multiple_variants=True is not implemented yet.")

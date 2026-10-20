@@ -57,93 +57,54 @@ class Mixin:
         span: Iterable[Period] | EllipsisType | None = None,
     ) -> None:
         r"""
-................................................................................
+==Replace missing observations using a chosen rule==
 
-## `Series.fill_missing`
+#### Syntax
 
-Called as `x.fill_missing(...)` (method form) or
-`datapie.fill_missing(x, ...)` (function form).
+##### Method form
 
-==Replaces the missing observations in a time series using a chosen rule.==
-
-    self.fill_missing(
+    x.fill_missing(
         method,
         method_args=None,
         span=None,
     )
 
-**Input arguments.**
+##### Function form
 
+    new_series = datapie.fill_missing(
+        x,
+        method,
+        method_args=None,
+        span=None,
+    )
 
-???+ input "method"
-    The rule to fill with. Required, and an unknown name raises
-    `KeyError`.
+#### Input arguments
 
-    | Method          | Description
-    |-----------------|-------------
-    | `"next"`        | Copy the next available observation
-    | `"previous"`    | Copy the previous available observation
-    | `"nearest"`     | Copy the nearest available observation
-    | `"linear"`      | Interpolate between the observations on either side
-    | `"log_linear"`  | Interpolate between them in logs
-    | `"constant"`    | Write a fixed number
-    | `"from_series"` | Take the values from another series
+!!! input "method"
+    The filling rule. `"next"`, `"previous"` and `"nearest"` copy an available neighbor; a nearest-neighbor tie selects the earlier value. `"linear"` and `"log_linear"` interpolate in values and logarithms, respectively. `"constant"` uses a fixed value. `"from_series"` reads another series; `"series"` is an alias.
 
-    `"series"` is accepted as an older name for `"from_series"`.
+!!! input "method_args"
+    The fixed value for `"constant"` or the source series for `"from_series"`. Other rules ignore it. The default is `None`, which leaves entries missing when used with `"constant"`.
 
-???+ input "method_args"
-    Whatever the rule needs: the number for `"constant"`, the other
-    series for `"from_series"`. Every other rule ignores it. With
-    `"constant"` and `method_args` left as `None` the gaps are refilled
-    with missing values, so the series comes back unchanged.
+!!! input "span"
+    The periods to fill; the default, `None`, means the current span. The requested span can extend beyond the current data.
 
-???+ input "span"
-    The stretch of periods to fill. Left as `None` it is the span the
-    series already covers; a wider span lets the filling reach beyond
-    the data.
+#### Method form returns
 
+!!! returns "None"
+    The series is changed in place.
 
-Despite their names, `"linear"` and `"log_linear"` only interpolate.
-Past the first and last observation they repeat that end value rather
-than continuing the line. Periods that no rule could reach stay
-missing, and missing periods at the ends are then trimmed off, so the
-series can come back shorter than the `span` asked for -- a variant
-missing throughout comes back empty.
+#### Function form returns
 
+!!! returns "new_series"
+    A new series with the result. The input series is unchanged.
 
-### Returns
+??? note "Details"
+    Neighbors and interpolation endpoints are taken only from the requested span. `"next"` and `"previous"` leave missing values where no suitable neighbor exists. Interpolation repeats the nearest endpoint outside the observed interval; it does not extend a slope.
 
+    An entirely missing variant has no neighbors or interpolation endpoints. Log interpolation requires positive endpoints for real-valued results. Missing rows at the ends of the series are removed after assignment.
 
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-A span reaching one period before the data and two after it. The two
-interior gaps are interpolated, while the three periods outside the
-data take the nearest end value:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 2),
-    ...     values=np.array([2., np.nan, np.nan, 8.]))
-    >>> x.fill_missing("linear", None,
-    ...     dp.Span(dp.qq(2020, 1), dp.qq(2021, 3)))
-    >>> x.get_data()[:, 0].tolist()
-    [2.0, 2.0, 4.0, 6.0, 8.0, 8.0, 8.0]
-
-`"next"` has no later observation to copy after 2021-Q1, so those
-periods stay missing and are trimmed:
-
-    >>> x = dp.Series(start=dp.qq(2020, 2),
-    ...     values=np.array([2., np.nan, np.nan, 8.]))
-    >>> x.fill_missing("next", None,
-    ...     dp.Span(dp.qq(2020, 1), dp.qq(2021, 3)))
-    >>> x.end
-    qq(2021,1)
-
-................................................................................
+    For `"from_series"`, a single source variant is supported; source variants are not matched separately to destination variants.
         """
         fill_func = _FILL_METHOD_DISPATCH[method]
         data, span, = self.get_data_and_periods(span, )
@@ -275,41 +236,37 @@ def fill_from_series(
     span: Iterable[Period],
 ) -> _np.ndarray:
     r"""
-................................................................................
+==Fill missing array entries from another series==
 
-## `fill_from_series`
+#### Syntax
 
-==Fills the missing entries of an array with the observations another time series holds over the same span, and returns the array.==
+    values = fill_from_series(
+        values,
+        method_args,
+        span,
+    )
 
-    values = fill_from_series(values, method_args, span)
+#### Input arguments
 
-This is what backs the `"from_series"` rule of `fill_missing`, and is
-not meant to be called on its own.
+!!! input "values"
+    The one-dimensional array to fill.
 
+!!! input "method_args"
+    The source series. Its values over the requested span must match the length of `values`; use a single source variant.
 
-**Input arguments.**
+!!! input "span"
+    The periods corresponding to the array entries.
 
+#### Returns
 
-???+ input "values"
-    The array whose missing entries are to be filled. It is modified in
-    place as well as returned.
+!!! returns "values"
+    The same array, changed in place. Only missing entries are replaced; missing source values remain missing. The source series is unchanged.
 
-???+ input "method_args"
-    The time `Series` to take the replacement values from. Periods that
-    series does not cover stay missing.
+This support function implements the source-series filling rule and is not available directly from `datapie`.
 
-???+ input "span"
-    The periods the `values` array corresponds to, used to read the
-    matching stretch out of `method_args`.
+#### See also
 
-
-### Returns
-
-
-The same array, with its missing entries filled where `method_args`
-had an observation.
-
-................................................................................
+[`fill_missing`](#fill_missing)
     """
     series = method_args
     fill_values = series.get_data(span, )

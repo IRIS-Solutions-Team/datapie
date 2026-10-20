@@ -7,6 +7,7 @@ r"""
 from __future__ import annotations
 
 import textwrap as _tw
+import documark as _dm
 
 from ._functionalize import FUNC_STRING
 
@@ -21,108 +22,76 @@ from ._functionalize import FUNC_STRING
 class Mixin:
     #[
 
+    @_dm.reference(category="timing", call_name="Series.shift", )
     def shift(
         self,
         by: ShiftType = -1,
         **kwargs,
     ) -> None:
         r"""
-................................................................................
+==Move a series in time or use earlier calendar observations==
 
-## `Series.shift`
+#### Syntax
 
-Called as `x.shift(...)` (method form) or
-`datapie.shift(x, ...)` (function form).
+##### Method form
 
-==Moves a time series in time, either by retiming it or by replacing each observation with an earlier one.==
+    series.shift(
+        by=-1,
+        **kwargs,
+    )
 
-    self.shift(by=-1, **kwargs)
+##### Function form
 
-A number leaves the observations alone and moves the start date. The
-strings mostly do the opposite, keeping the span and rewriting the
-values; `"yoy"` is the exception and retimes like a number.
+    new_series = datapie.shift(
+        series,
+        by=-1,
+        **kwargs,
+    )
 
+#### Input arguments
 
-**Input arguments.**
+!!! input "by"
+    An integer number of periods or a calendar-shift name. Default: `-1`.
+    Negative integers move the series later; positive integers move it earlier,
+    without changing its values.
 
+    `"yoy"` moves the series one year later. `"soy"` replaces observations with
+    the first observation of their year. `"eopy"` uses the last period of the
+    previous year. `"tty"` uses the previous period within the same year.
 
-???+ input "by"
-    A whole number of periods, or one of four strings — a float takes
-    the string route and fails.
+!!! input "neutral_value"
+    A number to use at the first period of each year for `"tty"`.
+    Default: `None`, which assigns a missing value. Pass it by keyword through
+    `**kwargs`.
 
-    A numeric `by` is subtracted from the start date, so the sign runs
-    opposite to what you may expect: `by=-1` moves the series one
-    period later, and `by=1` moves it one period earlier. Left alone it
-    is `-1`.
+!!! input "**kwargs"
+    Additional keyword settings forwarded to the selected shift.
+    The supplied shifts use only `neutral_value` for `"tty"`.
 
-    A string `by` is one of the following:
+#### Method form returns
 
-    | Value    | Effect
-    |----------|--------
-    | `"yoy"`  | Retimes by a whole year, like a number does — the same as passing minus the number of periods in a year, so the series moves one year later
-    | `"soy"`  | Replaces every observation with the one from the first period of its year
-    | `"eopy"` | Replaces every observation with the one from the last period of the previous year
-    | `"tty"`  | Replaces every observation with the one from the previous period, except in the first period of each year
+!!! returns "None"
+    No return value. The series is changed in place.
 
-    Because `"eopy"` reaches into the year before the data begins, a
-    series not already covering that year comes back empty. Any other
-    string is turned into a method name and looked up, so a misspelling
-    fails with `AttributeError: 'Series' object has no attribute
-    '_shift_nonsense'`.
+#### Function form returns
 
-???+ input "**kwargs"
-    Passed on to the string forms. Only `"tty"` reads anything from
-    them: `neutral_value` is what it writes in the first period of each
-    year, and left alone it is `None`, which leaves that period
-    missing.
+!!! returns "new_series"
+    A new Series with the shift applied.
 
+#### Mutation
 
-### Returns
+The method changes the series in place; the function form leaves its
+input unchanged. Integer shifts and `"yoy"` change only dates. Other calendar
+shifts replace observations and trim missing rows at either end.
 
+#### Details
 
-Nothing; the series is modified in place. An empty series is left
-alone. Periods left without a source observation come back missing, and
-missing observations at either end are then trimmed off, so a series
-can come back shorter than it went in.
+Calendar shifts need periods that support the requested calendar operation.
+When a source observation is outside the series, the result is missing.
 
+#### See also
 
-### Examples
-
-
-A numeric shift keeps the values and moves the dates:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([10., 20., 30., 40.]))
-    >>> x.shift(-1)
-    >>> x.start
-    qq(2020,2)
-    >>> x.get_data()[:, 0].tolist()
-    [10.0, 20.0, 30.0, 40.0]
-
-A string shift keeps the dates and rewrites the values:
-
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([10., 20., 30., 40.]))
-    >>> x.shift("soy")
-    >>> x.start
-    qq(2020,1)
-    >>> x.get_data()[:, 0].tolist()
-    [10.0, 10.0, 10.0, 10.0]
-
-With `"tty"` the first period of the year takes the `neutral_value`
-instead of an earlier observation:
-
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([10., 20., 30., 40.]))
-    >>> x.shift("tty", neutral_value=0)
-    >>> x.start
-    qq(2020,1)
-    >>> x.get_data()[:, 0].tolist()
-    [0.0, 10.0, 20.0, 30.0]
-
-................................................................................
+`redate`, [Indexing forms](#indexing-forms).
         """
         if isinstance(by, int):
             self._shift_by_number(by, **kwargs, )
@@ -130,73 +99,60 @@ instead of an earlier observation:
             method_name = f"_shift_{by}"
             getattr(self, method_name)(**kwargs, )
 
+    @_dm.reference(category="timing", call_name="Series.redate", )
     def redate(
         self,
         new_date: Period,
         old_date: Period | None = None,
     ) -> None:
         r"""
-................................................................................
+==Give observations new dates without changing their values==
 
-## `Series.redate`
+#### Syntax
 
-Called as `x.redate(...)` (method form) or
-`datapie.redate(x, ...)` (function form).
+##### Method form
 
-==Restamps a time series onto new periods, keeping the observations and their order.==
+    series.redate(
+        new_date,
+        old_date=None,
+    )
 
-    self.redate(new_date, old_date=None)
+##### Function form
 
-Where `shift` counts periods, this names the period to land on. The
-values never change; only their time stamps do.
+    new_series = datapie.redate(
+        series,
+        new_date,
+        old_date=None,
+    )
 
+#### Input arguments
 
-**Input arguments.**
+!!! input "new_date"
+    The destination Period. When `old_date` is omitted, this becomes
+    the new start period.
 
+!!! input "old_date"
+    The original Period to move to `new_date`. Default: `None`, the series'
+    start. The distance between observations stays unchanged.
 
-???+ input "new_date"
-    The period the series is moved onto.
+#### Method form returns
 
-???+ input "old_date"
-    The period being moved from. Left as `None` the move is measured
-    from the start, so `new_date` simply becomes the new start. Given
-    an `old_date`, the series slides so that whichever observation sat
-    at `old_date` now sits at `new_date`.
+!!! returns "None"
+    No return value. The series is changed in place.
 
+#### Function form returns
 
-### Returns
+!!! returns "new_series"
+    A new Series with the revised dates.
 
+#### Mutation
 
-Nothing; the series is modified in place.
+The method changes the start period but keeps all values and the description.
+The function form leaves its input unchanged.
 
+#### See also
 
-### Examples
-
-
-Without `old_date` the start becomes `new_date`:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([10., 20., 30., 40.]))
-    >>> x.redate(dp.qq(2021, 1))
-    >>> x.start
-    qq(2021,1)
-    >>> x.get_data()[:, 0].tolist()
-    [10.0, 20.0, 30.0, 40.0]
-
-With `old_date`, the third observation is pinned to 2021-Q1 and the
-start moves to keep the spacing:
-
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([10., 20., 30., 40.]))
-    >>> x.redate(dp.qq(2021, 1), dp.qq(2020, 3))
-    >>> x.start
-    qq(2020,3)
-    >>> float(x.get_data(dp.qq(2021, 1))[0, 0])
-    30.0
-
-................................................................................
+`shift`.
         """
         if old_date is None:
             self.start = new_date

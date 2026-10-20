@@ -30,6 +30,7 @@ from . import _apply_to_variants
 from . import _broadcasts
 from . import _conversions
 from . import _elementwise
+from . import _ell_one
 from . import _extrapolate
 from . import _filling
 from . import _hp
@@ -95,6 +96,7 @@ class Series(
     _extrapolate.Mixin,
     _moving.Mixin,
     _hp.Mixin,
+    _ell_one.Mixin,
     _x13.Mixin,
     _plotly.Mixin,
     _broadcasts.Mixin,
@@ -105,57 +107,55 @@ class Series(
     _uv_filters.Mixin,
 ):
     r"""
-················································································
+# Time series
 
-Time series
-============
+==Store observations over time, with one or more parallel variants==
 
-==Holds a numerical time series: rows of observations stored in a numpy array and time stamped by a start period, optionally in several parallel variants.==
+A `Series` holds a continuous run of periods. Its data rows are periods;
+its columns are variants, such as alternative forecasts or simulations.
+All variants share the same time span. Missing observations are stored as
+`numpy.nan`, including gaps between observations.
 
-A `Series` is the main object in the package. Its values sit in one
-unbroken block from the first observation to the last, so it is defined
-by two things only: the period of the first row, `start`, and the array
-of values, `data`. There is no period-by-period index, and gaps inside
-the span are held as missing values rather than as absent rows. Leading
-and trailing missing rows are trimmed away whenever the data changes,
-which is why the span tracks the actual observations.
+Many methods change the series in place. Arithmetic operators and the built-in
+`abs` and `round` return new series. Available function forms are described
+alongside their methods and leave the input series unchanged.
 
-The columns of the array are called variants: alternative paths for the
-same quantity, such as simulation draws or scenarios, all sharing one
-span. Most methods work across every variant at once, and a one-variant
-series is widened automatically when it meets a wider one.
+#### Attributes
 
-Most methods change the series in place and return `None`. The
-exceptions are the arithmetic operators, `copy`, `hstack` and `apply`,
-which build a new series.
+| Name | Type | Access | Meaning |
+| --- | --- | --- | --- |
+| `start` | `Period` or `None` | Writable | Period of the first row. Assigning a new start moves the time axis without changing values. |
+| `data` | NumPy array | Writable | Values arranged as period rows and variant columns. Direct writes do not automatically trim missing rows. |
+| `data_type` | NumPy dtype | Writable | Data type used when creating or converting observations. Assigning it does not convert existing values. |
+| `shape` | Pair of integers | Read-only | Number of periods and variants. |
+| `num_periods` | Integer | Read-only | Number of rows, including internal missing rows. |
+| `num_variants` | Integer | Read-only | Number of columns. |
+| `is_singleton` | Boolean | Read-only | Whether there is exactly one variant. |
+| `start_period`, `start_date` | `Period` or `None` | Read-only | Other names for reading `start`. |
+| `end`, `end_period`, `end_date` | `Period` or `None` | Read-only | Last period, calculated from the start and row count. |
+| `span`, `range` | `Span` or empty tuple | Read-only | Inclusive start-to-end span; empty tuple when no start is set. |
+| `periods`, `dates` | Tuple of periods | Read-only | All periods in the span. |
+| `from_until` | Pair of periods or `None` values | Read-only | Start and end together. |
+| `frequency` | `Frequency` | Read-only | Frequency of the start period, or `Frequency.UNKNOWN` without a start. |
+| `is_empty` | Boolean | Read-only | Whether there are no data entries, including a series with zero variants. |
+| `has_missing` | Boolean | Read-only | Whether any stored value is missing. |
 
-The class is assembled from mixins, one per subject area, so its methods
-are defined across the files of this folder rather than here: indexing,
-statistics, timing, temporal changes, frequency conversion,
-extrapolation, moving windows, the Hodrick-Prescott filter, X13 seasonal
-adjustment, plotting, filling and overlaying, and serialization. This
-file holds the constructor, the accessors, and the housekeeping the
-others rely on.
+The description is read and changed using `get_description` and `set_description`.
 
-Instances are built with `Series(...)`, documented below, or with the
-class methods `Series.void` and `Series.from_start_and_array`.
+#### Missing observations
 
+`trim` removes rows missing in every variant from the two ends (leading and
+trailing missing observations), not from the middle. Several methods trim after
+writing data, but direct attribute writes and some transformations do not.
+`reset` clears the start and description; `empty` retains them. If the start is
+retained with no rows, `end` is the period before the start.
 
-### Examples
+#### See also
 
-
-A quarterly series, its span, and its values:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., 2., 3.]), description="gdp")
-    >>> x.from_until
-    (qq(2020,1), qq(2020,3))
-    >>> (x * 2).get_values()
-    (2.0, 4.0, 6.0)
-
-················································································
+[Arithmetic operations](#arithmetic-protocols),
+[Comparisons](#comparison-protocols),
+[Iteration, combination, and display](#container-protocols),
+[Variant utilities](#variant-utilities)
     """
     #[
 
@@ -194,122 +194,94 @@ A quarterly series, its span, and its values:
         populate: bool = True,
     ) -> None:
         r"""
-················································································
+==Create an empty or populated time series==
 
-## `Series`
+#### Syntax
 
-==Creates a new time series, either from a block of values pinned to a start period, or from an explicit list of periods.==
+    series = Series(
+        start=start,
+        values=values,
+    )
+    series = Series(
+        periods=periods,
+        values=values,
+    )
+    series = Series(
+        periods=periods,
+        func=func,
+    )
+    series = Series(
+        period_value_pairs=period_value_pairs,
+    )
 
-    self = Series(start=start, values=values)
+#### Input arguments
 
-    self = Series(periods=periods, values=values)
+!!! input "num_variants"
 
-    self = Series(periods=periods, func=func)
+    Integer, default `1`. Number of variants to create. With `start` and a NumPy array, the array determines the number instead.
 
-Every argument is keyword-only, and only three combinations are
-accepted. `start` together with `values` lays the values out from
-`start` onwards, one row per period. `periods` together with `values`
-time stamps the values one by one. `periods` together with `func` calls
-`func` once for every period and every variant and stores what it
-returns. Calling `Series()` with nothing at all gives you an empty
-series you can fill later with `set_data`. Every other combination,
-including `start` with `func`, raises `wrongdoings.Error("Invalid
-Series object constructor")`.
+!!! input "data_type"
 
+    NumPy data type, default `numpy.float64`. Missing values require a type that supports NaN.
 
-**Input arguments.**
+!!! input "description"
 
-???+ input "start"
-    The time [`Period`](periods.md) of the first row of `values`.
+    Text label, default `""`.
 
-???+ input "periods"
-    Any iterable of time [`Periods`](periods.md) -- a tuple, a list, a
-    time [`Span`](spans.md), or a single `Period`.
+!!! input "start"
 
-???+ input "values"
-    The values, and where the traps are. A numpy array or a tuple is
-    read as one entry per period, which is almost always what you want.
-    A *list* is read as one entry per variant, so `values=[1., 2., 3.]`
-    does not give you a three-period series; it offers three variants,
-    of which only the first is kept, and you end up with a single
-    observation. Use a tuple or a numpy array for a plain series, and a
-    list of tuples when you really do mean several variants.
+    `Period` or `None`, default `None`. First period for the supplied values.
 
-???+ input "func"
-    Called with no arguments, and must return one number. It is called
-    separately for each period and each variant, so a random generator
-    produces different draws in each cell.
+!!! input "start_date"
 
-???+ input "num_variants"
-    The number of columns, but only when the data cannot say otherwise.
-    With a one-dimensional array or a tuple in `values` the series comes
-    out with one column whatever you asked for; with `func`, or with a
-    list of tuples, `num_variants` is obeyed.
+    Legacy name for `start`, default `None`. Used only when `start` is not supplied.
 
-???+ input "data_type"
-    The numpy element type of the stored data, `float64` unless you
-    change it. Leave it alone. Missing observations are stored as `nan`,
-    which an integer array cannot hold, and an integer series raises
-    `ValueError: cannot convert float NaN to integer` the first time it
-    has to pad -- including inside a plain `get_data()`.
+!!! input "periods"
 
-???+ input "description"
-    A free-text label carried with the series and compared by `same_as`.
-    Left alone it is an empty string.
+    Periods to populate, default `None`. Accepts a period iterable or span. With `func`, it must also support `len`.
 
-???+ input "frequency"
-    Accepted and never used; the frequency comes from the periods you
-    supply.
+!!! input "dates"
 
-???+ input "populate"
-    Set to `False` it skips the whole filling step and gives you an
-    empty series regardless of the other arguments. It exists for
-    internal use.
+    Legacy name for `periods`, default `None`. Used only when `periods` is not supplied.
 
-???+ input "start_date, dates"
-    Still accepted as old names for `start` and `periods`. They are used
-    only when the new name is left out.
+!!! input "frequency"
 
-???+ input "period_value_pairs"
-    An iterable of two-element tuples, each consisting of a time
-    [`Period`](periods.md) and the corresponding value, e.g. `[(qq(2020,1), 1),
-    (qq(2020,2), 2), ]`. This is a convenience alternative to supplying the
-    `periods` and the `values` separately.
+    `Frequency` or `None`, default `None`. Accepted for compatibility; the supplied periods determine the frequency.
 
+!!! input "values"
 
-### Returns
+    Values to store, default `None`. A NumPy array uses rows for periods
+    and columns for variants; a one-dimensional array is one variant.
+    A Python list supplies separate variants, while a tuple supplies values
+    over time for one variant. With period-based input, the last supplied
+    variant is repeated when more variants are requested.
 
+!!! input "func"
 
-Nothing. Like every constructor it fills in the new object rather than
-returning a value.
+    Zero-argument callable, default `None`. Called once for each period and each variant.
 
-Construction trims. Leading and trailing rows that are missing in every
-variant are dropped and `start` moves accordingly, so a series cannot be
-built with a deliberate gap at either end.
+!!! input "period_value_pairs"
 
+    Iterable of `(Period, value)` pairs, default `None`. Alternative to separate periods and values; an empty iterable creates an empty series.
 
-### Examples
+!!! input "populate"
 
+    Boolean, default `True`. If `False`, create an empty series without using the population inputs.
 
-A list of numbers is not a list of observations:
+#### Returns
 
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1), values=[1., 2., 3.]).get_data()
-    array([[1.]])
-    >>> dp.Series(start=dp.qq(2020,1), values=(1., 2., 3.)).get_data()
-    array([[1.],
-           [2.],
-           [3.]])
+!!! returns "series"
 
-Leading missing values are trimmed away at construction:
+    New `Series`. The initializer itself returns `None`.
 
-    >>> x = dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([np.nan, 2., 3.]))
-    >>> x.start
-    qq(2020,2)
+??? note "Details"
 
-················································································
+    All inputs are keyword-only. The four combinations shown above are
+    supported, as is `Series()` without population inputs. Other combinations
+    are not supported.
+
+    Population removes all-missing rows from the edges. If all data are missing,
+    the result is reset and its description is cleared.
         """
         self.start = None
         self.data = _np.empty((0, num_variants), dtype=data_type, )
@@ -338,41 +310,20 @@ Leading missing values are trimmed away at construction:
                 period_value_pairs=period_value_pairs,
             )
 
+    @_dm.reference(category="constructor", )
     def copy(self, ) -> Self:
         r"""
-················································································
+==Make an independent copy of the series==
 
-## `Series.copy`
+#### Syntax
 
-==Returns an independent duplicate of the time series.==
+    new_series = series.copy()
 
-    self.copy()
+#### Returns
 
-Most methods change a series in place, so `copy` is how you keep the
-original. The values are copied into a new array, not shared, and the
-start period and the description come along, so the copy compares equal
-under `same_as`.
+!!! returns "new_series"
 
-
-### Returns
-
-
-A new `Series` of the same class. Writing into the copy's data, or
-shifting or clipping it, leaves the original alone.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> y = x.copy()
-    >>> y.clip(dp.qq(2020,2), None)
-    >>> x.num_periods
-    2
-
-················································································
+    New series of the same class, with copied data and start period and the same description. The original is unchanged.
         """
         new = type(self)(populate=False, )
         new.start = None
@@ -392,6 +343,7 @@ shifting or clipping it, leaves the original alone.
         return new
 
     @classmethod
+    @_dm.reference(category="constructor", )
     def void(
         klass,
         num_variants: int = 1,
@@ -399,51 +351,35 @@ shifting or clipping it, leaves the original alone.
         description: str = "",
     ) -> Self:
         r"""
-················································································
+==Create an empty series with a chosen number of variants==
 
-## `Series.void`
+#### Syntax
 
-==Creates an empty time series with a given number of variants.==
+    series = Series.void(
+        num_variants=1,
+        data_type=numpy.float64,
+        description="",
+    )
 
-    Series.void(num_variants=1, data_type=np.float64, description="")
+#### Input arguments
 
-A class method: call it on the class itself, `Series.void(...)`, not on
-an existing series. `set_data` fills in the values afterwards and takes
-the start period from the first observation written.
+!!! input "num_variants"
 
+    Integer, default `1`. Number of variants.
 
-**Input arguments.**
+!!! input "data_type"
 
+    NumPy data type, default `numpy.float64`.
 
-???+ input "num_variants"
-    The number of columns the empty series carries.
+!!! input "description"
 
-???+ input "data_type"
-    The numpy element type of the stored data, as in the constructor.
+    Text label, default `""`.
 
-???+ input "description"
-    The free-text label, as in the constructor.
+#### Returns
 
+!!! returns "series"
 
-### Returns
-
-
-A new `Series` with no observations, `start` equal to `None`, and
-`is_empty` equal to `True`. Unlike `reset`, this keeps the
-`description` you pass in.
-
-
-### Examples
-
-
-    >>> import datapie as dp
-    >>> x = dp.Series.void(num_variants=3)
-    >>> x.shape
-    (0, 3)
-    >>> x.start is None
-    True
-
-················································································
+    New empty series with no start period and the requested variants and description.
         """
         return klass(
             num_variants=num_variants,
@@ -465,69 +401,46 @@ A new `Series` with no observations, `start` equal to `None`, and
         trim: bool = True,
     ) -> Self:
         r"""
-················································································
+==Create a series from a start period and a NumPy array==
 
-## `Series.from_start_and_array`
+#### Syntax
 
-==Creates a time series from a start period and a numpy array laid out one row per period.==
+    series = Series.from_start_and_array(
+        start,
+        array,
+        description="",
+        trim=True,
+    )
 
-    Series.from_start_and_array(start, array, description="", trim=True)
+#### Input arguments
 
-A class method, called on the class itself. Unlike the constructor it
-takes the array as a positional argument and never reinterprets a
-sequence as a list of variants.
+!!! input "start"
 
+    `Period` for the first row.
 
-**Input arguments.**
+!!! input "array"
 
+    NumPy array of observations. Rows are periods and columns are variants; a one-dimensional array becomes one variant.
 
-???+ input "start"
-    The time [`Period`](periods.md) of the first row.
+!!! input "description"
 
-???+ input "array"
-    The values. A one-dimensional array becomes a single variant, and a
-    two-dimensional array is read as one column per variant. Rows must be
-    a continuous run of periods from `start` onwards -- there is no way
-    to skip a period other than leaving `nan` in it.
+    Text label, default `""`.
 
-???+ input "description"
-    The free-text label, empty by default.
+!!! input "trim"
 
-???+ input "trim"
-    Left alone it drops leading and trailing rows that are missing in
-    every variant and moves `start` forward accordingly. Pass
-    `trim=False` when the padding is deliberate and you want the span you
-    asked for.
+    Boolean, default `True`. Remove all-missing rows from both ends.
 
+#### Returns
 
-### Returns
+!!! returns "series"
 
+    New series. The array is not explicitly copied, so values may share storage with the input.
 
-A new `Series`.
+??? note "Details"
 
-The array is not copied. The series keeps the very array you handed in,
-so later writes into your own array show up in the series, and vice
-versa. Pass `array.copy()` if that matters.
-
-
-### Examples
-
-
-The array is shared, and the default trims:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> a = np.array([np.nan, 2., 3.])
-    >>> x = dp.Series.from_start_and_array(dp.qq(2020,1), a)
-    >>> x.start
-    qq(2020,2)
-    >>> y = dp.Series.from_start_and_array(dp.qq(2020,1), a,
-    ...     trim=False)
-    >>> a[1] = 99.
-    >>> y.get_data().tolist()
-    [[nan], [99.0], [3.0]]
-
-················································································
+    Arrays with more than two dimensions are reshaped to period rows
+    and variant columns. If trimming removes all observations, the start and
+    description are cleared.
         """
         self = klass()
         self.start = start
@@ -537,43 +450,20 @@ The array is shared, and the default trims:
             self.trim()
         return self
 
+    @_dm.reference(category="manipulation", )
     def reset(self, ) -> None:
         r"""
-················································································
+==Clear the series and its description==
 
-## `Series.reset`
+#### Syntax
 
-==Empties the time series in place, keeping only its shape and element type.==
+    series.reset()
 
-    self.reset()
+#### Returns
 
-The number of variants and the `data_type` survive; everything else
-goes.
+!!! returns "None"
 
-
-### Returns
-
-
-Nothing; the series is modified in place.
-
-The description is also erased: `reset` rebuilds the object through the
-constructor, whose default description is an empty string. `trim` calls `reset` whenever
-every observation is missing, so an all-missing series loses its
-description too.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]),
-    ...     description="gdp")
-    >>> x.reset()
-    >>> x.start is None, x.get_description()
-    (True, '')
-
-················································································
+    Change the series in place. Keep the variant count and data type, but remove all rows, the start period and the description.
         """
         self.__init__(
             num_variants=self.num_variants,
@@ -593,36 +483,21 @@ description too.
     @_dm.reference(category="property", )
     def shape(self, ) -> tuple[int, int]:
         r"""
-················································································
+==Read the period and variant counts==
 
-## `Series.shape`
+#### Syntax
 
-==Gives the number of periods and the number of variants as a pair.==
+    series.shape
 
-    self.shape
+#### Returns
 
-A read-only property, written without parentheses. It is the shape of
-the underlying numpy array: rows are periods running from `start` to
-`end` with no gaps, columns are variants.
+!!! returns "value"
 
+    Pair of integers: number of rows and number of columns.
 
-### Returns
+#### See also
 
-
-A two-element tuple of whole numbers. An empty series reports zero rows
-but keeps its column count.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]])).shape
-    (2, 2)
-
-················································································
+[Series attributes](#attributes)
         """
         return self.data.shape
 
@@ -630,38 +505,21 @@ but keeps its column count.
     @_dm.reference(category="property", )
     def num_periods(self, ) -> int:
         r"""
-················································································
+==Read the number of stored periods==
 
-## `Series.num_periods`
+#### Syntax
 
-==Gives the number of periods from the first to the last observation.==
+    series.num_periods
 
-    self.num_periods
+#### Returns
 
-A read-only property. This counts rows, not observations: periods in the
-middle that hold nothing but missing values are included, because the
-series is stored as one unbroken block. Leading and trailing missing
-rows are not, since they are trimmed away.
+!!! returns "value"
 
+    Integer row count, including internal missing rows.
 
-### Returns
+#### See also
 
-
-A whole number, zero for an empty series.
-
-
-### Examples
-
-
-The gap in the middle still counts:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., np.nan, 3.])).num_periods
-    3
-
-················································································
+[Series attributes](#attributes)
         """
         return self.data.shape[0]
 
@@ -669,68 +527,43 @@ The gap in the middle still counts:
     @_dm.reference(category="property", )
     def num_variants(self, ) -> int:
         r"""
-················································································
+==Read the number of variants==
 
-## `Series.num_variants`
+#### Syntax
 
-==Gives the number of variants, that is the number of columns, in the time series.==
+    series.num_variants
 
-    self.num_variants
+#### Returns
 
-A read-only property. Variants are alternative paths for the same
-quantity -- simulation draws, scenarios, forecast vintages -- all
-sharing one time span.
+!!! returns "value"
 
+    Integer column count.
 
-### Returns
+#### See also
 
-
-A whole number. It stays what it was even when the series is emptied.
-
-
-### Examples
-
-
-    >>> import datapie as dp
-    >>> dp.Series.void(num_variants=3).num_variants
-    3
-
-················································································
+[Series attributes](#attributes)
         """
         return self.data.shape[1]
 
     @property
+    @_dm.reference(category="property", )
     def is_singleton(self, ) -> bool:
         r"""
-················································································
+==Test whether there is one variant==
 
-## `Series.is_singleton`
+#### Syntax
 
-==Says whether the time series holds exactly one variant.==
+    series.is_singleton
 
-    self.is_singleton
+#### Returns
 
-A read-only property. Some methods change what they return depending on
-it: `iter_periods_and_values` hands back bare values for a single-variant
-series and lists for a multi-variant one, and `x13` does the same with
-the information it reports back. `get_values` looks as though it does,
-and does not -- see its own block.
+!!! returns "value"
 
+    Boolean: `True` when exactly one variant is stored.
 
-### Returns
+#### See also
 
-
-`True` when there is exactly one column, `False` otherwise.
-
-
-### Examples
-
-
-    >>> import datapie as dp
-    >>> dp.Series.void(num_variants=2).is_singleton
-    False
-
-················································································
+[Series attributes](#attributes)
         """
         return self.data.shape[1] == 1
 
@@ -738,39 +571,21 @@ and does not -- see its own block.
     @_dm.reference(category="property", )
     def span(self, ):
         r"""
-················································································
+==Read the stored time span==
 
-## `Series.span`
+#### Syntax
 
-==Gives the time span running from the first to the last observation.==
+    series.span
 
-    self.span
-    self.range
+#### Returns
 
-A read-only property. The span is iterable, so you can loop over it, and
-it can be handed straight back to `get_data`, `clip` or `set_data`.
-`range` is the same property under another name.
+!!! returns "value"
 
+    `Span` from start to end, or `()` without a start. Also available as `range`.
 
-### Returns
+#### See also
 
-
-A `Span` from `start` to `end`. For an empty series you get an empty
-tuple `()`, not an empty `Span` -- it is falsy and iterates over
-nothing, but it has none of a span's methods.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.])).span
-    Span(qq(2020,1), qq(2020,2))
-    >>> dp.Series().span
-    ()
-
-················································································
+[Series attributes](#attributes)
         """
         return Span(self.start, self.end, ) if self.start else ()
 
@@ -780,35 +595,21 @@ nothing, but it has none of a span's methods.
     @_dm.reference(category="property", )
     def from_until(self, ):
         r"""
-················································································
+==Read the start and end together==
 
-## `Series.from_until`
+#### Syntax
 
-==Gives the first and last period of the time series as a pair.==
+    series.from_until
 
-    self.from_until
+#### Returns
 
-A read-only property, in the form the `get_data_from_until` family
-expects.
+!!! returns "value"
 
+    Pair containing the start and end periods.
 
-### Returns
+#### See also
 
-
-A two-element tuple, `(start, end)`. Both entries are `None` for an
-empty series.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.from_until
-    (qq(2020,1), qq(2020,2))
-
-················································································
+[Series attributes](#attributes)
         """
         return self.start, self.end
 
@@ -816,36 +617,21 @@ empty series.
     @_dm.reference(category="property", )
     def periods(self, ) -> tuple[Period, ...]:
         r"""
-················································································
+==Read all periods in the span==
 
-## `Series.periods`
+#### Syntax
 
-==Lists every period from the start to the end of the time series.==
+    series.periods
 
-    self.periods
-    self.dates
+#### Returns
 
-A read-only property. Unlike `span` this is a plain tuple you can index
-and measure. `dates` is the same property under an older name.
+!!! returns "value"
 
+    Tuple of periods. Also available as `dates`.
 
-### Returns
+#### See also
 
-
-A tuple of `Period` objects, one per row, including periods whose
-observations are all missing. Empty for an empty series.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., np.nan, 3.])).periods
-    (qq(2020,1), qq(2020,2), qq(2020,3))
-
-················································································
+[Series attributes](#attributes)
         """
         return tuple(self.span, )
 
@@ -855,103 +641,43 @@ observations are all missing. Empty for an empty series.
     @_dm.reference(category="property", call_name="start", )
     def _start(self):
         r"""
-················································································
+==Read or assign the first period==
 
-## `Series.start`
+#### Syntax
 
-==Gives the period of the first observation, and re-dates the whole series when you assign to it.==
+    series.start
 
-    self.start
-    self.start = new_period
+#### Returns
 
-This is the attribute the rest of the package is built on. A series
-stores its values as one unbroken block and stamps them by their
-starting period alone, so `start` together with the values is the entire
-time dimension of the object; `end`, `span`, `periods` and `from_until`
-are all worked out from it and from the number of rows.
+!!! returns "value"
 
-Unlike the other entries in this category, `start` is an ordinary
-writable attribute rather than a read-only property. Assigning to it
-slides the whole series in time without touching a single value:
-`x.start = qq(2030,1)` moves a series that began in 2020Q1 ten years
-forward, keeping its length. `set_start` does the same thing and returns
-the series so the call can be chained. Nothing checks that the period you
-assign has the same frequency as the one it replaces, and since
-`frequency` is read off `start`, assigning a monthly period to a
-quarterly series changes what the series claims to be without changing
-its data.
+    `Period` or `None`. The public `start` attribute is writable; assigning a new period changes the time axis, not the values.
 
+#### See also
 
-### Returns
-
-
-A `Period`, or `None` when the series holds no observations. It is
-`None` for a freshly built empty series, but not for one emptied by
-`empty()`, which leaves the old start in place.
-
-The `_start` definition carrying this documentation raises
-`NotImplementedError` if it is ever reached. It exists to give the
-attribute an entry in the generated reference and is never called,
-because the attribute shadows it.
-
-
-### Examples
-
-
-Reading it, and re-dating with it:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.start
-    qq(2020,1)
-    >>> x.start = dp.qq(2030,1)
-    >>> x.from_until
-    (qq(2030,1), qq(2030,2))
-    >>> dp.Series().start is None
-    True
-
-················································································
+[Series attributes](#attributes)
         """
         raise NotImplementedError
 
     @property
+    @_dm.reference(category="property", )
     def start_period(self, ):
         r"""
-················································································
+==Read the first period==
 
-## `Series.start_period`
+#### Syntax
 
-==Gives the period of the first observation.==
+    series.start_period
 
-    self.start_period
-    self.start_date
+#### Returns
 
-A read-only property that reports the same thing as the plain `start`
-attribute; the two names exist so that code written against either
-convention keeps working.
+!!! returns "value"
 
+    `Period` or `None`. Also available as `start_date`; both are read-only names for `start`.
 
-### Returns
+#### See also
 
-
-A `Period`, or `None` for an empty series.
-
-Note that `start` itself is an ordinary attribute, not a property, and
-assigning to it retimes the series without touching the values -- see
-the `start` block above. `start_period` cannot be assigned to.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., 2.])).start_period
-    qq(2020,1)
-
-················································································
+[Series attributes](#attributes)
         """
         return self.start
 
@@ -961,44 +687,21 @@ the `start` block above. `start_period` cannot be assigned to.
     @_dm.reference(category="property", )
     def end(self):
         r"""
-················································································
+==Read the last period==
 
-## `Series.end`
+#### Syntax
 
-==Gives the period of the last observation.==
+    series.end
 
-    self.end
-    self.end_period
-    self.end_date
+#### Returns
 
-A read-only property, worked out from `start` and the number of rows
-rather than stored.
+!!! returns "value"
 
+    `Period` or `None`. Also available as `end_period` and `end_date`. A series emptied without clearing its start reports the period before the start.
 
-### Returns
+#### See also
 
-
-A `Period`, or `None` when the series has never had a start period.
-
-A series that was emptied by `empty()` keeps its `start`, and this
-property then counts zero rows forward from it and reports the period
-*before* the start. Treat `is_empty` rather than `end` as the test for
-having no data.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.end
-    qq(2020,2)
-    >>> x.empty()
-    >>> x.end
-    qq(2019,4)
-
-················································································
+[Series attributes](#attributes)
         """
         return (
             self.start + self.data.shape[0] - 1
@@ -1012,35 +715,21 @@ having no data.
     @_dm.reference(category="property", )
     def frequency(self, ):
         r"""
-················································································
+==Read the time frequency==
 
-## `Series.frequency`
+#### Syntax
 
-==Gives the date frequency of the time series.==
+    series.frequency
 
-    self.frequency
+#### Returns
 
-A read-only property taken from the start period, so it is decided by
-the periods you built the series from and cannot be set separately.
+!!! returns "value"
 
+    `Frequency` of the start period, or `Frequency.UNKNOWN` without a start.
 
-### Returns
+#### See also
 
-
-A `Frequency` such as `QUARTERLY` or `MONTHLY`. An empty series, having
-no start period, reports `Frequency.UNKNOWN`.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.mm(2020,1),
-    ...     values=np.array([1., 2.])).frequency
-    <Frequency.MONTHLY: 12>
-
-················································································
+[Series attributes](#attributes)
         """
         return (
             self.start.frequency
@@ -1052,35 +741,21 @@ no start period, reports `Frequency.UNKNOWN`.
     @_dm.reference(category="property", )
     def is_empty(self, ) -> bool:
         r"""
-················································································
+==Test whether the series has no data entries==
 
-## `Series.is_empty`
+#### Syntax
 
-==Says whether the time series holds no observations at all.==
+    series.is_empty
 
-    self.is_empty
+#### Returns
 
-A read-only property, and the reliable test for an unpopulated series:
-`start` may still be set after `empty()`, and `end` may then report a
-period that lies before it.
+!!! returns "value"
 
+    Boolean; also `True` for a series with zero variants.
 
-### Returns
+#### See also
 
-
-`True` when there are no rows, `False` otherwise. A series with rows
-made up entirely of missing values is not empty -- although trimming
-will usually have removed them already.
-
-
-### Examples
-
-
-    >>> import datapie as dp
-    >>> dp.Series().is_empty
-    True
-
-················································································
+[Series attributes](#attributes)
         """
         return not self.data.size
 
@@ -1088,226 +763,67 @@ will usually have removed them already.
     @_dm.reference(category="property", )
     def has_missing(self, ):
         r"""
-················································································
+==Test whether any stored observation is missing==
 
-## `Series.has_missing`
+#### Syntax
 
-==Says whether the time series has any missing observation inside its own span.==
+    series.has_missing
 
-    self.has_missing
+#### Returns
 
-A read-only property. Because leading and trailing missing rows are
-trimmed away, anything it reports is a genuine hole in the middle of the
-data, or a period that some variants cover and others do not.
+!!! returns "value"
 
+    Boolean; `False` for an empty series.
 
-### Returns
+#### See also
 
-
-`True` when at least one value inside the span is missing, `False`
-otherwise, and `False` for an empty series.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., np.nan, 3.])).has_missing
-    True
-
-················································································
+[Series attributes](#attributes)
         """
         return bool((not self.is_empty) and _np.isnan(self.data).any())
 
+    @_dm.reference(category="information", )
     def any_missing(self, *args, ) -> bool:
         r"""
-················································································
+==Test whether any selected value is missing==
 
-## `Series.any_missing`
+#### See also
 
-==Says whether any observation is missing.==
-
-    self.any_missing(*args)
-
-Unlike the `has_missing` property this is a method you can restrict to
-part of the series: whatever you pass is handed straight to `get_data`,
-so a period, a list of periods or a `Span` narrows the question, and an
-extra argument after that picks variants.
-
-
-**Input arguments.**
-
-
-???+ input "*args"
-    The arguments of `get_data`: the periods to look at, and optionally
-    which variants. With no arguments the whole series is checked.
-
-    Periods outside the current span are not an error. They are treated
-    as missing, so asking about a period the series does not reach
-    always answers `True`.
-
-
-### Returns
-
-
-`True` or `False`.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., np.nan, 3.]))
-    >>> x.any_missing(dp.Span(dp.qq(2020,1), dp.qq(2020,1)))
-    False
-    >>> x.any_missing(dp.qq(2030,1))
-    True
-
-················································································
+[Missing value queries](#missing-value-queries)
         """
         return self._func_missing(_np.any, *args, )
 
+    @_dm.reference(category="information", )
     def where_missing(self, *args, ) -> tuple[Period]:
         r"""
-················································································
+==Find periods with missing selected observations==
 
-## `Series.where_missing`
+#### See also
 
-==Lists the periods at which an observation is missing.==
-
-    self.where_missing(*args)
-
-A period counts as missing when any one of the variants is missing
-there, not only when all of them are.
-
-
-**Input arguments.**
-
-
-???+ input "*args"
-    The arguments of `get_data`, so you can narrow the search to a
-    `Span`, a list of periods, or particular variants. With no arguments
-    the whole series is searched.
-
-
-### Returns
-
-
-A tuple of `Period` objects, empty when nothing is missing.
-
-Only the no-argument form can be trusted. When you pass periods, the
-missing values are found in the data you asked for but the periods
-reported are counted from the start of the series, so the answers come
-back shifted by the distance between the two. See the log entry for this
-file.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., np.nan, 3., np.nan, 5.]))
-    >>> x.where_missing()
-    (qq(2020,2), qq(2020,4))
-
-················································································
+[Missing value queries](#missing-value-queries)
         """
         data = self.get_data(*args, )
         missing_mask = _np.isnan(data).any(axis=1, )
         return tuple(p for p, m in zip(self.span, missing_mask, ) if m)
 
+    @_dm.reference(category="information", )
     def all_missing(self, *args, ) -> bool:
         r"""
-················································································
+==Test whether all selected values are missing==
 
-## `Series.all_missing`
+#### See also
 
-==Says whether every observation is missing.==
-
-    self.all_missing(*args)
-
-The counterpart of `any_missing`.
-
-
-**Input arguments.**
-
-
-???+ input "*args"
-    The arguments of `get_data`: the periods to look at, and optionally
-    which variants. With no arguments the whole series is checked.
-
-
-### Returns
-
-
-`True` or `False`. An empty series, and any request that selects no
-periods at all, answers `True` -- there is nothing that is not missing.
-Combine it with `is_empty` if that distinction matters.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series().all_missing()
-    True
-    >>> dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., np.nan])).all_missing()
-    False
-
-················································································
+[Missing value queries](#missing-value-queries)
         """
         return self._func_missing(_np.all, *args, )
 
+    @_dm.reference(category="information", )
     def count_missing(self, *args, ) -> int:
         r"""
-················································································
+==Test whether the missing-value count is nonzero==
 
-## `Series.count_missing`
+#### See also
 
-==Reports whether any observation is missing.==
-
-    self.count_missing(*args)
-
-
-**Input arguments.**
-
-
-???+ input "*args"
-    The arguments of `get_data`: the periods to look at, and optionally
-    which variants. With no arguments the whole series is checked.
-
-
-### Returns
-
-
-`True` or `False`, despite the name and despite the `int` annotation on
-the method. The count is computed and then passed through `bool`, so
-every non-zero count collapses to `True`. The method as written cannot
-tell you how many values are missing; use `len(x.where_missing())`, or
-count the `nan` entries in `x.get_data()` yourself. See the log entry
-for this file.
-
-
-### Examples
-
-
-Two missing values, one answer:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., np.nan, 3., np.nan])).count_missing()
-    True
-
-················································································
+[Missing value queries](#missing-value-queries)
         """
         return self._func_missing(_np.count_nonzero, *args, )
 
@@ -1317,6 +833,7 @@ Two missing values, one answer:
         data = self.get_data(*args, )
         return bool(func(_np.isnan(data)))
 
+    @_dm.reference(category="manipulation", )
     def set_data(
         self,
         dates: Periods,
@@ -1324,65 +841,38 @@ Two missing values, one answer:
         variants: VariantsRequestType = None,
     ) -> None:
         r"""
-················································································
+==Write observations at selected periods and variants==
 
-## `Series.set_data`
+#### Syntax
 
-==Writes values into the time series at the periods you name, extending the span when they fall outside it.==
+    series.set_data(
+        dates,
+        data,
+        variants=None,
+    )
 
-    self.set_data(dates, data, variants=None)
+#### Input arguments
 
-Unlike `clip` this grows as well as fills: periods before the current
-start or after the current end are added, and the rows in between are
-filled with missing values.
+!!! input "dates"
 
+    One period, iterable of periods, span, `None` or `...`. `None` and `...` select the current span.
 
-**Input arguments.**
+!!! input "data"
 
+    Values to write: a number, NumPy array, tuple, list of variants,
+    or another series. Array rows correspond to periods. A list supplies
+    variants rather than consecutive observations. A source series is read
+    at the requested periods; the last supplied variant is repeated if needed.
 
-???+ input "dates"
-    Where to write -- a single `Period`, a list of them, a `Span`, or
-    `...` for the whole current span. The periods need not be in order
-    and need not be adjacent.
+!!! input "variants"
 
-???+ input "data"
-    What to write. A number is written to every period named. A numpy
-    array or a tuple is read as one entry per period, in the order
-    `dates` gives them. A *list* is read as one entry per variant, so
-    `set_data(span, [7., 8., 9.])` writes 7 to every period rather than
-    laying the three numbers out in time. Another `Series` may also be
-    passed, and the values are then taken from it at those same periods.
+    Zero-based integer, iterable of integers, slice or `None`, default `None`. Select columns to write; `None` and `...` select all.
 
-???+ input "variants"
-    Picks the columns to write. Left alone every variant is written. A
-    whole number picks one, and a `slice` or a list of numbers picks
-    several.
+#### Returns
 
+!!! returns "None"
 
-### Returns
-
-
-Nothing; the series is modified in place, and both `start` and `end` may
-move.
-
-The series is trimmed afterwards, so writing missing values over the
-first or last observation shortens the series rather than leaving a
-blank edge.
-
-
-### Examples
-
-
-Writing before the start extends the series backwards:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.set_data(dp.qq(2019,4), 0.)
-    >>> x.start, x.get_data().tolist()
-    (qq(2019,4), [[0.0], [1.0], [2.0]])
-
-················································································
+    Change the series in place. Extend the span if necessary, fill intervening rows with NaN, write the selected observations, and trim all-missing edge rows.
         """
         dates = self.resolve_periods(dates, )
         is_data_ndarray = isinstance(data, _np.ndarray)
@@ -1447,109 +937,34 @@ Writing before the start extends the series backwards:
             pos = (pos, )
         return periods, pos, variants, expanded_data,
 
+    @_dm.reference(category="manipulation", )
     def alter_num_variants(
         self,
         new_num: int,
     ) -> Self:
         r"""
-················································································
+==Change the number of variants==
 
-## `Series.alter_num_variants`
+#### See also
 
-==Changes the number of variants to the number you ask for, adding or dropping columns as needed.==
-
-    self.alter_num_variants(new_num)
-
-This is the safe front end to `expand_num_variants` and
-`shrink_num_variants`: it compares the counts and calls whichever one
-applies, and does nothing when the series already has `new_num`
-variants.
-
-
-**Input arguments.**
-
-
-???+ input "new_num"
-    The number of variants you want. Growing copies the last existing
-    variant into every new column; shrinking drops columns from the
-    right-hand end, and the values in them are gone.
-
-
-### Returns
-
-
-Nothing; the series is modified in place. The `Self` annotation on the
-method is wrong -- neither branch returns anything.
-
-
-### Examples
-
-
-New columns repeat the last one:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> x.alter_num_variants(3)
-    >>> x.get_data().tolist()
-    [[1.0, 2.0, 2.0], [3.0, 4.0, 4.0]]
-
-················································································
+[Variant utilities](#variant-utilities)
         """
         if new_num < self.num_variants:
             self.shrink_num_variants(new_num, )
         elif new_num > self.num_variants:
             self.expand_num_variants(new_num, )
 
+    @_dm.reference(category="manipulation", )
     def expand_num_variants(
         self,
         new_num: int,
     ) -> None:
         r"""
-················································································
+==Add copies of the last variant==
 
-## `Series.expand_num_variants`
+#### See also
 
-==Adds variants until the series has `new_num` of them.==
-
-    self.expand_num_variants(new_num)
-
-Prefer `alter_num_variants` unless you are certain of the direction.
-
-
-**Input arguments.**
-
-
-???+ input "new_num"
-    Must be at least the current number of variants; a smaller number
-    raises `ValueError` telling you to call `shrink_num_variants`
-    instead.
-
-    The new columns are copies of the current *last* variant, not of the
-    first and not of an average. For a single-variant series that is the
-    only column, which is the usual case, but for a wider series the
-    choice matters.
-
-
-### Returns
-
-
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> x.expand_num_variants(4)
-    >>> x.get_data().tolist()
-    [[1.0, 2.0, 2.0, 2.0], [3.0, 4.0, 4.0, 4.0]]
-
-················································································
+[Variant utilities](#variant-utilities)
         """
         add = new_num - self.num_variants
         if add < 0:
@@ -1557,63 +972,24 @@ Nothing; the series is modified in place.
         data = _np.tile(self.data[:, (-1, )], (1, add, ))
         self.data = _np.hstack((self.data, data, ), )
 
+    @_dm.reference(category="manipulation", )
     def shrink_num_variants(
         self,
         new_num: int,
     ) -> None:
         r"""
-················································································
+==Remove variants from the right==
 
-## `Series.shrink_num_variants`
+#### See also
 
-==Drops variants from the right until the series has `new_num` of them.==
-
-    self.shrink_num_variants(new_num)
-
-
-**Input arguments.**
-
-
-???+ input "new_num"
-    Must be at most the current number of variants; a larger number
-    raises `ValueError` telling you to call `expand_num_variants`
-    instead. The columns removed are the last ones, and their values are
-    discarded; use `extract_variants` when you need to choose which ones
-    to keep.
-
-    Calling it with the number the series already has empties every
-    column instead of doing nothing, because dropping "the last zero
-    columns" is computed as keeping everything up to column zero. Go
-    through `alter_num_variants`, which checks first and never reaches
-    this case. See the log entry for this file.
-
-
-### Returns
-
-
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-Asking for the count it already has wipes the data:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> x.shrink_num_variants(2)
-    >>> x.shape
-    (2, 0)
-
-················································································
+[Variant utilities](#variant-utilities)
         """
         remove = self.num_variants - new_num
         if remove < 0:
             raise ValueError("Use expand_num_variants to expand the number of variants")
         self.data = self.data[:, :-remove]
 
+    @_dm.reference(category="information", )
     def get_values(
         self,
         *args,
@@ -1621,57 +997,39 @@ Asking for the count it already has wipes the data:
         **kwargs,
     ) -> list[tuple[Real, ...]] | tuple[Real, ...]:
         r"""
-················································································
+==Read selected values as ordinary Python tuples==
 
-## `Series.get_values`
+#### Syntax
 
-==Returns the observations as plain Python numbers rather than as a numpy array.==
+    values = series.get_values(
+        *args,
+        unpack_singleton=True,
+        **kwargs,
+    )
 
-    self.get_values(*args, unpack_singleton=True, **kwargs)
+#### Input arguments
 
-**Input arguments.**
+!!! input "*args"
 
+    Optional periods followed by variants, passed to `get_data`.
 
-???+ input "*args, **kwargs"
-    Go straight to `get_data`, so the first argument selects periods --
-    a `Period`, a list of them, a `Span`, or `...` for the whole span --
-    and a second selects variants.
+!!! input "**kwargs"
 
-???+ input "unpack_singleton"
-    Left alone it hands back one bare tuple instead of a list holding a
-    single tuple. Set it to `False` to always get the list, which is
-    what you want in code that must work for any number of variants.
+    Named inputs passed to `get_data`. The period selector is `periods`; variant selection is positional.
 
+!!! input "unpack_singleton"
 
-### Returns
+    Boolean, default `True`. If `False`, return one tuple per variant in a list. If `True`, return the first variant only, even when several variants are selected.
 
+#### Returns
 
-With `unpack_singleton=False`, a list with one tuple of numbers per
-variant. With it left alone, the first of those tuples.
+!!! returns "values"
 
-That last sentence is the trap: with the default in force the method
-returns the *first variant only*, whatever the number of variants,
-because the check for a single variant is never actually made. On a
-multi-variant series the other columns disappear without warning. Always
-pass `unpack_singleton=False` unless you know there is one variant. See
-the log entry for this file.
+    Tuple for the first variant, or list of tuples when unpacking is disabled. The series is unchanged.
 
+#### See also
 
-### Examples
-
-
-Two variants in, one variant out:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> x.get_values()
-    (1.0, 3.0)
-    >>> x.get_values(unpack_singleton=False)
-    [(1.0, 3.0), (2.0, 4.0)]
-
-················································································
+[Data retrieval](#data-retrieval)
         """
         data = self.get_data(*args, **kwargs, )
         values = [ tuple(data_column.tolist()) for data_column in data.T ]
@@ -1680,215 +1038,89 @@ Two variants in, one variant out:
             unpack_singleton=unpack_singleton,
         )
 
+    @_dm.reference(category="information", )
     def get_data(self, *args, **kwargs, ) -> _np.ndarray:
         r"""
-················································································
+==Read selected observations as a NumPy array==
 
-## `Series.get_data`
+#### Syntax
 
-==Returns the observations for the periods you ask for as a numpy array.==
+    data = series.get_data(
+        periods,
+        variants,
+    )
+    data = series.get_data()
 
-    self.get_data(*args, **kwargs)
+#### Input arguments
 
-The result is always two-dimensional, one row per period requested and
-one column per variant, even when there is only one of either.
+!!! input "*args"
 
+    The first input selects periods; the second selects variants.
+    Omitting them selects the current span and all variants. Periods can be
+    a period, iterable, span, `None` or `...`; variants can be an integer,
+    integer iterable, slice, `None` or `...`. The period input can also be
+    named `periods`; variant selection is positional.
 
-**Input arguments.**
+!!! input "**kwargs"
 
+    Named period selection, supplied as `periods`. Omit it to read the current span.
 
-???+ input "*args, **kwargs"
-    The first argument selects periods: a single `Period`, a list or
-    tuple of them, a `Span`, or `...` (the default) for the whole span.
-    Periods may be given in any order, and the rows come back in the
-    order you asked for them. A second argument selects variants, as a
-    whole number, a list of numbers, or a `slice`.
+#### Returns
 
-    Periods outside the current span are not an error and do not extend
-    the series; they come back as missing values, so a mistyped year
-    returns a column of `nan` rather than complaining.
+!!! returns "data"
 
+    Independent two-dimensional NumPy array, with period rows and variant columns. Requested periods outside the series contain NaN. Reading does not change the series.
 
-### Returns
+#### See also
 
-
-A two-dimensional numpy array, freshly built, so writing into it does
-not change the series.
-
-
-### Examples
-
-
-Out-of-span periods come back missing, and order is preserved:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.get_data([dp.qq(2020,2), dp.qq(2030,1)]).tolist()
-    [[2.0], [nan]]
-
-················································································
+[Data retrieval](#data-retrieval)
         """
         return self.get_data_and_periods(*args, **kwargs, )[0]
 
+    @_dm.reference(category="information", )
     def get_data_and_periods(
         self,
         periods: Iterable[Period] | None | EllipsisType = ...,
         *args,
     ) -> _np.ndarray:
         r"""
-················································································
+==Read observations together with their periods==
 
-## `Series.get_data_and_periods`
+#### See also
 
-==Returns the observations together with the periods they belong to.==
-
-    self.get_data_and_periods(periods=..., *args)
-
-`get_data` is this method with the periods thrown away.
-
-
-**Input arguments.**
-
-
-???+ input "periods"
-    Selects the periods, exactly as in `get_data`, and left alone covers
-    the whole span.
-
-???+ input "*args"
-    Any further argument selects variants.
-
-
-### Returns
-
-
-A two-element tuple. The first entry is the two-dimensional numpy array
-of values; the second is a tuple of the `Period` objects for its rows, in
-the same order. The `ndarray` annotation on the method describes only the
-first entry.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> data, periods = x.get_data_and_periods()
-    >>> periods
-    (qq(2020,1), qq(2020,2))
-
-················································································
+[Data retrieval](#data-retrieval)
         """
         periods, pos, variants, expanded_values, = self._resolve_periods_and_positions(periods, *args, )
         return expanded_values[_np.ix_(pos, variants)], periods,
 
+    @_dm.reference(category="information", )
     def get_data_variant(
         self,
         periods: Periods,
         variant: Real | None = None,
     ) -> _np.ndarray:
         r"""
-················································································
+==Read one variant at selected periods==
 
-## `Series.get_data_variant`
+#### See also
 
-==Returns the observations of a single variant as a one-column numpy array.==
-
-    self.get_data_variant(periods, variant=None)
-
-**Input arguments.**
-
-
-???+ input "periods"
-    Selects the periods, as in `get_data`.
-
-???+ input "variant"
-    The column number, counted from zero. Left alone, or set to zero,
-    you get the first variant. A column number that is not below the
-    number of variants silently gives you the first variant instead of
-    raising -- so a typo in the index returns plausible numbers from the
-    wrong column. Negative numbers are passed through to numpy and count
-    from the right-hand end, so `-1` gives the last variant.
-
-
-### Returns
-
-
-A two-dimensional numpy array with exactly one column.
-
-
-### Examples
-
-
-An out-of-range variant is not an error:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> x.get_data_variant(..., 5).tolist()
-    [[1.0], [3.0]]
-
-················································································
+[Data retrieval](#data-retrieval)
         """
         variant = variant if variant and variant<self.data.shape[1] else 0
         return self.get_data(periods, variant, )
 
+    @_dm.reference(category="information", )
     def get_data_from_until(
         self,
         from_until,
         *args,
     ) -> _np.ndarray:
         r"""
-················································································
+==Read observations between two periods==
 
-## `Series.get_data_from_until`
+#### See also
 
-==Returns an unbroken block of observations between two periods.==
-
-    self.get_data_from_until(from_until, *args)
-
-Where `get_data` takes an explicit list of periods, this takes just the
-two ends and returns everything in between, so the rows stay contiguous.
-
-
-**Input arguments.**
-
-
-???+ input "from_until"
-    A pair of periods, first and last, both included. The `from_until`
-    property of another series has exactly this shape.
-
-    The two ends may lie outside the current span, and the block is then
-    padded with missing values rather than clipped; this is how two
-    series of different lengths are lined up before being combined.
-
-    A pair given the wrong way round, with the later period first,
-    returns an empty array rather than raising.
-
-???+ input "*args"
-    Any further argument selects variants.
-
-
-### Returns
-
-
-A two-dimensional numpy array.
-
-
-### Examples
-
-
-Asking beyond the end pads instead of failing:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.get_data_from_until((dp.qq(2020,1), dp.qq(2020,3))).tolist()
-    [[1.0], [2.0], [nan]]
-
-················································································
+[Data retrieval](#data-retrieval)
         """
         if all(p is None for p in from_until):
             from_until = ()
@@ -1898,108 +1130,33 @@ Asking beyond the end pads instead of failing:
         from_pos, to_pos, = pos[0], pos[-1]+1,
         return expanded_data[from_pos:to_pos, variants]
 
+    @_dm.reference(category="information", )
     def get_data_variant_from_until(
         self,
         from_until: Iterable[Period],
         variant: int | None = None,
     ) -> _np.ndarray:
         r"""
-················································································
+==Read one variant between two periods==
 
-## `Series.get_data_variant_from_until`
+#### See also
 
-==Returns an unbroken block of observations for a single variant.==
-
-    self.get_data_variant_from_until(from_until, variant=None)
-
-`get_data_from_until` narrowed to one column.
-
-
-**Input arguments.**
-
-
-???+ input "from_until"
-    A pair of periods, first and last, both included. It may reach
-    outside the series, in which case the block is padded with missing
-    values.
-
-???+ input "variant"
-    The column number counted from zero. Left alone, or set to zero, you
-    get the first variant. As in `get_data_variant`, a number that is
-    not below the number of variants silently falls back to the first
-    column rather than raising.
-
-
-### Returns
-
-
-A two-dimensional numpy array with one column.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> x.get_data_variant_from_until(
-    ...     (dp.qq(2020,1), dp.qq(2020,2)), 1).tolist()
-    [[2.0], [4.0]]
-
-················································································
+[Data retrieval](#data-retrieval)
         """
         variant = variant if variant and variant < self.data.shape[1] else 0
         return self.get_data_from_until(from_until, variant, )
 
+    @_dm.reference(category="manipulation", )
     def extract_variants(
         self,
         variants,
     ) -> None:
         r"""
-················································································
+==Keep and reorder selected variants==
 
-## `Series.extract_variants`
+#### See also
 
-==Keeps only the variants you name, in the order you name them.==
-
-    self.extract_variants(variants)
-
-Unlike `shrink_num_variants`, which always drops from the right, you
-choose which columns to keep.
-
-
-**Input arguments.**
-
-
-???+ input "variants"
-    Either a single column number or an iterable of them, counted from
-    zero. Repeats are allowed and duplicate the column, so the series can
-    come out wider than it went in. Negative numbers count from the
-    right-hand end. An out-of-range number raises `IndexError`.
-
-
-### Returns
-
-
-Nothing; the series is modified in place and the discarded columns are
-gone. Copy the series first if you need them.
-
-
-### Examples
-
-
-Reordering and duplicating in one call:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> x.extract_variants((1, 1, 0))
-    >>> x.get_data().tolist()
-    [[2.0, 2.0, 1.0], [4.0, 4.0, 3.0]]
-
-················································································
+[Variant utilities](#variant-utilities)
         """
         if not isinstance(variants, Iterable):
             variants = (variants, )
@@ -2007,103 +1164,57 @@ Reordering and duplicating in one call:
             variants = tuple(c for c in variants)
         self.data = self.data[:, variants]
 
+    @_dm.reference(category="manipulation", )
     def set_start(
         self,
         new_start: Period,
     ) -> Self:
         r"""
-················································································
+==Move the time axis to a new first period==
 
-## `Series.set_start`
+#### Syntax
 
-==Moves the whole time series so that its first observation sits at a new period.==
+    series.set_start(
+        new_start,
+    )
 
-    self.set_start(new_start)
+#### Input arguments
 
-The values are untouched; only their time stamps change.
+!!! input "new_start"
 
+    Replacement `Period`. Its frequency is not checked against the current one.
 
-**Input arguments.**
+#### Returns
 
+!!! returns "series"
 
-???+ input "new_start"
-    The period the first observation is to carry. Nothing checks that it
-    has the same frequency as the periods already in the series, so a
-    quarterly series can silently be told it starts in a month, and the
-    mismatch shows up only later.
-
-
-### Returns
-
-
-The series itself, so the call can be chained. The change is made in
-place all the same -- the original is not preserved.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.set_start(dp.qq(2030,1)).from_until
-    (qq(2030,1), qq(2030,2))
-
-················································································
+    The same series, changed in place. Values are unchanged.
         """
         self.start = new_start
         return self
 
+    @_dm.reference(category="indexing", )
     def resolve_periods(self, periods, ) -> tuple[Period]:
         r"""
-················································································
+==Resolve a period selection against the series==
 
-## `Series.resolve_periods`
+#### Syntax
 
-==Turns whatever period request you were given into a plain tuple of periods.==
+    periods = series.resolve_periods(
+        periods,
+    )
 
-    self.resolve_periods(periods)
+#### Input arguments
 
-Every method that accepts periods runs them through here first, which is
-what lets `...`, `None`, an open-ended `Span` and a bare `Period` all be
-used interchangeably.
+!!! input "periods"
 
+    Period, iterable of periods, span, `None`, `...` or `slice(None)`. `None`, `...` and the empty slice select the current span; open-ended spans are resolved against the series.
 
-**Input arguments.**
+#### Returns
 
+!!! returns "periods"
 
-???+ input "periods"
-    May be a single `Period`, any iterable of periods, a `Span`, a
-    `slice`, `...`, or `None`.
-
-    `None`, `...` and the empty slice `slice(None)` all mean the same
-    thing: the entire span of this series. On an empty series, which has
-    no span, they resolve to no periods at all rather than raising.
-    Open-ended spans, such as one with no end period, are closed off
-    against this series' own start and end.
-
-
-### Returns
-
-
-A tuple of `Period` objects, possibly empty. Nothing is changed on the
-series.
-
-
-### Examples
-
-
-The same answer three ways, and nothing on an empty series:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.resolve_periods(None) == x.resolve_periods(...)
-    True
-    >>> dp.Series().resolve_periods(...)
-    ()
-
-················································································
+    Tuple of selected periods in request order. A whole-span request without a start returns an empty tuple. The series is unchanged.
         """
         if periods is None:
             # periods = []
@@ -2189,55 +1300,32 @@ The same answer three ways, and nothing on an empty series:
         self.set_data(periods, dty_values, )
         self.set_data(neutral_periods, neutral_value, )
 
+    @_dm.reference(category="multiple", )
     def hstack(self, *args, ):
         r"""
-················································································
+==Combine series side by side as variants==
 
-## `Series.hstack`
+#### Syntax
 
-==Stacks other series and numbers alongside this one as extra variants.==
+    new_series = series.hstack(
+        *args,
+    )
 
-    self.hstack(*args)
+#### Input arguments
 
-The `&` and `|` operators do the same thing, so `x & y` is
-`x.hstack(y)`.
+!!! input "*args"
 
+    Additional series, appended in order. Spans are aligned to cover all inputs; uncovered periods are filled with NaN. Plain numbers are not generally supported.
 
-**Input arguments.**
+#### Returns
 
+!!! returns "new_series"
 
-???+ input "*args"
-    Each entry is either another `Series` or a plain number. Series need
-    not share a span: the result covers the span encompassing all of them
-    and each contributor is padded with missing values where it does not
-    reach. A number becomes a column of that same value repeated over the
-    whole span.
+    New combined series with an empty description. With no additional inputs, return a copy preserving the description. Input series are unchanged.
 
+#### See also
 
-### Returns
-
-
-A new `Series` whose variants are those of `self` followed by those of
-each argument in turn. Nothing is modified in place. Called with no
-arguments at all it returns a copy of `self`.
-
-The description is not carried over. The result always has an empty
-description, even when every input shared the same one.
-
-
-### Examples
-
-
-Two series of different length, lined up and padded:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> a = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> b = dp.Series(start=dp.qq(2020,2), values=np.array([10.]))
-    >>> a.hstack(b).get_data().tolist()
-    [[1.0, nan], [2.0, 10.0]]
-
-················································································
+[Iteration, combination, and display](#container-protocols)
         """
         if not args:
             return self.copy()
@@ -2266,60 +1354,34 @@ Two series of different length, lined up and padded:
         new_end: Period | None,
     ) -> None:
         r"""
-················································································
+==Keep observations within an inclusive period interval==
 
-## `Series.clip`
+#### Syntax
 
-==Cuts the time series down to a shorter span.==
+    series.clip(
+        new_start,
+        new_end,
+    )
 
-    self.clip(new_start, new_end)
+#### Input arguments
 
-**Input arguments.**
+!!! input "new_start"
 
+    `Period` or `None`. First period to keep; `None` retains the current start.
 
-???+ input "new_start"
-    The first period to keep. `None` leaves that end where it is.
+!!! input "new_end"
 
-???+ input "new_end"
-    The last period to keep. `None` leaves that end where it is.
+    `Period` or `None`. Last period to keep; `None` retains the current end.
 
+#### Returns
 
-Clipping only ever shortens. A `new_start` earlier than the current
-start, or a `new_end` later than the current end, is quietly replaced by
-the current one, so this cannot be used to pad a series out --
-`set_data` or `get_data_from_until` do that.
+!!! returns "None"
 
+    Shorten the series in place. Bounds beyond the existing span do not extend it. No additional trimming follows.
 
-### Returns
+??? note "Details"
 
-
-Nothing; the series is modified in place and the discarded observations
-are gone. Copy it first if you need them.
-
-Two edge cases fail badly rather than loudly. Clipping an empty series
-raises an error about mismatched frequencies, because there is no current
-start to compare against. Clipping to a span that lies entirely outside
-the series leaves an object with no data whose `start` is after its
-`end`.
-
-
-### Examples
-
-
-A wider request is ignored, a narrower one obeyed:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1., 2., 3.]))
-    >>> x.clip(dp.qq(2019,1), None)
-    >>> x.from_until
-    (qq(2020,1), qq(2020,3))
-    >>> x.clip(dp.qq(2020,2), None)
-    >>> x.get_data().tolist()
-    [[2.0], [3.0]]
-
-················································································
+    A disjoint or reversed interval can leave no rows while retaining a start period.
         """
         if new_start is None or new_start < self.start:
             new_start = self.start
@@ -2331,55 +1393,32 @@ A wider request is ignored, a narrower one obeyed:
         self.start = new_start
 
 
+    @_dm.reference(category="manipulation", )
     def empty(
         self,
         *,
         num_variants: int | None = None
     ) -> None:
         r"""
-················································································
+==Remove all observations while keeping the start and description==
 
-## `Series.empty`
+#### Syntax
 
-==Throws away every observation, keeping the object itself.==
+    series.empty(
+        num_variants=None,
+    )
 
-    self.empty(*, num_variants=None)
+#### Input arguments
 
-**Input arguments.**
+!!! input "num_variants"
 
+    Integer or `None`, default `None`. Optional new variant count; `None` keeps the current count.
 
-???+ input "num_variants"
-    Keyword-only. Left alone the series keeps the number of variants it
-    has; give a number to empty and reshape in one step. Any count is
-    accepted, including zero, since there is no data left to reconcile it
-    with.
+#### Returns
 
+!!! returns "None"
 
-### Returns
-
-
-Nothing; the series is modified in place.
-
-Unlike `reset`, this leaves `start` and the description untouched. A
-stale `start` with no rows behind it makes `end` report the period just
-before the start, and `span` report a backwards span. Use `is_empty` to
-test for emptiness, and `reset` when you want the start period cleared
-as well.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> x.empty(num_variants=3)
-    >>> x.shape, x.is_empty
-    ((0, 3), True)
-    >>> x.start
-    qq(2020,1)
-
-················································································
+    Change the series in place. Keep the start, description and data type. Use `reset` to clear the start and description too.
         """
         num_variants = num_variants if num_variants is not None else self.num_variants
         self.data = _np.empty((0, num_variants), dtype=self.data_type)
@@ -2391,57 +1430,30 @@ as well.
         new_value: Real,
     ) -> None:
         r"""
-················································································
+==Replace observations that satisfy a test==
 
-## `Series.replace_where`
+#### Syntax
 
-==Replaces every observation that passes a test with a single value.==
+    series.replace_where(
+        test,
+        new_value,
+    )
 
-    self.replace_where(test, new_value)
+#### Input arguments
 
-The usual use is cleaning: turning placeholder codes or impossible
-values into missing observations.
+!!! input "test"
 
+    Callable receiving the whole data array and normally returning a Boolean mask selecting values to replace.
 
-**Input arguments.**
+!!! input "new_value"
 
+    Number to write at the selected positions.
 
-???+ input "test"
-    A function that receives the whole two-dimensional data array at once
-    -- not one value at a time -- and returns an array of `True` and
-    `False` of the same shape. Ordinary numpy comparisons do this, so
-    `lambda d: d < 0` is enough. Missing values are part of the array
-    your test sees, and comparisons against `nan` are `False`, so `nan`
-    is left alone unless you test for it with `np.isnan`.
+#### Returns
 
-???+ input "new_value"
-    The single value written wherever the test passed.
+!!! returns "None"
 
-
-### Returns
-
-
-Nothing; the series is modified in place, across every variant.
-
-The series is trimmed afterwards. Replacing values at the beginning or
-end with `nan` therefore shortens the series and moves `start`, rather
-than leaving missing values at the edges.
-
-
-### Examples
-
-
-Blanking the first observation shortens the series:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([-1., 2., 3.]))
-    >>> x.replace_where(lambda d: d < 0, np.nan)
-    >>> x.start, x.get_data().tolist()
-    (qq(2020,2), [[2.0], [3.0]])
-
-················································································
+    Change the series in place, then trim all-missing edge rows. The test receives the live data and can itself change it.
         """
         self.data[test(self.data)] = new_value
         self.trim()
@@ -2455,12 +1467,25 @@ Blanking the first observation shortens the series:
         for n in ("start", "data", "data_type", ):
             setattr(self, n, getattr(other, n, ))
 
+    @_dm.reference(category="information", )
     def __iter__(self, ):
+        r"""
+==Read each variant once==
+
+#### See also
+
+[Iteration, combination, and display](#container-protocols)
+        """
         return self.iter_own_variants()
 
+    @_dm.reference(category="information", )
     def __and__(self, other, ):
-        """
-        Implement the & operator as hstack
+        r"""
+==Combine series as additional variants==
+
+#### See also
+
+[Iteration, combination, and display](#container-protocols)
         """
         return self.hstack(other, )
 
@@ -2469,45 +1494,17 @@ Blanking the first observation shortens the series:
     @_dm.reference(category="manipulation", )
     def trim(self, ) -> None:
         r"""
-················································································
+==Remove missing rows from the two ends==
 
-## `Series.trim`
+#### Syntax
 
-==Drops missing rows from both ends of the time series.==
+    series.trim()
 
-    self.trim()
+#### Returns
 
-A series is stored as one unbroken block, so its span is defined by its
-first and last actual observations. Anything that writes or blanks
-values at the edges calls this afterwards to restore that; you rarely
-need to call it yourself, except after building a series with
-`trim=False` or writing straight into `data`.
+!!! returns "series"
 
-Only rows missing in *every* variant are dropped, and only at the ends.
-Holes in the middle stay where they are.
-
-
-### Returns
-
-
-The series itself, so the call can be chained, even though the
-annotation says `None`. The work is done in place either way.
-
-When every row is missing the series is reset rather than trimmed, and a
-reset also erases the description.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series.from_start_and_array(dp.qq(2020,1),
-    ...     np.array([np.nan, 1., np.nan]), trim=False)
-    >>> x.trim().from_until
-    (qq(2020,2), qq(2020,2))
-
-················································································
+    The same series, changed in place. Only rows missing in every variant are removed; gaps in the middle remain. Empty or all-missing data are reset, clearing the start and description.
         """
         if self.data.size == 0:
             self.reset()
@@ -2536,282 +1533,362 @@ reset also erases the description.
         if data.shape[1] != self.data.shape[1]:
             raise Exception("Time series data being assigned must preserve the number of variants")
 
+    @_dm.reference(category="information", )
     def __bool__(self, ):
-        """
+        r"""
+==Test whether the series contains data entries==
+
+#### See also
+
+[Iteration, combination, and display](#container-protocols)
         """
         return self.data.size > 0
 
+    @_dm.reference(category="manipulation", )
     def __neg__(self):
-        """
-        -self
+        r"""
+==Negate observations in a copy==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         output = self.copy()
         output.data = -output.data
         return output
 
+    @_dm.reference(category="manipulation", )
     def __pos__(self):
-        """
-        +self
+        r"""
+==Return a copy==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.copy()
 
+    @_dm.reference(category="manipulation", )
     def __add__(self, other, ) -> Self | _np.ndarray | Real:
-        """
-        self + other
+        r"""
+==Add aligned observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.add, )
 
+    @_dm.reference(category="manipulation", )
     def __radd__(self, other):
-        """
-        other + self
+        r"""
+==Add the series to a left operand==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.apply(lambda data: data.__radd__(other))
 
+    @_dm.reference(category="manipulation", )
     def __mul__(self, other) -> Self|_np.ndarray:
-        """
-        self + other
+        r"""
+==Multiply aligned observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.mul, )
 
+    @_dm.reference(category="manipulation", )
     def __rmul__(self, other):
-        """
-        other + self
+        r"""
+==Multiply a left operand by the series==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.apply(lambda data: data.__rmul__(other))
 
+    @_dm.reference(category="manipulation", )
     def __sub__(self, other):
-        """
-        self - other
+        r"""
+==Subtract aligned observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.sub, )
 
+    @_dm.reference(category="manipulation", )
     def __rsub__(self, other):
-        """
-        other - self
+        r"""
+==Subtract observations from a left operand==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.apply(lambda data: data.__rsub__(other))
 
+    @_dm.reference(category="manipulation", )
     def __pow__(self, other):
-        """
-        self ** other
+        r"""
+==Raise aligned observations to powers==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         # FIXME: 1 ** numpy.nan -> 1 !!!!!
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.pow, )
 
+    @_dm.reference(category="manipulation", )
     def __rpow__(self, other):
-        """
-        other ** self
+        r"""
+==Raise a left operand to series powers==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.apply(lambda data: data.__rpow__(other))
 
+    @_dm.reference(category="manipulation", )
     def __truediv__(self, other):
-        """
-        self - other
+        r"""
+==Divide aligned observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.truediv, )
 
+    @_dm.reference(category="manipulation", )
     def __rtruediv__(self, other):
-        """
-        other - self
+        r"""
+==Divide a left operand by observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.apply(lambda data: data.__rtruediv__(other))
 
+    @_dm.reference(category="manipulation", )
     def __floordiv__(self, other):
-        """
-        self // other
+        r"""
+==Floor-divide aligned observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self._binop(other, _op.floordiv, )
 
+    @_dm.reference(category="manipulation", )
     def __rfloordiv__(self, other):
-        """
-        other // self
+        r"""
+==Floor-divide a left operand by observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.apply(lambda data: data.__rfloordiv__(other))
 
+    @_dm.reference(category="manipulation", )
     def __mod__(self, other):
-        """
-        self % other
+        r"""
+==Calculate aligned remainders==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self._binop(other, _op.mod, )
 
+    @_dm.reference(category="manipulation", )
     def __rmod__(self, other, ):
-        """
-        other % self
+        r"""
+==Calculate left-operand remainders==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         return self.apply(lambda data: data.__rmod__(other))
 
+    @_dm.reference(category="manipulation", )
     def __abs__(self, *args, **kwargs, ) -> Self:
-        """
-        abs(self)
+        r"""
+==Return a copy with absolute observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         new = self.copy()
         new.abs(*args, **kwargs, )
         return new
 
+    @_dm.reference(category="manipulation", )
     def abs(self, *args, **kwargs, ) -> None:
         r"""
-················································································
+==Replace observations with their absolute values==
 
-## `Series.abs`
+#### Syntax
 
-Called as `x.abs(...)` (method form) or `datapie.abs(x, ...)` (function form).
+##### Method form
 
-==Replaces every observation with its absolute value.==
+    series.abs(
+        *args,
+        **kwargs,
+    )
 
-    self.abs(*args, **kwargs)
+##### Function form
 
+    new_series = datapie.abs(
+        series,
+        *args,
+        **kwargs,
+    )
 
-**Input arguments.**
+#### Input arguments
 
+!!! input "*args"
 
-???+ input "*args, **kwargs"
-    Passed on to `numpy.abs`. There is no reason to use them here, and
-    the `out` argument in particular would write somewhere other than the
-    series.
+    Additional positional options passed to `numpy.abs`.
 
+!!! input "**kwargs"
 
-### Returns
+    Named options passed to `numpy.abs`.
 
+#### Method form returns
 
-Nothing; the series is modified in place. Use the built-in `abs(x)`
-instead when you want a new series and the original left alone.
+!!! returns "None"
 
-Missing values stay missing, and the series is not trimmed afterwards,
-so its span does not change.
+    Change the series in place.
 
+#### Function form returns
 
-### Examples
+!!! returns "new_series"
 
+    New series; the input series is unchanged.
 
-In place against not in place:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([-1., 2.]))
-    >>> y = abs(x)
-    >>> x.get_data().tolist(), y.get_data().tolist()
-    ([[-1.0], [2.0]], [[1.0], [2.0]])
-    >>> x.abs()
-    >>> x.get_data().tolist()
-    [[1.0], [2.0]]
-
-················································································
+Missing values remain missing. Neither form trims the span.
         """
         self.data = _np.abs(self.data, *args, **kwargs, )
 
+    @_dm.reference(category="manipulation", )
     def __round__(self, *args, **kwargs, ) -> Self:
         r"""
+==Return a copy with rounded observations==
+
+#### See also
+
+[Arithmetic operations](#arithmetic-protocols)
         """
         new = self.copy()
         new.round(*args, **kwargs, )
         return new
 
+    @_dm.reference(category="manipulation", )
     def round(self, *args, **kwargs, ) -> None:
         r"""
-················································································
+==Round observations to a chosen precision==
 
-## `Series.round`
+#### Syntax
 
-Called as `x.round(...)` (method form) or
-`datapie.round(x, ...)` (function form).
+##### Method form
 
-==Rounds every observation in place.==
+    series.round(
+        *args,
+        **kwargs,
+    )
 
-    self.round(*args, **kwargs)
+##### Function form
 
-**Input arguments.**
+    new_series = datapie.round(
+        series,
+        *args,
+        **kwargs,
+    )
 
+#### Input arguments
 
-???+ input "*args, **kwargs"
-    Passed on to `numpy.round`, so the first argument is the number of
-    decimal places, zero when left out. A negative number rounds to tens,
-    hundreds and so on. Rounding follows numpy's rule of going to the
-    nearest even number on an exact half, so 0.5 becomes 0 and 1.5
-    becomes 2.
+!!! input "*args"
 
+    Additional positional options passed to `numpy.round`. Decimal places default to `0`; negative values round to tens, hundreds and so on.
 
-### Returns
+!!! input "**kwargs"
 
+    Named options passed to `numpy.round`.
 
-Nothing; the series is modified in place and the original precision is
-gone. Use the built-in `round(x, n)` instead when you want a new series
-and the original left alone.
+#### Method form returns
 
+!!! returns "None"
 
-### Examples
+    Change the series in place.
 
+#### Function form returns
 
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1),
-    ...     values=np.array([1.234, 2.567]))
-    >>> x.round(1)
-    >>> x.get_data().tolist()
-    [[1.2], [2.6]]
+!!! returns "new_series"
 
-················································································
+    New series; the input series is unchanged.
+
+Missing values remain missing. Neither form trims the span.
         """
         self.data = _np.round(self.data, *args, **kwargs, )
 
     for n in ["gt", "lt", "ge", "le", "eq", "ne", ]:
         exec(f"def __{n}__(self, other): return self._binop(other, _op.{n}, )", )
 
+    for _comparison_name in ("gt", "lt", "ge", "le", "eq", "ne", ):
+        _comparison_method = locals()[f"__{_comparison_name}__"]
+        _comparison_method.__doc__ = (
+            "==Compare observations elementwise==\n\n"
+            "#### See also\n\n"
+            "[Comparisons](#comparison-protocols)"
+        )
+        _dm.reference(category="comparison", )(_comparison_method)
+
+
     @_dm.reference(category="comparison", )
     def same_as(self, other: Self, ) -> bool:
         r"""
-················································································
+==Test whether two series contain the same information==
 
-## `Series.same_as`
+#### Syntax
 
-==Says whether two time series carry the same information.==
+    result = series.same_as(
+        other,
+    )
 
-    self.same_as(other)
+#### Input arguments
 
-The comparison operators on a series are elementwise: `x == y` returns a
-series of `True` and `False`, not a single answer.
+!!! input "other"
 
+    Series to compare. An object of an incompatible class returns `False`.
 
-**Input arguments.**
+#### Returns
 
+!!! returns "result"
 
-???+ input "other"
-    The series to compare against. Anything that is not a `Series` gives
-    `False` rather than an error.
+    Boolean. Frequency, start, values and description must match; corresponding NaNs count as equal. Neither series is changed.
 
+#### See also
 
-Four things must match: the frequency, the start period, the values, and
-the description. Missing values count as equal to each other, which is
-what you want after saving and reloading. The description counting is
-the surprise -- two series with identical numbers are not "the same" if
-only one of them is labelled.
-
-
-### Returns
-
-
-`True` or `False`.
-
-
-### Examples
-
-
-The numbers agree, the labels do not:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]),
-    ...     description="gdp")
-    >>> y = x.copy()
-    >>> y.set_description("GDP")
-    >>> x.same_as(y)
-    False
-
-················································································
+[Comparisons](#comparison-protocols)
         """
         if not isinstance(other, type(self)):
             return False
@@ -2825,64 +1902,49 @@ The numbers agree, the labels do not:
             return False
         return True
 
+    @_dm.reference(category="manipulation", )
     def apply(self, func, *args, **kwargs, ):
         r"""
-················································································
+==Apply a callable to the observation array==
 
-## `Series.apply`
+#### Syntax
 
-==Runs a numpy function over the data and wraps the result back up as a time series where that makes sense.==
+    result = series.apply(
+        func,
+        *args,
+        **kwargs,
+    )
 
-    self.apply(func, *args, **kwargs)
+#### Input arguments
 
-Anything numpy can do to a two-dimensional array can be done to a series
-through here, without unpacking and rebuilding it by hand.
+!!! input "func"
 
+    Callable receiving the whole stored data array. It must return a NumPy-style array or scalar, not a plain Python number.
 
-**Input arguments.**
+!!! input "*args"
 
+    Additional positional inputs passed to the callable.
 
-???+ input "func"
-    Receives the whole two-dimensional data array, one row per period
-    and one column per variant.
+!!! input "**kwargs"
 
-???+ input "*args, **kwargs"
-    Passed on to `func`. In particular `axis` is passed through to `func`
-    *and* read here to decide what to build from the answer.
+    Named inputs passed to the callable. The `axis` option, if supplied, also determines how the result is returned.
 
+#### Returns
 
-What comes back depends on the shape `func` returned. An array of the
-same shape gives a new series with the same span. One value per period
--- what `axis=1` produces -- gives a single-variant series. One value
-per variant, from `axis=0`, is returned as a bare numpy array, since
-those numbers are not observations in time. A single number is returned
-as it is. Any other shape raises `wrongdoings.Error`.
+!!! returns "result"
 
+    A new series for results with observations over time, or the callable's array or scalar for a reduction over time. Unsupported result sizes raise an error.
 
-### Returns
+#### Mutation
 
+The callable receives live data and may change the original series. Use a callable that does not modify its input when the original must be preserved.
 
-A new `Series`, a numpy array, or a single number, according to the
-rules above. The original series is never changed.
+??? note "Details"
 
-
-### Examples
-
-
-Three periods and two variants, so the two rules give different shapes.
-Summing across variants gives a series of three observations, summing
-across time gives a bare array of two numbers:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.], [5., 6.]]))
-    >>> x.apply(np.sum, axis=1).get_data().tolist()
-    [[3.0], [7.0], [11.0]]
-    >>> x.apply(np.sum, axis=0)
-    array([ 9., 12.])
-
-················································································
+    A result with the same dimensions as the input becomes a new series.
+    One result per period also becomes a series when `axis` is omitted or `1`.
+    A scalar is returned directly when `axis` is omitted. One result per
+    variant is returned directly when `axis=0`. Series results are trimmed.
         """
         new_data = func(self.data, *args, **kwargs, )
         axis = kwargs.get("axis", None, )
@@ -2942,49 +2004,28 @@ across time gives a bare array of two numbers:
         self.start = new_start
         self._replace_data(new_values, )
 
+    @_dm.reference(category="information", )
     def iter_periods_and_values(self, unpack_singleton=True, ):
         r"""
-················································································
+==Read each period together with its values==
 
-## `Series.iter_periods_and_values`
+#### Syntax
 
-==Steps through the time series period by period, giving the period and its observations together.==
+    iterator = series.iter_periods_and_values(
+        unpack_singleton=True,
+    )
 
-    self.iter_periods_and_values(unpack_singleton=True)
+#### Input arguments
 
-It saves lining up `periods` against `get_data` by hand.
+!!! input "unpack_singleton"
 
+    Boolean, default `True`. For a single variant, yield a number instead of a one-item list. With `False`, always yield lists.
 
-**Input arguments.**
+#### Returns
 
+!!! returns "iterator"
 
-???+ input "unpack_singleton"
-    Left alone it hands you a bare number for a single-variant series
-    instead of a one-element list. Set it to `False` to always get a
-    list, for code that has to work for any number of variants. It makes
-    no difference to a series with several variants, which always yields
-    a list.
-
-
-### Returns
-
-
-A generator of two-element tuples, each a `Period` and its value or
-values. It covers the whole span, including periods whose observations
-are missing, and it cannot be restricted to part of the series.
-Iterating it consumes it; call the method again for a second pass.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> list(x.iter_periods_and_values())
-    [(qq(2020,1), 1.0), (qq(2020,2), 2.0)]
-
-················································································
+    Finite iterator of `(Period, values)` pairs over the whole span, including missing observations. Reading does not change the series.
         """
         def _unpack_singleton_data_row(data_list: list[Real], ):
             return _has_variants.unpack_singleton(data_list, True, )
@@ -2998,113 +2039,42 @@ Iterating it consumes it; call the method again for a second pass.
         for period, data_row in zip(self.span, self.data, ):
             yield period, data_row_func(data_row.tolist(), )
 
+    @_dm.reference(category="information", )
     def iter_variants(self, ) -> Iterator[Self]:
         r"""
-················································································
+==Read variants and keep repeating the last==
 
-## `Series.iter_variants`
+#### See also
 
-==Steps through the variants of the time series, giving each one back as a separate single-variant series.==
-
-    self.iter_variants()
-
-
-### Returns
-
-
-A generator; the annotation names `Iterator`, which this file never
-imports.
-
-The method does not work, and there are two faults behind that, not one.
-The data handed to each new series is a flat row of numbers rather than
-a column, and the trimming that follows expects two dimensions, so the
-first step raises `numpy.exceptions.AxisError: axis 1 is out of bounds
-for array of dimension 1`. This happens for a single-variant series as
-well as a multi-variant one, so there is no case in which it succeeds.
-Behind it, the loop runs over `iter_data_variants_from_until`, which
-repeats its last variant for ever, so with the shape fault repaired the
-method would yield series without end rather than stopping after the
-last variant. To split a series by variant, copy it and call
-`extract_variants` on each copy. See the log entry for this file.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> try:
-    ...     next(x.iter_variants())
-    ... except Exception as error:
-    ...     type(error).__name__
-    'AxisError'
-
-················································································
+[Variant utilities](#variant-utilities)
         """
         for data in self.iter_data_variants_from_until(..., ):
             new = self._copy_with_no_data()
             new._replace_data(data, )
             yield new
 
+    @_dm.reference(category="information", )
     def iter_own_variants(self, ) -> Iterator[Self]:
         r"""
+==Read each variant once as a series==
+
+#### See also
+
+[Variant utilities](#variant-utilities)
         """
         for data in self.iter_own_data_variants_from_until(..., ):
             new = self._copy_with_no_data()
             new._replace_data(data, )
             yield new
 
+    @_dm.reference(category="information", )
     def iter_own_data_variants_from_until(self, from_until, ) -> Iterator[_np.ndarray]:
         r"""
-················································································
+==Read each variant's data once==
 
-## `Series.iter_own_data_variants_from_until`
+#### See also
 
-==Steps through the variants of the time series, giving each one back as a flat numpy array of values over a chosen span.==
-
-    self.iter_own_data_variants_from_until(from_until)
-
-Unlike `iter_variants` this hands you the raw numbers rather than series
-objects, and it works. It is what the routines that treat each variant
-separately -- filters, disaggregation -- iterate over.
-
-
-**Input arguments.**
-
-
-???+ input "from_until"
-    A pair of periods, first and last, both included. It may reach
-    outside the series, in which case the values are padded with missing
-    observations. Passing `...` instead means the whole current span.
-
-
-### Returns
-
-
-An iterator over one-dimensional numpy arrays, one per variant, each
-holding that variant's values in time order. It stops after the last
-variant.
-
-Whether you can write into those arrays safely depends on what you asked
-for. With `...` they are views straight onto the series' own data, so
-writing into one changes the series. With an explicit `from_until` they
-are freshly built and writing into them is harmless.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> [d.tolist() for d in
-    ...     x.iter_own_data_variants_from_until(...)]
-    [[1.0, 3.0], [2.0, 4.0]]
-
-················································································
+[Variant utilities](#variant-utilities)
         """
         if from_until is ...:
             data_from_until = self.data
@@ -3112,101 +2082,357 @@ are freshly built and writing into them is harmless.
             data_from_until = self.get_data_from_until(from_until, )
         return iter(data_from_until.T, )
 
+    @_dm.reference(category="information", )
     def iter_data_variants_from_until(self, from_until, ) -> Iterator[_np.ndarray]:
         r"""
-················································································
+==Read variant data and keep repeating the last==
 
-## `Series.iter_data_variants_from_until`
+#### See also
 
-==Steps through the variants as flat numpy arrays, and then repeats the last one for ever.==
-
-    self.iter_data_variants_from_until(from_until)
-
-The endless repetition is the point. It lets a routine walk several
-objects side by side -- say twenty simulation draws against a series
-holding a single variant -- and have the narrower one keep supplying its
-only variant instead of running out. It is the same rule that lets a
-one-variant series stand in for a many-variant one throughout the
-package.
-
-
-**Input arguments.**
-
-
-???+ input "from_until"
-    A pair of periods, first and last, both included, or `...` for the
-    whole current span, exactly as in
-    `iter_own_data_variants_from_until`.
-
-
-### Returns
-
-
-An iterator over one-dimensional numpy arrays that never stops. Do not
-write `for d in ...` over it or hand it to `list`; the loop will not
-end. Draw from it as many times as you have variants elsewhere.
-
-
-### Examples
-
-
-The second variant keeps coming back:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
-    ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> it = x.iter_data_variants_from_until(...)
-    >>> [next(it).tolist() for _ in range(4)]
-    [[1.0, 3.0], [2.0, 4.0], [2.0, 4.0], [2.0, 4.0]]
-
-················································································
+[Variant utilities](#variant-utilities)
         """
         return _iterators.exhaust_then_last(self.iter_own_data_variants_from_until(from_until, ), )
 
+    @_dm.reference(category="manipulation", )
     def logistic(self, ) -> Self:
         r"""
-················································································
+==Replace observations with their logistic values==
 
-## `Series.logistic`
+#### Syntax
 
-Called as `x.logistic(...)` (method form) or
-`datapie.logistic(x, ...)` (function form).
+##### Method form
 
-==Replaces every observation with its logistic transform.==
+    series.logistic()
 
-    self.logistic()
+##### Function form
 
-The logistic function turns any number into one between zero and one,
-following $1 / (1 + e^{-x})$. It is the inverse of the log-odds
-transform.
+    new_series = datapie.logistic(
+        series,
+    )
 
+#### Method form returns
+
+!!! returns "None"
+
+    Change the series in place.
+
+#### Function form returns
+
+!!! returns "new_series"
+
+    New series; the input series is unchanged.
+
+Missing values remain missing. Neither form trims the span. The transform is `1 / (1 + exp(-value))`.
+        """
+        self.data = 1 / (1 + _np.exp(-self.data))
+
+    @staticmethod
+    @_dm.topic(title="Missing value queries", anchor="missing-value-queries", priority=60)
+    def _document_missing_queries():
+        r"""
+==Find missing observations in a selection==
+
+### Syntax
+
+    series.any_missing(*args)
+    series.all_missing(*args)
+    series.count_missing(*args)
+    series.where_missing(*args)
+
+### Input arguments
+
+!!! input "*args"
+
+    Optional periods followed by variants, as in `get_data`. Omit both to inspect the whole series. Requested periods outside the stored span count as missing.
 
 ### Returns
 
+!!! returns "any_missing"
 
-Nothing; the series is modified in place and the original values are
-gone, despite the `Self` annotation on the method. Copy the series first
-if you need them back.
+    Boolean: whether any selected value is NaN. An empty selection returns `False`.
 
-There is no inverse method in this class, and the series is not trimmed
-afterwards, so its span does not change. A missing observation stays
-missing.
+!!! returns "all_missing"
 
+    Boolean: whether all selected values are NaN. An empty selection returns `True`.
 
-### Examples
+!!! returns "count_missing"
 
+    Boolean, not a numerical count: whether at least one selected value is missing.
 
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020,1), values=np.array([0., 1.]))
-    >>> x.logistic()
-    >>> x.get_data().round(4).tolist()
-    [[0.5], [0.7311]]
+!!! returns "where_missing"
 
-················································································
+    Tuple of periods with a missing selected variant. With restricted or reordered periods, the reported periods still come from the start of the stored span, so only whole-span requests have matching period labels.
+
+### Mutation
+
+These queries do not change the series.
         """
-        self.data = 1 / (1 + _np.exp(-self.data))
+        pass
+
+    @staticmethod
+    @_dm.topic(title="Data retrieval", anchor="data-retrieval", priority=50)
+    def _document_data_retrieval():
+        r"""
+==Read values with their periods or for one variant==
+
+### Syntax
+
+    series.get_data_and_periods(periods=...)
+    series.get_data_and_periods(periods, *args)
+    series.get_data_variant(periods, variant=None)
+    series.get_data_from_until(from_until, *args)
+    series.get_data_variant_from_until(from_until, variant=None)
+
+### Input arguments
+
+!!! input "periods"
+
+    Period, iterable, span, `None` or `...`. In `get_data_and_periods`, the default is `...`, selecting the whole span.
+
+!!! input "from_until"
+
+    First and last periods, inclusive. Both endpoints `None` give an empty block. Out-of-span periods are filled with NaN.
+
+!!! input "*args"
+
+    Optional variant selector: zero-based integer, iterable of integers, slice, `None` or `...`. Omitted, `None` and `...` select all.
+
+!!! input "variant"
+
+    Integer or `None`, default `None`. Select one column. `None`, zero and indexes above the available range use the first variant. Negative indexes count from the end.
+
+### Returns
+
+!!! returns "get_data_and_periods"
+
+    Pair containing a two-dimensional NumPy array and its tuple of periods, in request order.
+
+!!! returns "get_data_variant"
+
+    Two-dimensional NumPy array with one column for the selected periods.
+
+!!! returns "get_data_from_until"
+
+    Two-dimensional NumPy array covering the inclusive interval; reversed endpoints give no rows.
+
+!!! returns "get_data_variant_from_until"
+
+    Two-dimensional NumPy array with one column covering the inclusive interval.
+
+### Mutation
+
+Returned arrays are independent of the series; reading does not extend or change it.
+
+### See also
+
+[`get_data`](#get_data), [`get_values`](#get_values)
+        """
+        pass
+
+    @staticmethod
+    @_dm.topic(title="Variant utilities", anchor="variant-utilities", priority=40)
+    def _document_variant_utilities():
+        r"""
+==Resize, select and read parallel variants==
+
+### Syntax
+
+    series.alter_num_variants(new_num)
+    series.expand_num_variants(new_num)
+    series.shrink_num_variants(new_num)
+    series.extract_variants(variants)
+    series.iter_own_variants()
+    series.iter_variants()
+    series.iter_own_data_variants_from_until(from_until)
+    series.iter_data_variants_from_until(from_until)
+
+### Input arguments
+
+!!! input "new_num"
+
+    Integer target count. Expansion repeats the last variant; shrinking removes variants from the right. Each operation requires the corresponding direction of change.
+
+!!! input "variants"
+
+    Zero-based integer or iterable of integers. Keep the selected columns in request order, including duplicates; negative indexes count from the end.
+
+!!! input "from_until"
+
+    First and last periods, inclusive, or `...` for the stored span. Requested periods outside the span contain NaN.
+
+### Returns
+
+!!! returns "alter_num_variants"
+
+    `None`. Change the variant count in place; do nothing when the count already matches.
+
+!!! returns "expand_num_variants"
+
+    `None`. Append copies of the last column without trimming.
+
+!!! returns "shrink_num_variants"
+
+    `None`. Remove trailing columns without trimming. Requesting the current count removes all columns; `alter_num_variants` avoids this case.
+
+!!! returns "extract_variants"
+
+    `None`. Keep and reorder selected columns in place without trimming.
+
+!!! returns "iter_own_variants"
+
+    Finite iterator, yielding one single-variant series per column. Each yielded series is trimmed and may share data storage with the original.
+
+!!! returns "iter_variants"
+
+    Iterator of single-variant series that repeats the last variant indefinitely. It requires at least one variant.
+
+!!! returns "iter_own_data_variants_from_until"
+
+    Finite iterator of one-dimensional NumPy arrays, one per variant. With `...`, these arrays share the original data; explicit endpoints return independent arrays.
+
+!!! returns "iter_data_variants_from_until"
+
+    Iterator of the same arrays, repeating the last one indefinitely. With zero variants, it yields `None` indefinitely.
+        """
+        pass
+
+    @staticmethod
+    @_dm.topic(title="Arithmetic operations", anchor="arithmetic-protocols", priority=30)
+    def _document_arithmetic_protocols():
+        r"""
+==Calculate arithmetic results from series observations==
+
+### Syntax
+
+    +series
+    -series
+    series + other
+    series - other
+    series * other
+    series / other
+    series // other
+    series % other
+    series ** other
+    abs(series)
+    round(series, ndigits)
+
+### Input arguments
+
+!!! input "other"
+
+    Another series or a compatible number or array. Series are aligned over their combined span; uncovered periods contain NaN. A single variant can be combined with several variants.
+
+!!! input "ndigits"
+
+    Integer decimal places, default `0`, for the built-in `round`.
+
+### Returns
+
+!!! returns "new_series"
+
+    New series of calculated observations. The operands are unchanged. Unary plus copies the series; unary minus negates it. Built-in `abs` and `round` also return copies.
+
+??? note "Details"
+
+    Two-series results have an empty description. Operations with a
+    number or array normally keep the copied description. Binary results can
+    trim all-missing edge rows; unary signs, `abs` and `round` do not trim.
+    Reflected arithmetic supports the other operand on the left. NumPy
+    broadcasting and missing-value rules apply.
+
+### See also
+
+[`apply`](#apply), [Comparisons](#comparison-protocols)
+        """
+        pass
+
+    @staticmethod
+    @_dm.topic(title="Comparisons", anchor="comparison-protocols", priority=20)
+    def _document_comparison_protocols():
+        r"""
+==Compare observations period by period==
+
+### Syntax
+
+    series == other
+    series != other
+    series < other
+    series <= other
+    series > other
+    series >= other
+
+### Input arguments
+
+!!! input "other"
+
+    Another series or a compatible number or array. Series are aligned over their combined span, and one variant can be compared with several variants.
+
+### Returns
+
+!!! returns "new_series"
+
+    New series of Boolean comparison results, not one overall answer. Neither operand is changed. Comparisons with NaN are false except `!=`, which is true.
+
+### See also
+
+[`same_as`](#same_as), [Iteration, combination, and display](#container-protocols)
+        """
+        pass
+
+    @staticmethod
+    @_dm.topic(title="Iteration, combination, and display", anchor="container-protocols", priority=10)
+    def _document_container_protocols():
+        r"""
+==Iterate, test, combine and display a series==
+
+### Syntax
+
+    iter(series)
+    bool(series)
+    series & other
+    series | other
+    repr(series)
+    str(series)
+    ~series
+
+### Input arguments
+
+!!! input "other"
+
+    Series to append as additional variants using `&` or `|`.
+
+### Returns
+
+!!! returns "iter(series)"
+
+    Finite iterator of single-variant series, not individual observations.
+
+!!! returns "bool(series)"
+
+    Boolean: whether the series contains any data entries. Missing values and false comparison results still count as entries.
+
+!!! returns "series & other, series | other"
+
+    New combined series from `hstack`. These operators are not logical AND and OR.
+
+!!! returns "repr(series), str(series)"
+
+    Text displaying the frequency, span, dimensions, description and observations. Missing values are shown as `⋅`.
+
+!!! returns "~series"
+
+    Short-display operation, currently unavailable.
+
+### Mutation
+
+These operations do not change the receiver. Iterated series can share data with it.
+
+### See also
+
+[`hstack`](#hstack), [Variant utilities](#variant-utilities), [`iter_periods_and_values`](#iter_periods_and_values)
+        """
+        pass
+
 
     #]
 
@@ -3234,52 +2460,34 @@ def _get_num_leading_trailing_missing_rows(data: _np.ndarray, ):
 
 def hstack(first, *args) -> Self:
     r"""
-················································································
+==Combine series columns through the first series==
 
-## `hstack`
+#### Syntax
 
-==Stacks time series and numbers side by side into one multi-variant series.==
+    new_series = hstack(
+        first,
+        *args,
+    )
 
-    hstack(first, *args)
+#### Input arguments
 
-The plain-function form of the `hstack` method. Everything is handed to
-`first.hstack(...)`, so the behaviour is identical.
+!!! input "first"
 
+    Series to which the other columns are appended.
 
-**Input arguments.**
+!!! input "*args"
 
+    Additional inputs passed to `first.hstack`.
 
-???+ input "first"
-    Must be a `Series`, since the work is done by its method; a number in
-    that position raises `AttributeError`.
+#### Returns
 
-???+ input "*args"
-    Each entry is either another `Series` or a plain number. The result
-    spans all of them, each contributor padded with missing values where
-    it does not reach, and a number becomes a column of that value
-    repeated.
+!!! returns "new_series"
 
+    New combined series. Inputs are unchanged.
 
-### Returns
+#### See also
 
-
-A new `Series` carrying the variants of `first` followed by those of each
-argument. Nothing is modified in place, and the description is not
-carried over.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> from datapie.series.main import hstack
-    >>> a = dp.Series(start=dp.qq(2020,1), values=np.array([1., 2.]))
-    >>> b = dp.Series(start=dp.qq(2020,2), values=np.array([10.]))
-    >>> hstack(a, b).get_data().tolist()
-    [[1.0, nan], [2.0, 10.0]]
-
-················································································
+[`Series.hstack`](#hstack)
     """
     return first.hstack(*args)
 

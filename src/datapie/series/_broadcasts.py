@@ -8,6 +8,7 @@ Broadcast functionality for time series
 from __future__ import annotations
 
 import numpy as _np
+import documark as _dm
 from .. import wrongdoings as _wrongdoings
 
 from typing import TYPE_CHECKING
@@ -26,49 +27,41 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
+    @_dm.reference(category="multiple", call_name="Series.broadcast_variants", )
     def broadcast_variants(self, num_variants, ) -> None:
         r"""
-................................................................................
+==Repeat a single variant to match a requested variant count==
 
-## `Series.broadcast_variants`
+#### Syntax
 
-==Copies the single variant of a time series out into `num_variants` identical variants.==
+    series.broadcast_variants(
+        num_variants,
+    )
 
-    self.broadcast_variants(num_variants)
+#### Input arguments
 
-A variant is one column. Operations that combine two series need both to
-carry the same number of columns.
+!!! input "num_variants"
+    The target number of columns, as a nonnegative integer.
+    Zero creates a zero-column data array.
 
+#### Returns
 
-**Input arguments.**
+!!! returns "None"
+    No return value. The series is changed in place.
 
+#### Mutation
 
-???+ input "num_variants"
-    A plain count, not another series. Nothing happens when the series
-    already holds that many. Otherwise it must hold exactly one variant,
-    or `wrongdoings.Error` is raised; the method never shrinks.
+Repeats the data columns in place, keeping dates and description unchanged.
+Matching counts require no change. A different count is possible only when
+the series currently has one variant.
 
+#### Details
 
-### Returns
+A series with several variants cannot be broadcast to a different count.
 
+#### See also
 
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-One variant widened into three:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1.0, 2.0]))
-    >>> x.broadcast_variants(3)
-    >>> x.get_data().tolist()
-    [[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]]
-
-................................................................................
+`alter_num_variants`.
         """
         if self.data.shape[1] == num_variants:
             return
@@ -90,55 +83,38 @@ def broadcast_variants_when_needed(
     other: Series,
 ) -> None:
     r"""
-................................................................................
+==Match two series' variant counts by repeating a single variant==
 
-## `broadcast_variants_when_needed`
+#### Syntax
 
-==Gives two time series the same number of variants by widening whichever of them holds a single variant.==
+    broadcast_variants_when_needed(
+        series,
+        other,
+    )
 
-    broadcast_variants_when_needed(self, other)
+#### Input arguments
 
-For combining two series when you do not know which of the two holds the
-single variant. Matching counts are left alone; if both hold more than
-one variant and the counts differ, `wrongdoings.Error` is raised.
+!!! input "other"
+    The second Series whose variant count is matched to the first Series.
 
+#### Returns
 
-**Input arguments.**
+!!! returns "None"
+    No return value. Either series may be changed in place.
 
+#### Mutation
 
-???+ input "self"
-    One of the two series to reconcile. It is widened in place when it
-    holds a single variant and `other` holds more.
+If counts differ, repeats whichever series has one variant to match the
+other count. Matching counts require no change. Dates and descriptions
+are unchanged.
 
-???+ input "other"
-    The other series to reconcile. It is widened in place on the same
-    terms, so a series passed in as the second argument can come back
-    wider than it went in.
+#### Details
 
+The operation fails when counts differ and neither series has one variant.
 
-### Returns
+#### See also
 
-
-Nothing; the widening happens in place.
-
-
-### Examples
-
-
-The second argument is the one that changes here:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> from datapie.series import _broadcasts
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([[1.0, 2.0], [3.0, 4.0]]))
-    >>> y = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1.0, 2.0]))
-    >>> _broadcasts.broadcast_variants_when_needed(x, y)
-    >>> y.num_variants
-    2
-
-................................................................................
+`broadcast_variants`.
     """
     #[
     if self.num_variants == other.num_variants:

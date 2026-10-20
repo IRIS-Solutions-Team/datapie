@@ -16,6 +16,7 @@ import itertools as _it
 import functools as _ft
 import warnings as _wa
 import datetime as _dt
+import documark as _dm
 
 from ..periods import Period
 from .. import periods as _periods
@@ -80,54 +81,45 @@ def _area_constructor(style, **kwargs, ):
 class Mixin:
     #[
 
+    @_dm.reference(category="plotting", call_name="Series.plot", )
     def plot(
         self,
         chart_type: Literal["line", "bar", "bar_group", "bar_stack", "bar_relative", "bar_overlay", "area"] = "line",
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
-································································
+==Plot a series using the selected chart type==
 
-## `Series.plot`
+#### Syntax
 
-==Draws the series as a chart of the kind named by `chart_type`, handing the work to the matching `plot_*` method.==
+    info = series.plot(
+        chart_type="line",
+        **kwargs,
+    )
 
-    self.plot(chart_type="line", **kwargs)
+#### Input arguments
 
+!!! input "chart_type"
+    The chart to draw. Default: `"line"`. Choices are `"line"`, `"area"`,
+    `"bar"`, `"bar_group"`, `"bar_stack"`, `"bar_overlay"`, `"bar_relative"`,
+    and `"histogram"`. Use `plot_bands` directly for shaded bands.
 
-**Input arguments.**
+!!! input "**kwargs"
+    Settings for the selected plotting method; see the linked references.
 
+#### Returns
 
-???+ input "chart_type"
-    Which chart to draw: `"line"`, `"bar"`, `"bar_group"`,
-    `"bar_stack"`, `"bar_relative"`, `"bar_overlay"`, `"area"` or
-    `"histogram"`. `"line"` when left alone. An unrecognised name
-    raises `ValueError`.
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
 
-???+ input "**kwargs"
-    Passed straight on to the chosen `plot_*` method. See `plot_line`
-    for the arguments they share.
+#### Mutation
 
+Leaves the series unchanged. A supplied figure is updated in place.
 
-### Returns
+#### See also
 
-
-Whatever the chosen method returns, which is `None` unless you pass
-`return_info=True`.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4.]))
-    >>> info = x.plot("bar", show_figure=False, return_info=True)
-    >>> info["traces"][0].type
-    'bar'
-
-································································
+[Plotting family](#plotting-family), [Plot settings](#plot-settings).
         """
         if chart_type == "line":
             trace_constructor=_line_constructor,
@@ -150,6 +142,7 @@ Whatever the chosen method returns, which is `None` unless you pass
             raise ValueError(f"Invalid chart_type: {chart_type!r}, must be one of 'line', 'bar', 'bar_group', 'bar_stack', 'bar_relative', 'bar_overlay', 'area' or 'histogram'")
 
 
+    @_dm.reference(category="plotting", call_name="Series.plot_line", )
     def plot_line(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -157,63 +150,11 @@ Whatever the chosen method returns, which is `None` unless you pass
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
-································································
+==Draw each variant as a line with markers==
 
-## `Series.plot_line`
+#### See also
 
-==Draws each variant of the series as a line with markers.==
-
-    self.plot_line(span=..., update_traces=None, **kwargs)
-
-The arguments described here are shared with `plot_area`, `plot_bar`
-and `plot_histogram`, which differ only in the shape they draw.
-
-
-**Input arguments.**
-
-
-???+ input "span"
-    The stretch of periods to draw. Left alone it is the span the
-    series covers.
-
-???+ input "update_traces"
-    Plotly trace settings applied to every trace, given as one
-    dictionary, or as an iterable of dictionaries cycled over the
-    variants. Nothing is applied when left as `None`.
-
-???+ input "**kwargs"
-    Everything else reaches the layout builder. The two that matter most
-    are `show_figure`, which is `True` and displays the chart as soon
-    as it is built, and `return_info`, which is `False` and is why the
-    method hands back nothing. Others include `figure` and `subplot`
-    for drawing into an existing figure, `figure_title` and
-    `subplot_title`, `legend`, `update_layout`, `highlight`, `vline`
-    and `round_to`.
-
-
-### Returns
-
-
-`None`, unless `return_info=True`, in which case a dictionary with
-`"figure"` and `"traces"`.
-
-
-### Examples
-
-
-Nothing comes back until you ask for it:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4.]))
-    >>> x.plot_line(show_figure=False) is None
-    True
-    >>> info = x.plot_line(show_figure=False, return_info=True)
-    >>> sorted(info)
-    ['figure', 'traces']
-
-································································
+[Plotting family](#plotting-family), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_plain_traces,
@@ -230,6 +171,7 @@ Nothing comes back until you ask for it:
         return info
 
 
+    @_dm.reference(category="plotting", call_name="Series.plot_bands", )
     def plot_bands(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -242,13 +184,11 @@ Nothing comes back until you ask for it:
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
-································································
+==Draw variants as shaded bands around an optional middle line==
 
-## `Series.plot_bands`
+#### Syntax
 
-==Draws the variants of the series as shaded bands around a middle line, the way a fan chart shows a forecast.==
-
-    self.plot_bands(
+    info = series.plot_bands(
         span=...,
         base_color=None,
         shading_weights=None,
@@ -259,67 +199,64 @@ Nothing comes back until you ask for it:
         **kwargs,
     )
 
-The variants are paired from the outside in: the first with the last,
-the second with the second from last, and so on, each pair becoming one
-filled band. An odd number of variants leaves the middle one over, and
-it is drawn as a plain line. So six variants give three bands, and
-seven give three bands and a midline.
+#### Input arguments
 
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
 
-**Input arguments.**
+!!! input "base_color"
+    The base band color, as a hexadecimal, RGB or RGBA color string, or
+    a three- or four-number color tuple. Default: `None`, the next chart color.
 
+!!! input "shading_weights"
+    Color weights, from the outer band inward. Default: `None`, evenly
+    spaced weights from `0.30` to `0.60`; a single band uses `0.45`.
 
-???+ input "base_color"
-    The colour the bands are shaded from. Left as `None` it is the next
-    colour in the figure's style cycle.
+!!! input "shading_background"
+    The background color used to blend shades. Uses the same formats as
+    `base_color`. Default: `None`, opaque white. Band colors are opaque.
 
-???+ input "shading_weights"
-    How the shades step from the outer band to the inner. The default
-    shading is used when left as `None`.
+!!! input "update_band_traces"
+    A Plotly settings dictionary, or dictionaries cycled across bands.
+    Default: `None`, no updates.
 
-???+ input "shading_background"
-    The colour the shades are blended towards. The default shading is
-    used when left as `None`.
+!!! input "update_midline_trace"
+    A Plotly settings dictionary for the middle line, when present.
+    Default: `None`, no updates.
 
-???+ input "update_band_traces"
-    Plotly settings applied to the band traces, as one dictionary or an
-    iterable cycled over the bands.
+!!! input "update_layout"
+    A Plotly layout dictionary. Default: `None`. The legend is reversed
+    unless the dictionary supplies a different `legend_traceorder`.
 
-???+ input "update_midline_trace"
-    Plotly settings applied to the middle line, when there is one.
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+    Do not pass `legend_order`; this method sets it itself.
 
-???+ input "update_layout"
-    Plotly layout settings. **A non-empty dictionary passed here is
-    modified in place:** a `legend_traceorder` key is added to it, so
-    the dictionary you still hold comes back with an extra entry. An
-    empty one is not, because `update_layout or {}` replaces a falsy
-    value with a fresh dictionary before the key is set.
+#### Returns
 
-???+ input "span, **kwargs"
-    As described under `plot_line`.
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
 
+#### Mutation
 
-### Returns
+Leaves the series unchanged. A supplied figure is updated in place.
+A nonempty `update_layout` dictionary also receives `legend_traceorder`
+when that entry is absent. An empty dictionary is left unchanged.
 
+#### Details
 
-`None`, unless `return_info=True`, in which case a dictionary with
-`"figure"` and `"traces"`.
+The first and last variants form the outer band, the second and penultimate
+the next band, and so on. Values are not sorted. An odd number of variants
+leaves a middle variant, drawn as a line with markers. Supply enough legend
+names and inclusion flags for all bands and the middle line.
 
+#### See also
 
-### Examples
-
-
-Three variants make one band and one midline:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> b = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.column_stack([[1., 2.], [3., 4.], [5., 6.]]))
-    >>> info = b.plot_bands(show_figure=False, return_info=True)
-    >>> len(info["traces"])
-    2
-
-································································
+[Plotting family](#plotting-family), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_band_traces,
@@ -343,6 +280,7 @@ Three variants make one band and one midline:
         return info
 
 
+    @_dm.reference(category="plotting", call_name="Series.plot_area", )
     def plot_area(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -350,44 +288,11 @@ Three variants make one band and one midline:
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
-································································
+==Draw each variant as a line filled down to zero==
 
-## `Series.plot_area`
+#### See also
 
-==Draws each variant of the series as a line with the space down to zero filled in.==
-
-    self.plot_area(span=..., update_traces=None, **kwargs)
-
-The same as `plot_line` apart from the fill, and all its arguments are
-described there.
-
-
-**Input arguments.**
-
-
-???+ input "span, update_traces, **kwargs"
-    As described under `plot_line`.
-
-
-### Returns
-
-
-`None`, unless `return_info=True`, in which case a dictionary with
-`"figure"` and `"traces"`.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4.]))
-    >>> info = x.plot_area(show_figure=False, return_info=True)
-    >>> info["traces"][0].fill
-    'tozeroy'
-
-································································
+[Plotting family](#plotting-family), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_plain_traces,
@@ -405,6 +310,7 @@ described there.
         return info
 
 
+    @_dm.reference(category="plotting", call_name="Series.plot_bar", )
     def plot_bar(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -412,69 +318,11 @@ described there.
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
-································································
+==Draw each variant as bars==
 
-## `Series.plot_bar`
+#### See also
 
-==Draws each variant of the series as bars.==
-
-    self.plot_bar(span=..., update_traces=None, **kwargs)
-
-The same as `plot_line` apart from the shape, and all its arguments are
-described there.
-
-How the bars of several variants sit against each other is set by
-`bar_mode`, passed here directly. Four ready-made versions exist, each
-being this call with `bar_mode` already fixed:
-
-| Method | `bar_mode` | Effect
-|--------|------------|--------
-| `plot_bar_stack`    | `"stack"`    | Piles the variants up
-| `plot_bar_group`    | `"group"`    | Stands them side by side
-| `plot_bar_overlay`  | `"overlay"`  | Draws them on top of one another
-| `plot_bar_relative` | `"relative"` | Stacks positive and negative values on opposite sides of the axis
-
-All four take `plot_bar`'s arguments and return what it returns.
-
-
-**Input arguments.**
-
-
-???+ input "bar_mode"
-    `"stack"`, `"group"`, `"overlay"` or `"relative"`, reaching the
-    layout builder through `**kwargs`. Leaving it out sets no bar mode
-    at all.
-
-???+ input "span, update_traces, **kwargs"
-    As described under `plot_line`.
-
-
-### Returns
-
-
-`None`, unless `return_info=True`, in which case a dictionary with
-`"figure"` and `"traces"`.
-
-
-### Examples
-
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4.]))
-    >>> info = x.plot_bar(bar_mode="group", show_figure=False,
-    ...     return_info=True)
-    >>> info["figure"].layout.barmode
-    'group'
-
-The ready-made version fixes it for you:
-
-    >>> info = x.plot_bar_stack(show_figure=False, return_info=True)
-    >>> info["figure"].layout.barmode
-    'stack'
-
-································································
+[Bar plotting](#bar-plotting), [Plotting family](#plotting-family), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_plain_traces,
@@ -493,11 +341,40 @@ The ready-made version fixes it for you:
 
 
     plot_bar_stack = _ft.partialmethod(plot_bar, bar_mode="stack", )
+    plot_bar_stack.__doc__ = """==Draw variants as stacked bars==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+"""
+
     plot_bar_group = _ft.partialmethod(plot_bar, bar_mode="group", )
+    plot_bar_group.__doc__ = """==Draw variants as side-by-side bars==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+"""
+
     plot_bar_overlay = _ft.partialmethod(plot_bar, bar_mode="overlay", )
+    plot_bar_overlay.__doc__ = """==Draw variants as overlapping bars==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+"""
+
     plot_bar_relative = _ft.partialmethod(plot_bar, bar_mode="relative", )
+    plot_bar_relative.__doc__ = """==Stack positive and negative bars separately==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+"""
 
 
+
+    @_dm.reference(category="plotting", call_name="Series.plot_histogram", )
     def plot_histogram(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -506,55 +383,55 @@ The ready-made version fixes it for you:
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
-································································
+==Draw the distribution of each variant's observations==
 
-## `Series.plot_histogram`
+#### Syntax
 
-==Draws the distribution of each variant's values as a histogram.==
-
-    self.plot_histogram(
+    info = series.plot_histogram(
         span=...,
         hist_norm="",
         update_traces=None,
         **kwargs,
     )
 
-Unlike the other methods here, time does not appear on the chart: the
-observations are counted into bins, and `span` only decides which of
-them are counted.
+#### Input arguments
 
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
 
-**Input arguments.**
+!!! input "hist_norm"
+    Histogram scaling. Default: `""`, observation counts. Other choices are
+    `"probability"`, `"percent"`, `"density"`, and `"probability density"`.
 
+!!! input "update_traces"
+    A Plotly settings dictionary, or a sequence of dictionaries cycled across
+    variants. Default: `None`, no updates. An empty sequence produces no traces.
 
-???+ input "hist_norm"
-    What the bars measure: `""`, `"probability"`, `"percent"`,
-    `"density"` or `"probability density"`. Left alone it is `""`,
-    which counts observations.
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+    Do not pass `xaxis_type` or `freeze_span`; this method sets both itself.
 
-???+ input "span, update_traces, **kwargs"
-    As described under `plot_line`.
+#### Returns
 
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
 
-### Returns
+#### Mutation
 
+Leaves the series unchanged. A supplied figure is updated in place.
 
-`None`, unless `return_info=True`, in which case a dictionary with
-`"figure"` and `"traces"`.
+#### Details
 
+The horizontal axis contains observation values rather than dates.
+`round_to` rounds observations before they are placed into bins.
 
-### Examples
+#### See also
 
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4.]))
-    >>> info = x.plot_histogram(show_figure=False, return_info=True)
-    >>> info["traces"][0].type
-    'histogram'
-
-································································
+[Plotting family](#plotting-family), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_histogram_traces,
@@ -573,6 +450,307 @@ them are counted.
         )
         return info
 
+
+
+    @staticmethod
+    @_dm.topic(title="Plotting family", anchor="plotting-family", priority=90)
+    def _plotting_family():
+        r"""
+==Draw line, area, and bar charts==
+
+### Syntax
+
+    info = series.plot_line(span=..., update_traces=None, **kwargs)
+    info = series.plot_area(span=..., update_traces=None, **kwargs)
+    info = series.plot_bar(span=..., update_traces=None, **kwargs)
+
+### Input arguments
+
+!!! input "series"
+
+    The series to plot. Its observations are left unchanged.
+
+!!! input "span"
+
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+
+    A Plotly settings dictionary, or a sequence of dictionaries cycled across
+    variants. Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+### Returns
+
+!!! returns "info"
+
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+### Details
+
+Each variant normally produces one trace. Line and area charts include
+markers; area charts fill down to zero. By default, a new figure is created
+and displayed. Set `show_figure=False` to suppress display.
+
+### See also
+
+[Bar plotting](#bar-plotting), `plot`, `plot_bands`, `plot_histogram`,
+[Plot settings](#plot-settings).
+        """
+        pass
+
+    @staticmethod
+    @_dm.topic(title="Bar plotting", anchor="bar-plotting", priority=80)
+    def _bar_plotting():
+        r"""
+==Choose how bars for different variants are arranged==
+
+### Syntax
+
+    info = series.plot_bar_stack(span=..., update_traces=None, **kwargs)
+    info = series.plot_bar_group(span=..., update_traces=None, **kwargs)
+    info = series.plot_bar_overlay(span=..., update_traces=None, **kwargs)
+    info = series.plot_bar_relative(span=..., update_traces=None, **kwargs)
+
+### Input arguments
+
+!!! input "series"
+
+    The series to plot. Its observations are left unchanged.
+
+!!! input "span"
+
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+
+    A Plotly settings dictionary, or a sequence of dictionaries cycled across
+    variants. Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+
+    Additional keyword settings described in [Plot settings](#plot-settings).
+    Each method supplies the corresponding `bar_mode`. An explicit
+    `bar_mode` overrides that choice.
+
+### Returns
+
+!!! returns "info"
+
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+### Details
+
+`plot_bar_stack` stacks bars vertically; `plot_bar_group` places them
+side by side. `plot_bar_overlay` overlaps them. `plot_bar_relative` stacks
+positive and negative values on opposite sides of zero.
+
+### See also
+
+[Plotting family](#plotting-family), [Plot settings](#plot-settings).
+        """
+        pass
+
+    @staticmethod
+    @_dm.reference(category="plotting", call_name="Series.plot_bar_stack", )
+    def _plot_bar_stack_reference():
+        r"""
+==Draw variants as stacked bars==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+        """
+        pass
+
+    @staticmethod
+    @_dm.reference(category="plotting", call_name="Series.plot_bar_group", )
+    def _plot_bar_group_reference():
+        r"""
+==Draw variants as side-by-side bars==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+        """
+        pass
+
+    @staticmethod
+    @_dm.reference(category="plotting", call_name="Series.plot_bar_overlay", )
+    def _plot_bar_overlay_reference():
+        r"""
+==Draw variants as overlapping bars==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+        """
+        pass
+
+    @staticmethod
+    @_dm.reference(category="plotting", call_name="Series.plot_bar_relative", )
+    def _plot_bar_relative_reference():
+        r"""
+==Stack positive and negative bars separately==
+
+#### See also
+
+[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+        """
+        pass
+
+    @staticmethod
+    @_dm.topic(title="Plot settings", anchor="plot-settings", priority=70)
+    def _plot_settings():
+        r"""
+==Set chart titles, axes, legends, and display options==
+
+### Input arguments
+
+!!! input "figure"
+
+    An existing Plotly figure to update. Default: `None`, create a new figure.
+
+!!! input "subplot"
+
+    A zero-based `(row, column)` pair or tile number in an existing subplot
+    figure. Negative tile numbers count from the end. Default: `None`, no
+    subplot selection.
+
+!!! input "figure_title"
+
+    The figure title. Default: `None`, no title update.
+
+!!! input "subplot_title"
+
+    Replacement text for the selected subplot title.
+    Default: `None`, no update.
+
+!!! input "legend"
+
+    A name or collection of names for the traces. Default: `None`, unnamed
+    traces. One string names only one trace. Too few names can limit how many
+    traces are drawn. Bands use one name per band, followed by the middle line.
+
+!!! input "legend_order"
+
+    Legend order: `"normal"` or `"reversed"`. Default: `None`, no requested
+    change. Not accepted by `plot_bands`, which supplies its own order.
+
+!!! input "show_legend"
+
+    Whether to display the legend. Default: `None`, display it when
+    `legend` is supplied.
+
+!!! input "include_in_legend"
+
+    A boolean for all traces, or a collection of booleans for individual
+    traces. Default: `True`. A trace also needs a name to appear in the legend.
+    Too few flags can limit how many traces are drawn.
+
+!!! input "show_figure"
+
+    Whether to display the figure after creating or updating it. Default: `True`.
+
+!!! input "renderer"
+
+    The Plotly display renderer. Default: `None`, use Plotly's configured renderer.
+
+!!! input "xaxis_type"
+
+    The Plotly horizontal-axis type. Default: `None`, choose from the period
+    type. Not accepted by `plot_histogram`, which uses `"linear"`.
+
+!!! input "date_axis_mode"
+
+    Date positioning: `"instant"` or `"period"`. Default: `"period"`.
+
+!!! input "date_format_style"
+
+    Date labels: `"sdmx"`, `"compact"`, or a frequency-to-format dictionary.
+    Default: `None`, use `"sdmx"`.
+
+!!! input "bar_mode"
+
+    Bar arrangement: `"stack"`, `"group"`, `"overlay"`, or `"relative"`.
+    Default: `None`, no requested change.
+
+!!! input "bar_norm"
+
+    Bar normalization: `"fraction"` or `"percent"`.
+    Default: `None`, no requested change.
+
+!!! input "update_layout"
+
+    A dictionary of Plotly layout settings, applied after the built-in
+    settings. Default: `None`. `plot_bands` can add a legend-order entry to a
+    nonempty dictionary.
+
+!!! input "freeze_span"
+
+    Whether to fix the horizontal range to the selected dates.
+    Default: `False`. Not accepted by `plot_histogram`.
+
+!!! input "reverse_plot_order"
+
+    Whether to add generated traces in reverse order. Default: `False`.
+
+!!! input "round_to"
+
+    Number of decimal places used to round plotted observations.
+    Default: `None`, no rounding.
+
+!!! input "vline"
+
+    The position of one vertical line, as a Period or number.
+    Default: `None`, no line.
+
+!!! input "xline"
+
+    An alternative name for `vline`, used only when `vline` is omitted.
+    Default: `None`.
+
+!!! input "highlight"
+
+    A span or collection of periods defining one shaded interval.
+    Default: `None`, no highlight. Open ends need an existing axis range.
+
+!!! input "return_info"
+
+    Whether to return the figure and added traces in a dictionary.
+    Default: `False`, return `None`. This does not control figure display.
+
+### Details
+
+Pass these settings by keyword to a plotting method. Use `update_layout`
+and the method's trace-update dictionaries for other Plotly settings.
+Vertical lines and highlights do not follow the `subplot` selection.
+
+### See also
+
+[Plotting family](#plotting-family), [Bar plotting](#bar-plotting),
+`plot_bands`, `plot_histogram`.
+        """
+        pass
 
     #]
 

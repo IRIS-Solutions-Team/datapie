@@ -30,6 +30,61 @@ LayMethod = Literal["by_span", "by_observation"]
 
 
 class Mixin:
+
+    @staticmethod
+    @_dm.topic(title="Overlay and underlay", anchor="overlay-and-underlay", priority=130)
+    def _overlay_underlay_reference():
+        r"""
+==Combine two series using span or observation precedence==
+
+### Syntax
+
+#### Method form
+
+    series.overlay_by_span(other)
+    series.overlay_by_observation(other)
+    series.underlay_by_span(other)
+    series.underlay_by_observation(other)
+
+#### Function form
+
+    new_series = datapie.overlay_by_span(series, other)
+    new_series = datapie.overlay_by_observation(series, other)
+    new_series = datapie.underlay_by_span(series, other)
+    new_series = datapie.underlay_by_observation(series, other)
+
+### Input arguments
+
+!!! input "series"
+
+    The series to combine with `other`.
+
+!!! input "other"
+
+    The other series, at the same frequency. A single variant can be repeated to match a series with several variants.
+
+### Method form returns
+
+!!! returns "None"
+
+    The receiving series is changed in place.
+
+### Function form returns
+
+!!! returns "new_series"
+
+    A combined copy of `series`. The input `series` is unchanged; the note below describes a possible change to `other`.
+
+Overlay gives `other` precedence; underlay preserves the receiving series instead. The span-based methods preserve the preferred series' whole span, including its internal missing values. The observation-based methods preserve only its nonmissing observations and fill the remaining positions from the other series.
+
+??? note "Details"
+
+    The combined result covers both series' spans, with missing rows at the ends removed by the span-based methods.
+
+    `overlay_by_observation` may change `other` by repeating its single variant to match a receiving series with several variants. The other three operations copy `other` before combining the data.
+        """
+        pass
+
     #[
 
     @_dm.reference(category="multiple", )
@@ -38,72 +93,11 @@ class Mixin:
         other: Series,
     ) -> None:
         r"""
-................................................................................
+==Overlay another series, including its internal missing values==
 
-## `Series.overlay_by_span`
+#### See also
 
-Called as `x.overlay_by_span(...)` (method form) or
-`datapie.overlay_by_span(x, ...)` (function form).
-
-==Writes the whole span of another series over this one, from the other series' first observation to its last.==
-
-    self.overlay_by_span(other)
-
-Everything inside that stretch comes from `other`, including the periods
-where `other` has no observation. `overlay_by_observation` takes only
-the periods `other` actually carries.
-
-
-**Input arguments.**
-
-
-???+ input "other"
-    The series to lay on top. It is copied first, so it is not
-    modified.
-
-
-### Returns
-
-
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-The gap in `other` wipes out the observation this series held in
-2020-Q4:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4.]))
-    >>> y = dp.Series(start=dp.qq(2020, 3),
-    ...     values=np.array([30., np.nan, 50.]))
-    >>> x.overlay_by_span(y)
-    >>> x.get_data()[:, 0].tolist()
-    [1.0, 2.0, 30.0, nan, 50.0]
-
-
-### Algorithm
-
-
-The resulting time series is determined the following way:
-
-1. The span of the resulting series starts at the earliest start
-period of the two series and ends at the latest end period of the
-two series.
-
-2. The observations from the `self` (current) time series are used
-to fill the resulting time span.
-
-3. Within the span of the `other` time series (from the first
-available observation to the last available observation), the
-observations from this `other` time series are superimposed on the
-resulting time series, including any in-sample missing observations.
-
-
-................................................................................
+[Overlay and underlay](#overlay-and-underlay)
         """
         other_copy = other.copy()
         _bc.broadcast_variants_when_needed(self, other_copy, )
@@ -118,73 +112,11 @@ resulting time series, including any in-sample missing observations.
         other,
     ) -> None:
         r"""
-................................................................................
+==Overlay the available observations of another series==
 
-## `Series.overlay_by_observation`
+#### See also
 
-Called as `x.overlay_by_observation(...)` (method form) or
-`datapie.overlay_by_observation(x, ...)` (function form).
-
-==Writes the observations of another series over this one period by period, only where the other series has one.==
-
-    self.overlay_by_observation(other)
-
-Where `other` is missing, this series keeps what it had -- the whole
-difference from `overlay_by_span`, which hands the gaps over as well.
-
-
-**Input arguments.**
-
-
-???+ input "other"
-    The series to lay on top. **Unlike the other three methods here it
-    is not copied first.** If `other` holds a single variant while this
-    series holds several, `other` is widened where it stands and comes
-    back with more variants than it had.
-
-
-### Returns
-
-
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-The same pair as `overlay_by_span`, where the observation in 2020-Q4
-now survives:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., 2., 3., 4.]))
-    >>> y = dp.Series(start=dp.qq(2020, 3),
-    ...     values=np.array([30., np.nan, 50.]))
-    >>> x.overlay_by_observation(y)
-    >>> x.get_data()[:, 0].tolist()
-    [1.0, 2.0, 30.0, 4.0, 50.0]
-
-
-### Algorithm
-
-
-The resulting time series is determined the following way:
-
-1. The span of the resulting series starts at the earliest start
-period of the two series and ends at the latest end period of the
-two series.
-
-2. The observations from the `self` (current) time series are used
-to fill the resulting time span.
-
-3. For each period where the `other` time series has a valid
-(non-missing) observation, that observation is superimposed on the
-resulting time series, replacing the value from `self` at that
-period.
-
-
-................................................................................
+[Overlay and underlay](#overlay-and-underlay)
         """
         # Handle empty series cases
         if self.is_empty and other.is_empty:
@@ -227,72 +159,11 @@ period.
         other,
     ) -> None:
         r"""
-................................................................................
+==Underlay another series while preserving the current span==
 
-## `Series.underlay_by_span`
+#### See also
 
-Called as `x.underlay_by_span(...)` (method form) or
-`datapie.underlay_by_span(x, ...)` (function form).
-
-==Slides another series in underneath this one, so this series wins across its whole span and `other` shows only outside it.==
-
-    self.underlay_by_span(other)
-
-This series keeps everything it had between its first and last
-observation, its internal gaps included, and `other` reaches only the
-periods before and after. `underlay_by_observation` fills those internal
-gaps instead.
-
-
-**Input arguments.**
-
-
-???+ input "other"
-    The series to lay underneath. It is not modified.
-
-
-### Returns
-
-
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-The gap this series has in 2020-Q2 stays a gap, and `other` only
-reaches 2021-Q1:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., np.nan, 3., 4.]))
-    >>> y = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([10., 20., 30., 40., 50.]))
-    >>> x.underlay_by_span(y)
-    >>> x.get_data()[:, 0].tolist()
-    [1.0, nan, 3.0, 4.0, 50.0]
-
-
-### Algorithm
-
-
-The resulting time series is determined the following way:
-
-1. The span of the resulting series starts at the earliest start
-period of the two series and ends at the latest end period of the
-two series.
-
-2. The observations from the `other` time series are used to fill
-the resulting time span.
-
-3. Within the span of the `self` time series (from the first
-available observation to the last available observation), the
-observations from this `self` time series are superimposed on the
-resulting time series, including any in-sample missing observations.
-
-
-................................................................................
+[Overlay and underlay](#overlay-and-underlay)
         """
         new_self = other.copy()
         new_self.overlay_by_span(self, )
@@ -306,70 +177,11 @@ resulting time series, including any in-sample missing observations.
         other,
     ) -> None:
         r"""
-................................................................................
+==Fill missing observations from an underlying series==
 
-## `Series.underlay_by_observation`
+#### See also
 
-Called as `x.underlay_by_observation(...)` (method form) or
-`datapie.underlay_by_observation(x, ...)` (function form).
-
-==Slides another series in underneath this one period by period, so `other` shows through only where this series has no observation.==
-
-    self.underlay_by_observation(other)
-
-This series wins wherever it holds a value, and `other` supplies the
-rest, inside the span as well as outside it.
-
-
-**Input arguments.**
-
-
-???+ input "other"
-    The series to lay underneath. It is not modified.
-
-
-### Returns
-
-
-Nothing; the series is modified in place.
-
-
-### Examples
-
-
-The same pair as `underlay_by_span`, where the gap in 2020-Q2 is now
-filled from `other`:
-
-    >>> import numpy as np
-    >>> import datapie as dp
-    >>> x = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([1., np.nan, 3., 4.]))
-    >>> y = dp.Series(start=dp.qq(2020, 1),
-    ...     values=np.array([10., 20., 30., 40., 50.]))
-    >>> x.underlay_by_observation(y)
-    >>> x.get_data()[:, 0].tolist()
-    [1.0, 20.0, 3.0, 4.0, 50.0]
-
-
-### Algorithm
-
-
-The resulting time series is determined the following way:
-
-1. The span of the resulting series starts at the earliest start
-period of the two series and ends at the latest end period of the
-two series.
-
-2. The observations from the `other` time series are used to fill
-the resulting time span.
-
-3. For each period where the `self` time series has a valid
-(non-missing) observation, that observation is superimposed on the
-resulting time series, replacing the value from `other` at that
-period.
-
-
-................................................................................
+[Overlay and underlay](#overlay-and-underlay)
         """
         new_self = other.copy()
         new_self.overlay_by_observation(self)

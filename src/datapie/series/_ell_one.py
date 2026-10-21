@@ -31,92 +31,130 @@ OrderType = Literal[1, 2]
 class Mixin:
     #[
 
-    @staticmethod
-    @_dm.topic(title="L1 filter forms", anchor="l1-filter-forms", priority=110)
-    def _lonf_reference():
+
+    @_dm.reference(category="filtering", call_name="lonf", anchor="lonf", )
+    def lonf(self, ):
         r"""
-==Separate a series into a piecewise-smooth trend and a gap==
+==Return the L1-filter trend and gap==
 
-### Syntax
+#### Syntax
 
-#### Method form
+    trend, gap = datapie.lonf(
+        series,
+        order,
+        smooth,
+        span=None,
+    )
 
-    series.lonf_trend(order, smooth, span=None)
-    series.lonf_gap(order, smooth, span=None)
-
-#### Function form
-
-    trend, gap = datapie.lonf(series, order, smooth, span=None)
-    new_series = datapie.lonf_trend(series, order, smooth, span=None)
-    new_series = datapie.lonf_gap(series, order, smooth, span=None)
-
-### Input arguments
+#### Input arguments
 
 !!! input "series"
 
-    The series to filter. Function forms leave it unchanged.
+    The series to filter.
 
 !!! input "order"
 
-    The difference order to smooth: `1` favors flat segments and `2` favors straight sloping segments. Required.
+    Required difference order: `1` favors flat trend segments; `2` favors
+    straight sloping segments. Other orders are not supported.
 
 !!! input "smooth"
 
-    The strength of smoothing. Larger values put more weight on a smooth trend. Required.
+    Required smoothing strength. Larger values put more weight on a smooth
+    trend. Use a nonnegative real value; it bounds the dual optimization problem.
 
 !!! input "span"
 
-    The periods to filter; the default, `None`, means the current span. Supply a nonempty, consecutive span within the available data.
+    Periods to filter; `None` (default) selects the current span. Supply a
+    nonempty, consecutive, increasing span within the available data, with more
+    periods than `order`. Filtering uses its first and last periods as endpoints.
 
-### Method form returns
-
-!!! returns "None"
-
-    `lonf_trend` replaces the series with its trend; `lonf_gap` replaces it with the difference between the input and trend. Calling `series.lonf()` itself raises `NotImplementedError`; use the function form to obtain both components.
-
-### Function form returns
+#### Returns
 
 !!! returns "trend, gap"
 
-    `datapie.lonf` returns two new series containing the trend and gap. The input is unchanged.
+    Two new series containing the trend and gap. The input is unchanged.
 
-!!! returns "new_series"
+The filter penalizes first or second differences using their L1 norm, favoring
+piecewise-flat or piecewise-linear trends. The gap is input minus trend. Results
+replace the original span with the requested span; missing rows at the ends are
+removed. Missing observations are not filled and can make the solver result unusable.
 
-    `datapie.lonf_trend` and `datapie.lonf_gap` return a new series containing the requested component. The input is unchanged.
+The current output construction retains only the first input variant. Filter a
+single-variant series when this distinction matters. `order`, `smooth`, and `span`
+can be passed positionally or by keyword.
 
-Only the first input variant is retained in the output. Missing observations are not filled before filtering and may produce missing or unusable results.
+There is no pair-returning method: `series.lonf()` raises `NotImplementedError`.
+Use the component methods to retain one component in place.
 
-??? note "Details"
+#### See also
 
-    The filter uses an L1 penalty on first or second differences, which favors a
-    trend built from a small number of flat or straight segments. Results cover
-    the requested span, with missing rows at the ends removed.
-    """
-        pass
-
-    @_dm.reference(category="filtering", )
-    def lonf(self, ):
-        r"""
-==Reserve the in-place trend-gap entry point==
-
-Calling `series.lonf()` is not supported. Use `datapie.lonf` to obtain
-both components, or `lonf_trend` and `lonf_gap` to keep one component
-in place.
-
-### See also
-
-[L1 filter forms](#l1-filter-forms)
+[`lonf_trend`](#lonf_trend), [`lonf_gap`](#lonf_gap)
         """
         raise NotImplementedError
 
     @_dm.reference(category="filtering", )
     def lonf_trend(self, *args, **kwargs):
         r"""
-==Replace the series with its L1-filter trend==
+==Replace the series with the L1-filter trend==
+
+#### Syntax
+
+    series.lonf_trend(
+        order,
+        smooth,
+        span=None,
+    )
+    result = datapie.lonf_trend(
+        series,
+        order,
+        smooth,
+        span=None,
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "order"
+
+    Required difference order: `1` favors flat trend segments; `2` favors
+    straight sloping segments. Other orders are not supported.
+
+!!! input "smooth"
+
+    Required smoothing strength. Larger values put more weight on a smooth
+    trend. Use a nonnegative real value; it bounds the dual optimization problem.
+
+!!! input "span"
+
+    Periods to filter; `None` (default) selects the current span. Supply a
+    nonempty, consecutive, increasing span within the available data, with more
+    periods than `order`. Filtering uses its first and last periods as endpoints.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the L1-filter trend in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the L1-filter trend; the input is unchanged.
+
+The filter penalizes first or second differences using their L1 norm, favoring
+piecewise-flat or piecewise-linear trends. The gap is input minus trend. Results
+replace the original span with the requested span; missing rows at the ends are
+removed. Missing observations are not filled and can make the solver result unusable.
+
+The current output construction retains only the first input variant. Filter a
+single-variant series when this distinction matters. `order`, `smooth`, and `span`
+can be passed positionally or by keyword.
 
 #### See also
 
-[L1 filter forms](#l1-filter-forms)
+[`lonf`](#lonf), [`lonf_gap`](#lonf_gap)
         """
         trend, _ = lonf(self, *args, **kwargs, )
         self._replace_start_and_values(trend.start, trend.data, )
@@ -124,11 +162,66 @@ in place.
     @_dm.reference(category="filtering", )
     def lonf_gap(self, *args, **kwargs):
         r"""
-==Replace the series with its L1-filter gap==
+==Replace the series with the L1-filter gap==
+
+#### Syntax
+
+    series.lonf_gap(
+        order,
+        smooth,
+        span=None,
+    )
+    result = datapie.lonf_gap(
+        series,
+        order,
+        smooth,
+        span=None,
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "order"
+
+    Required difference order: `1` favors flat trend segments; `2` favors
+    straight sloping segments. Other orders are not supported.
+
+!!! input "smooth"
+
+    Required smoothing strength. Larger values put more weight on a smooth
+    trend. Use a nonnegative real value; it bounds the dual optimization problem.
+
+!!! input "span"
+
+    Periods to filter; `None` (default) selects the current span. Supply a
+    nonempty, consecutive, increasing span within the available data, with more
+    periods than `order`. Filtering uses its first and last periods as endpoints.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the L1-filter gap in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the L1-filter gap; the input is unchanged.
+
+The filter penalizes first or second differences using their L1 norm, favoring
+piecewise-flat or piecewise-linear trends. The gap is input minus trend. Results
+replace the original span with the requested span; missing rows at the ends are
+removed. Missing observations are not filled and can make the solver result unusable.
+
+The current output construction retains only the first input variant. Filter a
+single-variant series when this distinction matters. `order`, `smooth`, and `span`
+can be passed positionally or by keyword.
 
 #### See also
 
-[L1 filter forms](#l1-filter-forms)
+[`lonf`](#lonf), [`lonf_trend`](#lonf_trend)
         """
         _, gap = lonf(self, *args, **kwargs, )
         self._replace_start_and_values(gap.start, gap.data, )
@@ -148,9 +241,58 @@ def lonf(
     r"""
 ==Return the L1-filter trend and gap==
 
+#### Syntax
+
+    trend, gap = datapie.lonf(
+        series,
+        order,
+        smooth,
+        span=None,
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "order"
+
+    Required difference order: `1` favors flat trend segments; `2` favors
+    straight sloping segments. Other orders are not supported.
+
+!!! input "smooth"
+
+    Required smoothing strength. Larger values put more weight on a smooth
+    trend. Use a nonnegative real value; it bounds the dual optimization problem.
+
+!!! input "span"
+
+    Periods to filter; `None` (default) selects the current span. Supply a
+    nonempty, consecutive, increasing span within the available data, with more
+    periods than `order`. Filtering uses its first and last periods as endpoints.
+
+#### Returns
+
+!!! returns "trend, gap"
+
+    Two new series containing the trend and gap. The input is unchanged.
+
+The filter penalizes first or second differences using their L1 norm, favoring
+piecewise-flat or piecewise-linear trends. The gap is input minus trend. Results
+replace the original span with the requested span; missing rows at the ends are
+removed. Missing observations are not filled and can make the solver result unusable.
+
+The current output construction retains only the first input variant. Filter a
+single-variant series when this distinction matters. `order`, `smooth`, and `span`
+can be passed positionally or by keyword.
+
+There is no pair-returning method: `series.lonf()` raises `NotImplementedError`.
+Use the component methods to retain one component in place.
+
 #### See also
 
-[L1 filter forms](#l1-filter-forms) for input arguments, component methods and function forms.
+[`lonf_trend`](#lonf_trend), [`lonf_gap`](#lonf_gap)
     """
     from .main import Series
 
@@ -188,6 +330,7 @@ _functional_forms = {"lonf", }
 
 for n in ("lonf_trend", "lonf_gap", ):
     exec(FUNC_STRING.format(n=n, ), globals(), locals(), )
+    globals()[n].__doc__ = getattr(Mixin, n).__doc__
     _functional_forms.add(n, )
 
 __all__ = tuple(_functional_forms)

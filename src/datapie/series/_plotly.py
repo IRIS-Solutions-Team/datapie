@@ -106,6 +106,15 @@ class Mixin:
 
 !!! input "**kwargs"
     Settings for the selected plotting method; see the linked references.
+    `span=...` uses the full series span; `update_traces=None` leaves trace
+    settings unchanged. See [Plot settings](#plot-settings) for shared options.
+
+#### Details
+
+Delegates to the corresponding named plotting method. A new figure is
+created and displayed by default; set `show_figure=False` to suppress display.
+An unrecognized chart type raises `ValueError`. This is a method only,
+not a standalone function.
 
 #### Returns
 
@@ -119,7 +128,9 @@ Leaves the series unchanged. A supplied figure is updated in place.
 
 #### See also
 
-[Plotting family](#plotting-family), [Plot settings](#plot-settings).
+[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
+[`plot_histogram`](#seriesplot_histogram), [`plot_bands`](#seriesplot_bands),
+[Plot settings](#plot-settings).
         """
         if chart_type == "line":
             trace_constructor=_line_constructor,
@@ -152,9 +163,50 @@ Leaves the series unchanged. A supplied figure is updated in place.
         r"""
 ==Draw each variant as a line with markers==
 
+#### Syntax
+
+    info = series.plot_line(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Scatter trace with lines and markers.
+Use `update_traces={"mode": "lines"}` to suppress markers.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
+
 #### See also
 
-[Plotting family](#plotting-family), [Plot settings](#plot-settings).
+[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
+[Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_plain_traces,
@@ -253,10 +305,13 @@ The first and last variants form the outer band, the second and penultimate
 the next band, and so on. Values are not sorted. An odd number of variants
 leaves a middle variant, drawn as a line with markers. Supply enough legend
 names and inclusion flags for all bands and the middle line.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[Plotting family](#plotting-family), [Plot settings](#plot-settings).
+[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area),
+[`plot_bar`](#seriesplot_bar), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_band_traces,
@@ -290,9 +345,50 @@ names and inclusion flags for all bands and the middle line.
         r"""
 ==Draw each variant as a line filled down to zero==
 
+#### Syntax
+
+    info = series.plot_area(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Scatter trace with lines and markers,
+filled down to zero. Areas are not stacked.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
+
 #### See also
 
-[Plotting family](#plotting-family), [Plot settings](#plot-settings).
+[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
+[Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_plain_traces,
@@ -320,9 +416,55 @@ names and inclusion flags for all bands and the middle line.
         r"""
 ==Draw each variant as bars==
 
+#### Syntax
+
+    info = series.plot_bar(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. With `bar_mode=None`, the
+figure's existing arrangement is unchanged; a new figure uses Plotly's default.
+Set `bar_mode` to `"stack"`, `"group"`, `"overlay"`, or `"relative"` to choose
+explicitly. The arrangement applies to the whole figure, including existing
+bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
+
 #### See also
 
-[Bar plotting](#bar-plotting), [Plotting family](#plotting-family), [Plot settings](#plot-settings).
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_plain_traces,
@@ -341,36 +483,218 @@ names and inclusion flags for all bands and the middle line.
 
 
     plot_bar_stack = _ft.partialmethod(plot_bar, bar_mode="stack", )
-    plot_bar_stack.__doc__ = """==Draw variants as stacked bars==
+    plot_bar_stack.__doc__ = """
+==Draw variants as stacked bars==
+
+#### Syntax
+
+    info = series.plot_bar_stack(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Bars are stacked vertically.
+This method supplies `bar_mode="stack"`; an explicit `bar_mode` overrides it.
+The arrangement applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
-"""
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
+        """
 
     plot_bar_group = _ft.partialmethod(plot_bar, bar_mode="group", )
-    plot_bar_group.__doc__ = """==Draw variants as side-by-side bars==
+    plot_bar_group.__doc__ = """
+==Draw variants as side-by-side bars==
+
+#### Syntax
+
+    info = series.plot_bar_group(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Bars are placed side by side.
+This method supplies `bar_mode="group"`; an explicit `bar_mode` overrides it.
+The arrangement applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
-"""
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
+        """
 
     plot_bar_overlay = _ft.partialmethod(plot_bar, bar_mode="overlay", )
-    plot_bar_overlay.__doc__ = """==Draw variants as overlapping bars==
+    plot_bar_overlay.__doc__ = """
+==Draw variants as overlapping bars==
+
+#### Syntax
+
+    info = series.plot_bar_overlay(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Bars overlap, so later traces
+can obscure earlier traces; use `update_traces` to set opacity if needed.
+This method supplies `bar_mode="overlay"`; an explicit `bar_mode` overrides it.
+The arrangement applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
-"""
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
+        """
 
     plot_bar_relative = _ft.partialmethod(plot_bar, bar_mode="relative", )
-    plot_bar_relative.__doc__ = """==Stack positive and negative bars separately==
+    plot_bar_relative.__doc__ = """
+==Stack positive and negative bars separately==
+
+#### Syntax
+
+    info = series.plot_bar_relative(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Positive and negative values
+are stacked on opposite sides of zero. This method supplies
+`bar_mode="relative"`; an explicit `bar_mode` overrides it. The arrangement
+applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
-"""
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
+        """
 
 
 
@@ -428,10 +752,17 @@ Leaves the series unchanged. A supplied figure is updated in place.
 
 The horizontal axis contains observation values rather than dates.
 `round_to` rounds observations before they are placed into bins.
+Each variant normally produces one Histogram trace. Plotly selects bins
+automatically; use `update_traces` to supply settings such as `nbinsx` or
+`xbins`. Trace updates can also override `hist_norm` through Plotly's
+`histnorm` setting. A new figure is created and displayed by default;
+set `show_figure=False` to suppress display. This is a method only,
+not a standalone function.
 
 #### See also
 
-[Plotting family](#plotting-family), [Plot settings](#plot-settings).
+[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area),
+[`plot_bar`](#seriesplot_bar), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_histogram_traces,
@@ -451,134 +782,59 @@ The horizontal axis contains observation values rather than dates.
         return info
 
 
-
-    @staticmethod
-    @_dm.topic(title="Plotting family", anchor="plotting-family", priority=90)
-    def _plotting_family():
-        r"""
-==Draw line, area, and bar charts==
-
-### Syntax
-
-    info = series.plot_line(span=..., update_traces=None, **kwargs)
-    info = series.plot_area(span=..., update_traces=None, **kwargs)
-    info = series.plot_bar(span=..., update_traces=None, **kwargs)
-
-### Input arguments
-
-!!! input "series"
-
-    The series to plot. Its observations are left unchanged.
-
-!!! input "span"
-
-    A period, span, or selection of periods. Default: `...`, the series' full
-    span. The first and last selected periods define a continuous plotting
-    interval. The selection must not be empty. Values outside the stored span
-    are missing.
-
-!!! input "update_traces"
-
-    A Plotly settings dictionary, or a sequence of dictionaries cycled across
-    variants. Default: `None`, no updates. An empty sequence produces no traces.
-
-!!! input "**kwargs"
-
-    Additional keyword settings described in [Plot settings](#plot-settings).
-
-### Returns
-
-!!! returns "info"
-
-    `None` by default. With `return_info=True`, a dictionary containing
-    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
-
-### Mutation
-
-Leaves the series unchanged. A supplied figure is updated in place.
-
-### Details
-
-Each variant normally produces one trace. Line and area charts include
-markers; area charts fill down to zero. By default, a new figure is created
-and displayed. Set `show_figure=False` to suppress display.
-
-### See also
-
-[Bar plotting](#bar-plotting), `plot`, `plot_bands`, `plot_histogram`,
-[Plot settings](#plot-settings).
-        """
-        pass
-
-    @staticmethod
-    @_dm.topic(title="Bar plotting", anchor="bar-plotting", priority=80)
-    def _bar_plotting():
-        r"""
-==Choose how bars for different variants are arranged==
-
-### Syntax
-
-    info = series.plot_bar_stack(span=..., update_traces=None, **kwargs)
-    info = series.plot_bar_group(span=..., update_traces=None, **kwargs)
-    info = series.plot_bar_overlay(span=..., update_traces=None, **kwargs)
-    info = series.plot_bar_relative(span=..., update_traces=None, **kwargs)
-
-### Input arguments
-
-!!! input "series"
-
-    The series to plot. Its observations are left unchanged.
-
-!!! input "span"
-
-    A period, span, or selection of periods. Default: `...`, the series' full
-    span. The first and last selected periods define a continuous plotting
-    interval. The selection must not be empty. Values outside the stored span
-    are missing.
-
-!!! input "update_traces"
-
-    A Plotly settings dictionary, or a sequence of dictionaries cycled across
-    variants. Default: `None`, no updates. An empty sequence produces no traces.
-
-!!! input "**kwargs"
-
-    Additional keyword settings described in [Plot settings](#plot-settings).
-    Each method supplies the corresponding `bar_mode`. An explicit
-    `bar_mode` overrides that choice.
-
-### Returns
-
-!!! returns "info"
-
-    `None` by default. With `return_info=True`, a dictionary containing
-    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
-
-### Mutation
-
-Leaves the series unchanged. A supplied figure is updated in place.
-
-### Details
-
-`plot_bar_stack` stacks bars vertically; `plot_bar_group` places them
-side by side. `plot_bar_overlay` overlaps them. `plot_bar_relative` stacks
-positive and negative values on opposite sides of zero.
-
-### See also
-
-[Plotting family](#plotting-family), [Plot settings](#plot-settings).
-        """
-        pass
-
     @staticmethod
     @_dm.reference(category="plotting", call_name="Series.plot_bar_stack", )
     def _plot_bar_stack_reference():
         r"""
 ==Draw variants as stacked bars==
 
+#### Syntax
+
+    info = series.plot_bar_stack(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Bars are stacked vertically.
+This method supplies `bar_mode="stack"`; an explicit `bar_mode` overrides it.
+The arrangement applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
+
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
         """
         pass
 
@@ -588,9 +844,53 @@ positive and negative values on opposite sides of zero.
         r"""
 ==Draw variants as side-by-side bars==
 
+#### Syntax
+
+    info = series.plot_bar_group(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Bars are placed side by side.
+This method supplies `bar_mode="group"`; an explicit `bar_mode` overrides it.
+The arrangement applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
+
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
         """
         pass
 
@@ -600,9 +900,54 @@ positive and negative values on opposite sides of zero.
         r"""
 ==Draw variants as overlapping bars==
 
+#### Syntax
+
+    info = series.plot_bar_overlay(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Bars overlap, so later traces
+can obscure earlier traces; use `update_traces` to set opacity if needed.
+This method supplies `bar_mode="overlay"`; an explicit `bar_mode` overrides it.
+The arrangement applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
+
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
         """
         pass
 
@@ -612,9 +957,54 @@ positive and negative values on opposite sides of zero.
         r"""
 ==Stack positive and negative bars separately==
 
+#### Syntax
+
+    info = series.plot_bar_relative(
+        span=...,
+        update_traces=None,
+        **kwargs,
+    )
+
+#### Input arguments
+
+!!! input "span"
+    A period, span, or selection of periods. Default: `...`, the series' full
+    span. The first and last selected periods define a continuous plotting
+    interval. The selection must not be empty. Values outside the stored span
+    are missing.
+
+!!! input "update_traces"
+    A Plotly settings dictionary, or dictionaries cycled across variants.
+    Default: `None`, no updates. An empty sequence produces no traces.
+
+!!! input "**kwargs"
+    Additional keyword settings described in [Plot settings](#plot-settings).
+
+#### Returns
+
+!!! returns "info"
+    `None` by default. With `return_info=True`, a dictionary containing
+    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
+
+#### Mutation
+
+Leaves the series unchanged. A supplied figure is updated in place.
+
+#### Details
+
+Each variant normally produces one Bar trace. Positive and negative values
+are stacked on opposite sides of zero. This method supplies
+`bar_mode="relative"`; an explicit `bar_mode` overrides it. The arrangement
+applies to the whole figure, including existing bar traces.
+A new figure is created and displayed by default; set `show_figure=False`
+to suppress display. This is a method only, not a standalone function.
+
 #### See also
 
-[Bar plotting](#bar-plotting), [Plot settings](#plot-settings).
+[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
+[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
+[`plot_bar_relative`](#seriesplot_bar_relative),
+[Plot settings](#plot-settings).
         """
         pass
 
@@ -747,8 +1137,10 @@ Vertical lines and highlights do not follow the `subplot` selection.
 
 ### See also
 
-[Plotting family](#plotting-family), [Bar plotting](#bar-plotting),
-`plot_bands`, `plot_histogram`.
+[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
+[`plot_bar_stack`](#seriesplot_bar_stack), [`plot_bar_group`](#seriesplot_bar_group),
+[`plot_bar_overlay`](#seriesplot_bar_overlay), [`plot_bar_relative`](#seriesplot_bar_relative),
+[`plot_bands`](#seriesplot_bands), [`plot_histogram`](#seriesplot_histogram).
         """
         pass
 

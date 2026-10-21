@@ -155,7 +155,7 @@ retained with no rows, `end` is the period before the start.
 [Arithmetic operations](#arithmetic-protocols),
 [Comparisons](#comparison-protocols),
 [Iteration, combination, and display](#container-protocols),
-[Variant utilities](#variant-utilities)
+[`extract_variants`](#extract_variants), [`iter_own_variants`](#iter_own_variants)
     """
     #[
 
@@ -786,9 +786,29 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Test whether any selected value is missing==
 
+#### Syntax
+
+    result = series.any_missing(
+        *args,
+    )
+
+#### Input arguments
+
+!!! input "*args"
+
+    Optional periods followed by variants, as in `get_data`. Omit both to
+    inspect the whole series. Requested periods outside its span are missing.
+
+#### Returns
+
+!!! returns "result"
+
+    Boolean: whether any selected value is NaN. An empty selection returns
+    `False`. The series is unchanged.
+
 #### See also
 
-[Missing value queries](#missing-value-queries)
+[`all_missing`](#all_missing), [`get_data`](#get_data)
         """
         return self._func_missing(_np.any, *args, )
 
@@ -797,9 +817,32 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Find periods with missing selected observations==
 
+#### Syntax
+
+    periods = series.where_missing(
+        *args,
+    )
+
+#### Input arguments
+
+!!! input "*args"
+
+    Optional periods followed by variants, as in `get_data`. Omit both to
+    inspect the whole series. Requested periods outside its span are missing.
+
+#### Returns
+
+!!! returns "periods"
+
+    Tuple of periods with a missing selected variant. The series is unchanged.
+
+With restricted or reordered periods, the reported labels still come from
+the beginning of the stored span. Only whole-span requests reliably match
+the selected observations to their period labels.
+
 #### See also
 
-[Missing value queries](#missing-value-queries)
+[`any_missing`](#any_missing), [`get_data`](#get_data)
         """
         data = self.get_data(*args, )
         missing_mask = _np.isnan(data).any(axis=1, )
@@ -810,9 +853,29 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Test whether all selected values are missing==
 
+#### Syntax
+
+    result = series.all_missing(
+        *args,
+    )
+
+#### Input arguments
+
+!!! input "*args"
+
+    Optional periods followed by variants, as in `get_data`. Omit both to
+    inspect the whole series. Requested periods outside its span are missing.
+
+#### Returns
+
+!!! returns "result"
+
+    Boolean: whether all selected values are NaN. An empty selection returns
+    `True`. The series is unchanged.
+
 #### See also
 
-[Missing value queries](#missing-value-queries)
+[`any_missing`](#any_missing), [`get_data`](#get_data)
         """
         return self._func_missing(_np.all, *args, )
 
@@ -821,9 +884,29 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Test whether the missing-value count is nonzero==
 
+#### Syntax
+
+    result = series.count_missing(
+        *args,
+    )
+
+#### Input arguments
+
+!!! input "*args"
+
+    Optional periods followed by variants, as in `get_data`. Omit both to
+    inspect the whole series. Requested periods outside its span are missing.
+
+#### Returns
+
+!!! returns "result"
+
+    Boolean, not a numerical count: whether at least one selected value is
+    missing. An empty selection returns `False`. The series is unchanged.
+
 #### See also
 
-[Missing value queries](#missing-value-queries)
+[`any_missing`](#any_missing), [`get_data`](#get_data)
         """
         return self._func_missing(_np.count_nonzero, *args, )
 
@@ -945,9 +1028,35 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Change the number of variants==
 
+#### Syntax
+
+    series.alter_num_variants(
+        new_num,
+    )
+
+#### Input arguments
+
+!!! input "new_num"
+
+    Required nonnegative integer target count. Expansion copies the final
+    variant; shrinking removes columns from the right. Expansion requires at
+    least one existing variant to copy.
+
+#### Returns
+
+!!! returns "None"
+
+    Change the data columns in place, without trimming rows or changing the
+    start or description. An equal target leaves the series unchanged.
+
+Despite its return annotation, this method does not return the series.
+Use `extract_variants` to keep or reorder particular columns.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`expand_num_variants`](#expand_num_variants), [`shrink_num_variants`](#shrink_num_variants), [`extract_variants`](#extract_variants)
         """
         if new_num < self.num_variants:
             self.shrink_num_variants(new_num, )
@@ -962,9 +1071,36 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Add copies of the last variant==
 
+#### Syntax
+
+    series.expand_num_variants(
+        new_num,
+    )
+
+#### Input arguments
+
+!!! input "new_num"
+
+    Required integer target count, at least the current count. Smaller
+    targets raise `ValueError`. At least one existing column is required,
+    even when the target equals the current count.
+
+#### Returns
+
+!!! returns "None"
+
+    Append copies of the final column in place, including its missing
+    observations. Existing columns, time span, and description are retained;
+    no trimming follows. An equal target adds no columns.
+
+A zero-variant series raises an indexing error because it has no final column
+to copy.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`alter_num_variants`](#alter_num_variants), [`shrink_num_variants`](#shrink_num_variants)
         """
         add = new_num - self.num_variants
         if add < 0:
@@ -980,9 +1116,35 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Remove variants from the right==
 
+#### Syntax
+
+    series.shrink_num_variants(
+        new_num,
+    )
+
+#### Input arguments
+
+!!! input "new_num"
+
+    Required nonnegative integer target count, smaller than the current
+    count. Larger targets raise `ValueError`.
+
+#### Returns
+
+!!! returns "None"
+
+    Remove trailing columns in place without trimming rows or changing the
+    start or description. A target of zero removes all columns.
+
+An equal target also removes all columns: the implementation slices to
+`:-0` in this case. Use `alter_num_variants` when an equal target should leave
+the series unchanged.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`alter_num_variants`](#alter_num_variants), [`expand_num_variants`](#expand_num_variants)
         """
         remove = self.num_variants - new_num
         if remove < 0:
@@ -1029,7 +1191,7 @@ retained with no rows, `end` is the period before the start.
 
 #### See also
 
-[Data retrieval](#data-retrieval)
+[`get_data_and_periods`](#get_data_and_periods), [`get_data_from_until`](#get_data_from_until)
         """
         data = self.get_data(*args, **kwargs, )
         values = [ tuple(data_column.tolist()) for data_column in data.T ]
@@ -1073,7 +1235,7 @@ retained with no rows, `end` is the period before the start.
 
 #### See also
 
-[Data retrieval](#data-retrieval)
+[`get_data_and_periods`](#get_data_and_periods), [`get_data_from_until`](#get_data_from_until)
         """
         return self.get_data_and_periods(*args, **kwargs, )[0]
 
@@ -1086,9 +1248,45 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Read observations together with their periods==
 
+#### Syntax
+
+    data, periods = series.get_data_and_periods(
+        periods,
+        *args,
+    )
+
+#### Input arguments
+
+!!! input "periods"
+
+    Default `...` selects the stored span. Period, iterable of periods, or span. `None`, `...`, and `slice(None)`
+    select the stored span. Open-ended spans resolve against the series.
+    Request order and duplicate periods are retained.
+
+!!! input "*args"
+
+    Optional positional variant selector: zero-based integer, integer iterable,
+    slice, `None`, or `...`. Omitted, `None`, and `...` select all columns.
+    Negative indexes count from the end; order and duplicates are retained.
+    This selector cannot be supplied by keyword.
+
+#### Returns
+
+!!! returns "data, periods"
+
+    Pair of an independent two-dimensional NumPy array and the tuple of
+    resolved periods. Rows correspond to periods; columns correspond to variants.
+    Out-of-span observations contain NaN.
+
+Reading does not change or extend the series. Use a data type supporting NaN
+for out-of-span requests.
+The result is a pair despite the array-only return annotation.
+
+There is no top-level function form.
+
 #### See also
 
-[Data retrieval](#data-retrieval)
+[`get_data`](#get_data), [`get_values`](#get_values), [`get_data_from_until`](#get_data_from_until)
         """
         periods, pos, variants, expanded_values, = self._resolve_periods_and_positions(periods, *args, )
         return expanded_values[_np.ix_(pos, variants)], periods,
@@ -1102,9 +1300,43 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Read one variant at selected periods==
 
+#### Syntax
+
+    data = series.get_data_variant(
+        periods,
+        variant=None,
+    )
+
+#### Input arguments
+
+!!! input "periods"
+
+    Required. Period, iterable of periods, or span. `None`, `...`, and `slice(None)`
+    select the stored span. Open-ended spans resolve against the series.
+    Request order and duplicate periods are retained.
+
+!!! input "variant"
+
+    Zero-based integer column index; default `None` selects the first column.
+    Zero and indexes greater than or equal to the variant count also select
+    the first column. Negative indexes count from the end and must be in range.
+
+#### Returns
+
+!!! returns "data"
+
+    Independent two-dimensional NumPy array with one column and one row per
+    requested period. Out-of-span observations contain NaN.
+
+Reading does not change or extend the series. Use a data type supporting NaN
+for out-of-span requests.
+At least one variant is required.
+
+There is no top-level function form.
+
 #### See also
 
-[Data retrieval](#data-retrieval)
+[`get_data`](#get_data), [`get_data_variant_from_until`](#get_data_variant_from_until)
         """
         variant = variant if variant and variant<self.data.shape[1] else 0
         return self.get_data(periods, variant, )
@@ -1118,9 +1350,46 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Read observations between two periods==
 
+#### Syntax
+
+    data = series.get_data_from_until(
+        from_until,
+        *args,
+    )
+
+#### Input arguments
+
+!!! input "from_until"
+
+    Required pair of first and last periods, inclusive. Read all intervening
+    periods. Reversed endpoints give no rows. `(None, None)` gives an empty
+    block, not the stored span. A single `None` is not an open-end selector;
+    `...` is not supported.
+
+!!! input "*args"
+
+    Optional positional variant selector: zero-based integer, integer iterable,
+    slice, `None`, or `...`. Omitted, `None`, and `...` select all columns.
+    Negative indexes count from the end; order and duplicates are retained.
+    This selector cannot be supplied by keyword.
+
+#### Returns
+
+!!! returns "data"
+
+    Independent two-dimensional NumPy array with interval rows and selected
+    variant columns. Out-of-span observations contain NaN.
+
+Reading does not change or extend the series. Use a data type supporting NaN
+for out-of-span requests.
+Use `get_data()` for the stored span, or `get_data((first, last))` to read
+just two endpoint observations rather than the whole interval.
+
+There is no top-level function form.
+
 #### See also
 
-[Data retrieval](#data-retrieval)
+[`get_data`](#get_data), [`get_data_variant_from_until`](#get_data_variant_from_until)
         """
         if all(p is None for p in from_until):
             from_until = ()
@@ -1139,9 +1408,44 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Read one variant between two periods==
 
+#### Syntax
+
+    data = series.get_data_variant_from_until(
+        from_until,
+        variant=None,
+    )
+
+#### Input arguments
+
+!!! input "from_until"
+
+    Required pair of first and last periods, inclusive. Read all intervening
+    periods. Reversed endpoints give no rows. `(None, None)` gives an empty
+    block, not the stored span. A single `None` is not an open-end selector;
+    `...` is not supported.
+
+!!! input "variant"
+
+    Zero-based integer column index; default `None` selects the first column.
+    Zero and indexes greater than or equal to the variant count also select
+    the first column. Negative indexes count from the end and must be in range.
+
+#### Returns
+
+!!! returns "data"
+
+    Independent two-dimensional NumPy array with one column and interval
+    rows. Out-of-span observations contain NaN.
+
+Reading does not change or extend the series. Use a data type supporting NaN
+for out-of-span requests.
+At least one variant is required.
+
+There is no top-level function form.
+
 #### See also
 
-[Data retrieval](#data-retrieval)
+[`get_data_variant`](#get_data_variant), [`get_data_from_until`](#get_data_from_until)
         """
         variant = variant if variant and variant < self.data.shape[1] else 0
         return self.get_data_from_until(from_until, variant, )
@@ -1154,9 +1458,37 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Keep and reorder selected variants==
 
+#### Syntax
+
+    series.extract_variants(
+        variants,
+    )
+
+#### Input arguments
+
+!!! input "variants"
+
+    Required zero-based integer or iterable of integers. Keep columns in
+    request order, including duplicates. Negative indexes count from the end;
+    out-of-range indexes raise an indexing error. An empty iterable keeps no
+    columns. `None`, `...`, and slices are not general all-variant selectors
+    here, unlike selectors accepted by data retrieval methods.
+
+#### Returns
+
+!!! returns "None"
+
+    Replace the data columns in place with the selection. Retain time rows,
+    start, and description. No trimming follows, even when all retained
+    observations are missing or no columns remain.
+
+Copy the series first to preserve the original column selection.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`alter_num_variants`](#alter_num_variants), [`iter_own_variants`](#iter_own_variants)
         """
         if not isinstance(variants, Iterable):
             variants = (variants, )
@@ -1746,46 +2078,10 @@ retained with no rows, `end` is the period before the start.
         r"""
 ==Replace observations with their absolute values==
 
-#### Syntax
+#### See also
 
-##### Method form
-
-    series.abs(
-        *args,
-        **kwargs,
-    )
-
-##### Function form
-
-    new_series = datapie.abs(
-        series,
-        *args,
-        **kwargs,
-    )
-
-#### Input arguments
-
-!!! input "*args"
-
-    Additional positional options passed to `numpy.abs`.
-
-!!! input "**kwargs"
-
-    Named options passed to `numpy.abs`.
-
-#### Method form returns
-
-!!! returns "None"
-
-    Change the series in place.
-
-#### Function form returns
-
-!!! returns "new_series"
-
-    New series; the input series is unchanged.
-
-Missing values remain missing. Neither form trims the span.
+[Elementwise functions](#elementwise-functions) for syntax, arguments,
+return values, and mutation behavior.
         """
         self.data = _np.abs(self.data, *args, **kwargs, )
 
@@ -1807,46 +2103,10 @@ Missing values remain missing. Neither form trims the span.
         r"""
 ==Round observations to a chosen precision==
 
-#### Syntax
+#### See also
 
-##### Method form
-
-    series.round(
-        *args,
-        **kwargs,
-    )
-
-##### Function form
-
-    new_series = datapie.round(
-        series,
-        *args,
-        **kwargs,
-    )
-
-#### Input arguments
-
-!!! input "*args"
-
-    Additional positional options passed to `numpy.round`. Decimal places default to `0`; negative values round to tens, hundreds and so on.
-
-!!! input "**kwargs"
-
-    Named options passed to `numpy.round`.
-
-#### Method form returns
-
-!!! returns "None"
-
-    Change the series in place.
-
-#### Function form returns
-
-!!! returns "new_series"
-
-    New series; the input series is unchanged.
-
-Missing values remain missing. Neither form trims the span.
+[Elementwise functions](#elementwise-functions) for syntax, arguments,
+return values, and mutation behavior.
         """
         self.data = _np.round(self.data, *args, **kwargs, )
 
@@ -2044,9 +2304,29 @@ The callable receives live data and may change the original series. Use a callab
         r"""
 ==Read variants and keep repeating the last==
 
+#### Syntax
+
+    iterator = series.iter_variants()
+
+#### Returns
+
+!!! returns "iterator"
+
+    Iterator of single-variant series in column order, followed by the final
+    variant indefinitely. Each yielded series is trimmed at both ends; an
+    all-missing variant becomes a reset, empty series.
+
+At least one variant is required; a zero-variant input fails when consumed.
+Use a bounded consumer rather than converting this infinite iterator to a list.
+Iteration itself does not change the receiver. Yielded series retain its
+description unless reset and can share observation storage with it; copy before
+modifying when independence matters.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`iter_own_variants`](#iter_own_variants), [`iter_data_variants_from_until`](#iter_data_variants_from_until)
         """
         for data in self.iter_data_variants_from_until(..., ):
             new = self._copy_with_no_data()
@@ -2058,9 +2338,28 @@ The callable receives live data and may change the original series. Use a callab
         r"""
 ==Read each variant once as a series==
 
+#### Syntax
+
+    iterator = series.iter_own_variants()
+
+#### Returns
+
+!!! returns "iterator"
+
+    Finite iterator of single-variant series, in column order. Zero variants
+    give an empty iterator. Each yielded series is trimmed at both ends;
+    an all-missing variant becomes a reset, empty series.
+
+Iteration itself does not change the receiver. Yielded series retain the
+original description unless reset, but can share their observation storage with
+the original. Copy a yielded series before modifying it if independence matters.
+The built-in `iter(series)` uses this finite iterator too.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`iter_variants`](#iter_variants), [`iter_own_data_variants_from_until`](#iter_own_data_variants_from_until), [`iter_periods_and_values`](#iter_periods_and_values)
         """
         for data in self.iter_own_data_variants_from_until(..., ):
             new = self._copy_with_no_data()
@@ -2072,9 +2371,40 @@ The callable receives live data and may change the original series. Use a callab
         r"""
 ==Read each variant's data once==
 
+#### Syntax
+
+    iterator = series.iter_own_data_variants_from_until(
+        from_until,
+    )
+
+#### Input arguments
+
+!!! input "from_until"
+
+    Required pair of first and last periods, inclusive, or `...` for the
+    stored span. With explicit endpoints, all intervening periods are read
+    and out-of-span values contain NaN. Reversed endpoints and `(None, None)`
+    give no rows. A single `None` is not an open-end selector.
+
+#### Returns
+
+!!! returns "iterator"
+
+    Finite iterator of one-dimensional NumPy arrays, one per variant in
+    column order. Zero variants give an empty iterator. Missing values and
+    all-missing edge rows are retained.
+
+With `...`, the arrays are views of the original data: writing through them
+changes the series without automatic trimming. Explicit endpoints first create
+an independent data block, so its yielded column arrays do not share storage
+with the original. Iteration itself does not mutate or extend the series.
+Use a data type supporting NaN for out-of-span requests.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`iter_data_variants_from_until`](#iter_data_variants_from_until), [`iter_own_variants`](#iter_own_variants), [`get_data_from_until`](#get_data_from_until)
         """
         if from_until is ...:
             data_from_until = self.data
@@ -2087,9 +2417,41 @@ The callable receives live data and may change the original series. Use a callab
         r"""
 ==Read variant data and keep repeating the last==
 
+#### Syntax
+
+    iterator = series.iter_data_variants_from_until(
+        from_until,
+    )
+
+#### Input arguments
+
+!!! input "from_until"
+
+    Required pair of first and last periods, inclusive, or `...` for the
+    stored span. With explicit endpoints, all intervening periods are read
+    and out-of-span values contain NaN. Reversed endpoints and `(None, None)`
+    give no rows. A single `None` is not an open-end selector.
+
+#### Returns
+
+!!! returns "iterator"
+
+    Iterator of one-dimensional NumPy arrays in column order, then the last
+    array indefinitely. It repeats the same final array object, not a fresh
+    copy. With zero variants, it yields `None` indefinitely.
+
+Use a bounded consumer rather than converting this infinite iterator to a list.
+Missing values and all-missing edge rows are retained. With `...`, arrays share
+the original data, so writes change the series without automatic trimming.
+Explicit endpoints create an independent data block first. Iteration itself
+does not mutate or extend the series. Use a data type supporting NaN for
+out-of-span requests.
+
+There is no top-level function form.
+
 #### See also
 
-[Variant utilities](#variant-utilities)
+[`iter_own_data_variants_from_until`](#iter_own_data_variants_from_until), [`iter_variants`](#iter_variants), [`get_data_from_until`](#get_data_from_until)
         """
         return _iterators.exhaust_then_last(self.iter_own_data_variants_from_until(from_until, ), )
 
@@ -2098,203 +2460,15 @@ The callable receives live data and may change the original series. Use a callab
         r"""
 ==Replace observations with their logistic values==
 
-#### Syntax
+#### See also
 
-##### Method form
-
-    series.logistic()
-
-##### Function form
-
-    new_series = datapie.logistic(
-        series,
-    )
-
-#### Method form returns
-
-!!! returns "None"
-
-    Change the series in place.
-
-#### Function form returns
-
-!!! returns "new_series"
-
-    New series; the input series is unchanged.
-
-Missing values remain missing. Neither form trims the span. The transform is `1 / (1 + exp(-value))`.
+[Elementwise functions](#elementwise-functions) for syntax, arguments,
+return values, and mutation behavior.
         """
         self.data = 1 / (1 + _np.exp(-self.data))
 
-    @staticmethod
-    @_dm.topic(title="Missing value queries", anchor="missing-value-queries", priority=60)
-    def _document_missing_queries():
-        r"""
-==Find missing observations in a selection==
 
-### Syntax
 
-    series.any_missing(*args)
-    series.all_missing(*args)
-    series.count_missing(*args)
-    series.where_missing(*args)
-
-### Input arguments
-
-!!! input "*args"
-
-    Optional periods followed by variants, as in `get_data`. Omit both to inspect the whole series. Requested periods outside the stored span count as missing.
-
-### Returns
-
-!!! returns "any_missing"
-
-    Boolean: whether any selected value is NaN. An empty selection returns `False`.
-
-!!! returns "all_missing"
-
-    Boolean: whether all selected values are NaN. An empty selection returns `True`.
-
-!!! returns "count_missing"
-
-    Boolean, not a numerical count: whether at least one selected value is missing.
-
-!!! returns "where_missing"
-
-    Tuple of periods with a missing selected variant. With restricted or reordered periods, the reported periods still come from the start of the stored span, so only whole-span requests have matching period labels.
-
-### Mutation
-
-These queries do not change the series.
-        """
-        pass
-
-    @staticmethod
-    @_dm.topic(title="Data retrieval", anchor="data-retrieval", priority=50)
-    def _document_data_retrieval():
-        r"""
-==Read values with their periods or for one variant==
-
-### Syntax
-
-    series.get_data_and_periods(periods=...)
-    series.get_data_and_periods(periods, *args)
-    series.get_data_variant(periods, variant=None)
-    series.get_data_from_until(from_until, *args)
-    series.get_data_variant_from_until(from_until, variant=None)
-
-### Input arguments
-
-!!! input "periods"
-
-    Period, iterable, span, `None` or `...`. In `get_data_and_periods`, the default is `...`, selecting the whole span.
-
-!!! input "from_until"
-
-    First and last periods, inclusive. Both endpoints `None` give an empty block. Out-of-span periods are filled with NaN.
-
-!!! input "*args"
-
-    Optional variant selector: zero-based integer, iterable of integers, slice, `None` or `...`. Omitted, `None` and `...` select all.
-
-!!! input "variant"
-
-    Integer or `None`, default `None`. Select one column. `None`, zero and indexes above the available range use the first variant. Negative indexes count from the end.
-
-### Returns
-
-!!! returns "get_data_and_periods"
-
-    Pair containing a two-dimensional NumPy array and its tuple of periods, in request order.
-
-!!! returns "get_data_variant"
-
-    Two-dimensional NumPy array with one column for the selected periods.
-
-!!! returns "get_data_from_until"
-
-    Two-dimensional NumPy array covering the inclusive interval; reversed endpoints give no rows.
-
-!!! returns "get_data_variant_from_until"
-
-    Two-dimensional NumPy array with one column covering the inclusive interval.
-
-### Mutation
-
-Returned arrays are independent of the series; reading does not extend or change it.
-
-### See also
-
-[`get_data`](#get_data), [`get_values`](#get_values)
-        """
-        pass
-
-    @staticmethod
-    @_dm.topic(title="Variant utilities", anchor="variant-utilities", priority=40)
-    def _document_variant_utilities():
-        r"""
-==Resize, select and read parallel variants==
-
-### Syntax
-
-    series.alter_num_variants(new_num)
-    series.expand_num_variants(new_num)
-    series.shrink_num_variants(new_num)
-    series.extract_variants(variants)
-    series.iter_own_variants()
-    series.iter_variants()
-    series.iter_own_data_variants_from_until(from_until)
-    series.iter_data_variants_from_until(from_until)
-
-### Input arguments
-
-!!! input "new_num"
-
-    Integer target count. Expansion repeats the last variant; shrinking removes variants from the right. Each operation requires the corresponding direction of change.
-
-!!! input "variants"
-
-    Zero-based integer or iterable of integers. Keep the selected columns in request order, including duplicates; negative indexes count from the end.
-
-!!! input "from_until"
-
-    First and last periods, inclusive, or `...` for the stored span. Requested periods outside the span contain NaN.
-
-### Returns
-
-!!! returns "alter_num_variants"
-
-    `None`. Change the variant count in place; do nothing when the count already matches.
-
-!!! returns "expand_num_variants"
-
-    `None`. Append copies of the last column without trimming.
-
-!!! returns "shrink_num_variants"
-
-    `None`. Remove trailing columns without trimming. Requesting the current count removes all columns; `alter_num_variants` avoids this case.
-
-!!! returns "extract_variants"
-
-    `None`. Keep and reorder selected columns in place without trimming.
-
-!!! returns "iter_own_variants"
-
-    Finite iterator, yielding one single-variant series per column. Each yielded series is trimmed and may share data storage with the original.
-
-!!! returns "iter_variants"
-
-    Iterator of single-variant series that repeats the last variant indefinitely. It requires at least one variant.
-
-!!! returns "iter_own_data_variants_from_until"
-
-    Finite iterator of one-dimensional NumPy arrays, one per variant. With `...`, these arrays share the original data; explicit endpoints return independent arrays.
-
-!!! returns "iter_data_variants_from_until"
-
-    Iterator of the same arrays, repeating the last one indefinitely. With zero variants, it yields `None` indefinitely.
-        """
-        pass
 
     @staticmethod
     @_dm.topic(title="Arithmetic operations", anchor="arithmetic-protocols", priority=30)
@@ -2429,7 +2603,7 @@ These operations do not change the receiver. Iterated series can share data with
 
 ### See also
 
-[`hstack`](#hstack), [Variant utilities](#variant-utilities), [`iter_periods_and_values`](#iter_periods_and_values)
+[`hstack`](#hstack), [`extract_variants`](#extract_variants), [`iter_own_variants`](#iter_own_variants), [`iter_periods_and_values`](#iter_periods_and_values)
         """
         pass
 

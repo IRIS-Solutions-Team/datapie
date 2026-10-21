@@ -31,59 +31,6 @@ LayMethod = Literal["by_span", "by_observation"]
 
 class Mixin:
 
-    @staticmethod
-    @_dm.topic(title="Overlay and underlay", anchor="overlay-and-underlay", priority=130)
-    def _overlay_underlay_reference():
-        r"""
-==Combine two series using span or observation precedence==
-
-### Syntax
-
-#### Method form
-
-    series.overlay_by_span(other)
-    series.overlay_by_observation(other)
-    series.underlay_by_span(other)
-    series.underlay_by_observation(other)
-
-#### Function form
-
-    new_series = datapie.overlay_by_span(series, other)
-    new_series = datapie.overlay_by_observation(series, other)
-    new_series = datapie.underlay_by_span(series, other)
-    new_series = datapie.underlay_by_observation(series, other)
-
-### Input arguments
-
-!!! input "series"
-
-    The series to combine with `other`.
-
-!!! input "other"
-
-    The other series, at the same frequency. A single variant can be repeated to match a series with several variants.
-
-### Method form returns
-
-!!! returns "None"
-
-    The receiving series is changed in place.
-
-### Function form returns
-
-!!! returns "new_series"
-
-    A combined copy of `series`. The input `series` is unchanged; the note below describes a possible change to `other`.
-
-Overlay gives `other` precedence; underlay preserves the receiving series instead. The span-based methods preserve the preferred series' whole span, including its internal missing values. The observation-based methods preserve only its nonmissing observations and fill the remaining positions from the other series.
-
-??? note "Details"
-
-    The combined result covers both series' spans, with missing rows at the ends removed by the span-based methods.
-
-    `overlay_by_observation` may change `other` by repeating its single variant to match a receiving series with several variants. The other three operations copy `other` before combining the data.
-        """
-        pass
 
     #[
 
@@ -95,9 +42,59 @@ Overlay gives `other` precedence; underlay preserves the receiving series instea
         r"""
 ==Overlay another series, including its internal missing values==
 
+#### Syntax
+
+Method form:
+
+    series.overlay_by_span(
+        other,
+    )
+
+Function form:
+
+    new_series = datapie.overlay_by_span(
+        series,
+        other,
+    )
+
+#### Input arguments
+
+!!! input "series"
+    The receiving series, or the source to copy in the function form.
+
+!!! input "other"
+    The series whose whole span takes precedence, at the same frequency.
+    Required; there are no optional arguments. Variant counts must match,
+    or one series must have a single variant that can be repeated to match
+    the other.
+
+#### Returns
+
+!!! returns "None"
+    Method form: no return value; the receiving series is changed in place.
+
+!!! returns "new_series"
+    Function form: a combined copy of `series`, leaving `series` unchanged.
+
+#### Mutation
+
+The method updates the receiver's data and may extend its span or repeat
+its single variant. `other` is copied before variant broadcasting and is
+not changed. The function form leaves both input series unchanged.
+The receiver's description is retained.
+
+#### Details
+
+Values from `other` replace every observation within its span, including
+internal missing values. Outside that span, the receiver's values remain.
+The combined span covers both inputs, then rows missing in all variants
+are trimmed from both ends. Internal missing rows are not trimmed.
+
 #### See also
 
-[Overlay and underlay](#overlay-and-underlay)
+[`overlay_by_observation`](#overlay_by_observation),
+[`underlay_by_span`](#underlay_by_span),
+[`underlay_by_observation`](#underlay_by_observation).
         """
         other_copy = other.copy()
         _bc.broadcast_variants_when_needed(self, other_copy, )
@@ -114,9 +111,63 @@ Overlay gives `other` precedence; underlay preserves the receiving series instea
         r"""
 ==Overlay the available observations of another series==
 
+#### Syntax
+
+Method form:
+
+    series.overlay_by_observation(
+        other,
+    )
+
+Function form:
+
+    new_series = datapie.overlay_by_observation(
+        series,
+        other,
+    )
+
+#### Input arguments
+
+!!! input "series"
+    The receiving series, or the source to copy in the function form.
+
+!!! input "other"
+    The series whose nonmissing observations take precedence, at the same frequency.
+    Required; there are no optional arguments. Variant counts must match,
+    or one series must have a single variant that can be repeated to match
+    the other.
+
+#### Returns
+
+!!! returns "None"
+    Method form: no return value; the receiving series is changed in place.
+
+!!! returns "new_series"
+    Function form: a combined copy of `series`, leaving `series` unchanged.
+    The function can still change `other` as described below.
+
+#### Mutation
+
+The method updates the receiver's data and may extend its span or repeat
+its single variant. When both series are nonempty, broadcasting also
+repeats `other` in place if it has a single variant and the receiver has
+several. This can change `other` in both method and function forms.
+Pass a copy of `other` to avoid that side effect.
+The receiver's description is retained.
+
+#### Details
+
+Only nonmissing observations from `other` replace the receiver's values.
+Missing observations in `other` leave the receiver's observations intact.
+The result covers both spans and is not trimmed at the ends.
+An empty `other` leaves the receiver unchanged; an empty receiver takes
+a copy of `other`'s start and data without variant broadcasting.
+
 #### See also
 
-[Overlay and underlay](#overlay-and-underlay)
+[`overlay_by_span`](#overlay_by_span),
+[`underlay_by_span`](#underlay_by_span),
+[`underlay_by_observation`](#underlay_by_observation).
         """
         # Handle empty series cases
         if self.is_empty and other.is_empty:
@@ -161,9 +212,58 @@ Overlay gives `other` precedence; underlay preserves the receiving series instea
         r"""
 ==Underlay another series while preserving the current span==
 
+#### Syntax
+
+Method form:
+
+    series.underlay_by_span(
+        other,
+    )
+
+Function form:
+
+    new_series = datapie.underlay_by_span(
+        series,
+        other,
+    )
+
+#### Input arguments
+
+!!! input "series"
+    The receiving series, or the source to copy in the function form.
+
+!!! input "other"
+    The underlying series, at the same frequency.
+    Required; there are no optional arguments. Variant counts must match,
+    or one series must have a single variant that can be repeated to match
+    the other.
+
+#### Returns
+
+!!! returns "None"
+    Method form: no return value; the receiving series is changed in place.
+
+!!! returns "new_series"
+    Function form: a combined copy of `series`, leaving `series` unchanged.
+
+#### Mutation
+
+The method replaces the receiver's data and may extend its span or repeat
+its single variant. `other` is copied and is not changed. The function
+form leaves both inputs unchanged. The receiver's description is retained.
+
+#### Details
+
+The receiver's whole span takes precedence, including internal missing
+values: observations from `other` are used only outside that span.
+The combined span covers both inputs, then rows missing in all variants
+are trimmed from both ends. Internal missing rows are not trimmed.
+
 #### See also
 
-[Overlay and underlay](#overlay-and-underlay)
+[`overlay_by_span`](#overlay_by_span),
+[`overlay_by_observation`](#overlay_by_observation),
+[`underlay_by_observation`](#underlay_by_observation).
         """
         new_self = other.copy()
         new_self.overlay_by_span(self, )
@@ -179,9 +279,62 @@ Overlay gives `other` precedence; underlay preserves the receiving series instea
         r"""
 ==Fill missing observations from an underlying series==
 
+#### Syntax
+
+Method form:
+
+    series.underlay_by_observation(
+        other,
+    )
+
+Function form:
+
+    new_series = datapie.underlay_by_observation(
+        series,
+        other,
+    )
+
+#### Input arguments
+
+!!! input "series"
+    The receiving series, or the source to copy in the function form.
+
+!!! input "other"
+    The underlying series, at the same frequency.
+    Required; there are no optional arguments. Variant counts must match,
+    or one series must have a single variant that can be repeated to match
+    the other.
+
+#### Returns
+
+!!! returns "None"
+    Method form: no return value; the receiving series is changed in place.
+
+!!! returns "new_series"
+    Function form: a combined copy of `series`, leaving `series` unchanged.
+
+#### Mutation
+
+The method replaces the receiver's data and may extend its span or repeat
+its single variant. Internally, a copy of `other` overlays the receiver's
+observations; this step can broadcast the receiver itself before its data
+are replaced. `other` is not changed. The function form first copies
+`series`, so both input series are unchanged even when broadcasting occurs.
+The receiver's description is retained.
+
+#### Details
+
+Nonmissing receiver observations are preserved. Missing positions and
+periods outside the receiver's span are filled from `other`.
+The result covers both spans and is not trimmed at the ends.
+An empty `other` leaves the receiver's start and values unchanged;
+an empty receiver takes a copy of `other`'s start and data.
+
 #### See also
 
-[Overlay and underlay](#overlay-and-underlay)
+[`overlay_by_span`](#overlay_by_span),
+[`overlay_by_observation`](#overlay_by_observation),
+[`underlay_by_span`](#underlay_by_span).
         """
         new_self = other.copy()
         new_self.overlay_by_observation(self)

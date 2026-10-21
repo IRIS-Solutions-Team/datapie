@@ -257,73 +257,6 @@ class Mixin:
     Mixin class to add univariate filtering functionality to Series
     """
 
-    @staticmethod
-    @_dm.topic(title="Univariate filters", anchor="univariate-filters", priority=100)
-    def _univariate_filter_reference():
-        r"""
-==Smooth each variant using a running average or trend==
-
-### Syntax
-
-#### Method form
-
-    series.exp_smooth(span=..., alpha=0.3)
-    series.double_exp_smooth(alpha=0.3, beta=0.3, span=...)
-    series.decay_avg(span=..., decay=0.9)
-    series.cum_avg(span=...)
-
-#### Function form
-
-    new_series = datapie.exp_smooth(series, span=..., alpha=0.3)
-    new_series = datapie.double_exp_smooth(series, alpha=0.3, beta=0.3, span=...)
-    new_series = datapie.decay_avg(series, span=..., decay=0.9)
-    new_series = datapie.cum_avg(series, span=...)
-
-### Input arguments
-
-!!! input "series"
-
-    The series to smooth or average.
-
-!!! input "span"
-
-    The periods to filter. The default, `...`, means the current span. Filtering covers the full interval between the first and last requested periods. An empty span leaves the series unchanged.
-
-!!! input "alpha"
-
-    The weight given to the latest observation, or to the level in double smoothing. The default is `0.3`; accepted values are greater than `0` and at most `1`.
-
-!!! input "beta"
-
-    The weight used to update the slope in double smoothing. The default is `0.3`; accepted values run from `0` to `1`, inclusive.
-
-!!! input "decay"
-
-    How much weight older observations retain per period in `decay_avg`. The default is `0.9`; accepted values are greater than `0` and at most `1`. A value of `1` gives the same result as `cum_avg`.
-
-### Method form returns
-
-!!! returns "None"
-
-    The series is changed in place.
-
-### Function form returns
-
-!!! returns "new_series"
-
-    A new series with the result. The input series is unchanged.
-
-`exp_smooth` averages the latest observation with the previous smoothed value. `double_exp_smooth` also tracks a slope. `cum_avg` averages all available observations so far. `decay_avg` gives progressively less weight to older observations.
-
-??? note "Details"
-
-    Each variant is filtered independently. Values outside the requested interval are kept; requesting a wider span extends the series without shortening its existing span. Filtering starts at the first nonmissing observation in the requested interval, leaving earlier positions missing.
-
-    Simple smoothing and both averages repeat the previous result at missing observations. Double smoothing uses a forecast instead, except that missing positions between its first two available observations remain missing. Its starting slope comes from those two observations; with only one observation, it repeats the level.
-
-    The cumulative average counts available observations, not elapsed periods. The decay average reduces the weight carried by past observations even during missing periods.
-        """
-        pass
 
     #[
 
@@ -336,14 +269,25 @@ class Mixin:
         r"""
 ==Retain the univariate-filter documentation placeholder==
 
+#### Syntax
+
+    series.univariate_filters()
+
+#### Input arguments
+
+!!! input "series"
+
+    Any series; this placeholder does not inspect or filter its observations.
+
 #### Returns
 
 !!! returns "None"
-    No data are changed.
 
-#### See also
+    No data, span, or other series attributes are changed. There is no function form.
 
-[Univariate filters](#univariate-filters)
+Use a named filter to perform a calculation:
+[`exp_smooth`](#exp_smooth), [`double_exp_smooth`](#double_exp_smooth),
+[`decay_avg`](#decay_avg), or [`cum_avg`](#cum_avg).
         """
         pass
 
@@ -356,9 +300,59 @@ class Mixin:
         r"""
 ==Apply simple exponential smoothing==
 
+#### Syntax
+
+    series.exp_smooth(
+        span=...,
+        alpha=0.3,
+    )
+    result = datapie.exp_smooth(
+        series,
+        span=...,
+        alpha=0.3,
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "span"
+
+    Periods to filter; `...` (default) selects the current span. Filtering
+    covers the full interval between the first and last requested periods. An
+    empty span leaves the series unchanged.
+
+!!! input "alpha"
+
+    Weight on the latest observation; `0.3` by default. Must satisfy
+    `0 < alpha <= 1`; otherwise `ValueError` is raised.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the filtered values in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the filtered values; the input is unchanged.
+
+The first available observation initializes the result. Thereafter, the result
+is `alpha * current + (1 - alpha) * previous_result`. Missing observations
+repeat the previous result.
+
+Each variant is filtered independently, starting at its first nonmissing value in
+the requested interval. Earlier positions stay missing; an all-missing interval
+stays missing. Values outside the interval are kept. A wider span extends the
+series without shortening it; these filters do not trim missing rows at the ends.
+Use floating-point data, especially when extending a series with missing values.
+Arguments may be passed positionally or by keyword in the order shown.
+
 #### See also
 
-[Univariate filters](#univariate-filters)
+[`double_exp_smooth`](#double_exp_smooth), [`decay_avg`](#decay_avg), [`cum_avg`](#cum_avg)
         """
         if not (0 < alpha <= 1):
             raise ValueError("Alpha must be between 0 and 1 (exclusive of 0, inclusive of 1)")
@@ -380,9 +374,69 @@ class Mixin:
         r"""
 ==Apply smoothing that also tracks a slope==
 
+#### Syntax
+
+    series.double_exp_smooth(
+        alpha=0.3,
+        beta=0.3,
+        span=...,
+    )
+    result = datapie.double_exp_smooth(
+        series,
+        alpha=0.3,
+        beta=0.3,
+        span=...,
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "span"
+
+    Periods to filter; `...` (default) selects the current span. Filtering
+    covers the full interval between the first and last requested periods. An
+    empty span leaves the series unchanged.
+
+!!! input "alpha"
+
+    Weight on the current observation when updating the level; `0.3` by
+    default. Must satisfy `0 < alpha <= 1`; otherwise `ValueError` is raised.
+
+!!! input "beta"
+
+    Weight on the latest level change when updating the slope; `0.3` by
+    default. Must satisfy `0 <= beta <= 1`; otherwise `ValueError` is raised.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the filtered values in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the filtered values; the input is unchanged.
+
+Holt smoothing updates a level and slope; the output is the level, not a
+separate slope series. The first available value initializes the level. The first
+two available values initialize the slope using their elapsed period distance.
+Missing positions between those first two values remain missing. Later missing
+observations use a one-step level-plus-slope forecast and advance the level.
+With only one available observation, subsequent positions repeat its level.
+
+Each variant is filtered independently, starting at its first nonmissing value in
+the requested interval. Earlier positions stay missing; an all-missing interval
+stays missing. Values outside the interval are kept. A wider span extends the
+series without shortening it; these filters do not trim missing rows at the ends.
+Use floating-point data, especially when extending a series with missing values.
+Arguments may be passed positionally or by keyword in the order shown.
+
 #### See also
 
-[Univariate filters](#univariate-filters)
+[`exp_smooth`](#exp_smooth), [`decay_avg`](#decay_avg), [`cum_avg`](#cum_avg)
         """
         if not (0 < alpha <= 1):
             raise ValueError("Alpha must be between 0 and 1 (exclusive of 0, inclusive of 1)")
@@ -406,9 +460,61 @@ class Mixin:
         r"""
 ==Average observations with declining weights==
 
+#### Syntax
+
+    series.decay_avg(
+        span=...,
+        decay=0.9,
+    )
+    result = datapie.decay_avg(
+        series,
+        span=...,
+        decay=0.9,
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "span"
+
+    Periods to filter; `...` (default) selects the current span. Filtering
+    covers the full interval between the first and last requested periods. An
+    empty span leaves the series unchanged.
+
+!!! input "decay"
+
+    Weight retained by past observations per elapsed period; `0.9` by
+    default. Must satisfy `0 < decay <= 1`; otherwise `ValueError` is raised.
+    `1` gives the same result as `cum_avg`.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the filtered values in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the filtered values; the input is unchanged.
+
+The first available value initializes the average. Older observations receive
+geometrically declining weights, normalized by their total weight. Missing
+observations repeat the previous result but reduce the carried weight by `decay`,
+so elapsed missing periods still reduce the influence of older data.
+
+Each variant is filtered independently, starting at its first nonmissing value in
+the requested interval. Earlier positions stay missing; an all-missing interval
+stays missing. Values outside the interval are kept. A wider span extends the
+series without shortening it; these filters do not trim missing rows at the ends.
+Use floating-point data, especially when extending a series with missing values.
+Arguments may be passed positionally or by keyword in the order shown.
+
 #### See also
 
-[Univariate filters](#univariate-filters)
+[`exp_smooth`](#exp_smooth), [`double_exp_smooth`](#double_exp_smooth), [`cum_avg`](#cum_avg)
         """
         if not (0 < decay <= 1):
             raise ValueError("Decay must be between 0 and 1 (exclusive of 0, inclusive of 1)")
@@ -428,9 +534,52 @@ class Mixin:
         r"""
 ==Calculate the average of observations seen so far==
 
+#### Syntax
+
+    series.cum_avg(
+        span=...,
+    )
+    result = datapie.cum_avg(
+        series,
+        span=...,
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "span"
+
+    Periods to filter; `...` (default) selects the current span. Filtering
+    covers the full interval between the first and last requested periods. An
+    empty span leaves the series unchanged.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the filtered values in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the filtered values; the input is unchanged.
+
+At each period, the result is the arithmetic mean of all available observations
+since filtering began. The count includes observations, not elapsed periods.
+Missing observations repeat the previous result without increasing the count.
+
+Each variant is filtered independently, starting at its first nonmissing value in
+the requested interval. Earlier positions stay missing; an all-missing interval
+stays missing. Values outside the interval are kept. A wider span extends the
+series without shortening it; these filters do not trim missing rows at the ends.
+Use floating-point data, especially when extending a series with missing values.
+Arguments may be passed positionally or by keyword in the order shown.
+
 #### See also
 
-[Univariate filters](#univariate-filters)
+[`exp_smooth`](#exp_smooth), [`double_exp_smooth`](#double_exp_smooth), [`decay_avg`](#decay_avg)
         """
         self._apply_to_variants(
             _cum_avg,
@@ -452,6 +601,7 @@ _functional_forms = {
 for n in _functional_forms:
     code = FUNC_STRING.format(n=n, )
     exec(_tw.dedent(code, ), globals(), )
+    globals()[n].__doc__ = getattr(Mixin, n).__doc__
 
 __all__ = tuple(_functional_forms)
 

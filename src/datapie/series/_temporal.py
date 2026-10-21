@@ -682,6 +682,7 @@ _functional_forms = {
 for n in _functional_forms:
     code = FUNC_STRING.format(n=n, )
     exec(_tw.dedent(code, ), )
+    globals()[n].__doc__ = getattr(Mixin, n).__doc__
 
 
 __all__ = tuple(_functional_forms)

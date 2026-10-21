@@ -68,7 +68,8 @@ def {k}(self, *args, **kwargs, ):
 
 #### See also
 
-[Elementwise functions](#elementwise-functions).
+[Elementwise functions](#elementwise-functions) for syntax, arguments,
+return values, and mutation behavior.
     '''
     self.data = {v}(self.data, *args, **kwargs, )
 """
@@ -114,7 +115,8 @@ class Mixin:
 
     Additional inputs for the chosen calculation; omitted by default. maximum
     and minimum need a second value or array. round accepts the number of
-    decimal places, with default 0.
+    decimal places, with default 0. Negative values round to tens, hundreds,
+    and so on.
 
 !!! input "**kwargs"
 
@@ -150,6 +152,7 @@ trigonometric functions (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`),
 `round`, `maximum`, `minimum`, `expit`, `logistic`, `erf`, `erfinv`,
 `erfc`, `erfcinv`, `normal_cdf` and `normal_pdf`. Angles are in radians;
 the normal distribution defaults to location `0` and scale `1`.
+`logistic` and `expit` calculate `1 / (1 + exp(-value))`.
 
 ??? note "Details"
 
@@ -178,32 +181,6 @@ _TEMPLATE = r"""
 def {k}(object, *args, **kwargs, ):
     r'''
 ==Apply `{k}` to each value==
-
-#### Syntax
-
-    result = datapie.{k}(
-        object,
-        *args,
-        **kwargs,
-    )
-
-#### Input arguments
-
-!!! input "object"
-    A Series, scalar or array to transform. An object with a matching method
-    is copied before that method is applied.
-
-!!! input "*args"
-    Additional inputs for the chosen calculation; omitted by default.
-
-!!! input "**kwargs"
-    Additional options for the chosen calculation; omitted by default.
-
-#### Returns
-
-!!! returns "result"
-    A transformed copy for a Series or another object with a matching method.
-    For a scalar or array, the numerical result.
 
 #### See also
 

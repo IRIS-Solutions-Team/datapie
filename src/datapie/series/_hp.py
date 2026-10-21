@@ -199,26 +199,27 @@ class _ConstrainedHodrickPrescottFilter:
 
 class Mixin:
 
-    @staticmethod
-    @_dm.topic(title="Hodrick-Prescott forms", anchor="hodrick-prescott-forms", priority=120)
-    def _hodrick_prescott_reference():
+
+    #[
+
+    @_dm.reference(category="filtering", call_name="hpf", anchor="hpf", )
+    def hpf(self, ):
         r"""
-==Separate a series into a smooth trend and a gap==
+==Return the Hodrick-Prescott trend and gap==
 
-### Syntax
+#### Syntax
 
-#### Method form
+    trend, gap = datapie.hpf(
+        series,
+        span=...,
+        smooth=None,
+        log=False,
+        level=None,
+        change=None,
+        information="two_sided",
+    )
 
-    series.hpf_trend(span=..., smooth=None, log=False, level=None, change=None, information='two_sided')
-    series.hpf_gap(span=..., smooth=None, log=False, level=None, change=None, information='two_sided')
-
-#### Function form
-
-    trend, gap = datapie.hpf(series, span=..., smooth=None, log=False, level=None, change=None, information='two_sided')
-    new_series = datapie.hpf_trend(series, span=..., smooth=None, log=False, level=None, change=None, information='two_sided')
-    new_series = datapie.hpf_gap(series, span=..., smooth=None, log=False, level=None, change=None, information='two_sided')
-
-### Input arguments
+#### Input arguments
 
 !!! input "series"
 
@@ -226,77 +227,149 @@ class Mixin:
 
 !!! input "span"
 
-    The output periods; the default, `...`, means the current span. The result covers the full interval between the first and last requested periods.
+    Output periods; `...` (default) selects the current span. Results cover
+    the full interval between the first and last requested periods.
 
 !!! input "smooth"
 
-    How strongly the trend is smoothed. Larger values give a smoother trend. The default, `None`, selects `100` for yearly data, `400` for half-yearly, `1600` for quarterly, `14400` for monthly, and `1600` for other frequencies.
+    Smoothing strength; larger values favor a smoother trend. `None` (default)
+    selects `100` for yearly, `400` for half-yearly, `1600` for quarterly,
+    `14400` for monthly, and `1600` for other frequencies.
 
 !!! input "log"
 
-    Whether to filter logarithms and convert the results back. The default is `False`. With `True`, the gap is the input divided by the trend, rather than input minus trend. Input and constraint values must be positive for real-valued logarithms.
+    `False` (default) filters levels, with gap equal to input minus trend.
+    `True` filters logarithms and exponentiates both components, with gap equal
+    to input divided by trend. Input and constraint values must then be positive.
 
 !!! input "level"
 
-    An optional series fixing the trend at selected levels. Missing entries impose no constraint. The default is `None`. Only its first variant is used.
+    Optional series fixing trend levels; `None` (default) imposes no level
+    constraints. Only its first variant is used; missing values impose no constraint.
 
 !!! input "change"
 
-    An optional series fixing changes in the trend. Use differences in ordinary mode and gross rates of change in log mode. The default is `None`. Only its first variant is used.
+    Optional series fixing trend differences, or gross rates of change with
+    `log=True`; `None` (default) imposes no change constraints. Only its first
+    variant is used; missing values impose no constraint.
 
 !!! input "information"
 
-    The default, `"two_sided"`, uses all observations. `"one_sided"` uses observations only up to the current period, but retains all supplied constraints. One-sided filtering can fail when the trend is not sufficiently determined.
+    `"two_sided"` (default) uses all observations. `"one_sided"` uses observations
+    only up to each output period but retains all constraints, including future ones.
 
-### Method form returns
-
-!!! returns "None"
-
-    `hpf_trend` replaces the series with its trend; `hpf_gap` replaces it with its gap. `Series.hpf()` is not supported and raises `NotImplementedError`.
-
-### Function form returns
+#### Returns
 
 !!! returns "trend, gap"
 
-    `datapie.hpf` returns two new series containing the trend and gap. The input is unchanged.
+    Two new series containing the trend and gap. The input is unchanged.
 
-!!! returns "new_series"
+All filter options are keyword-only. Each variant is filtered independently using
+the same constraints. The filter balances squared observation errors against
+squared second differences of the trend. Missing observations do not enter the fit
+and remain missing in the gap. Missing rows at the ends of each result are removed.
 
-    `datapie.hpf_trend` and `datapie.hpf_gap` each return a new series containing the requested component. The input is unchanged.
+The calculation covers the combined span of input, requested output periods, and
+constraints, then restricts results to the requested output interval. A change
+constraint at the first calculation period is ignored. The linear system can fail
+if observations and constraints do not sufficiently determine a trend.
 
-All filter options are keyword-only. Missing input observations remain missing in the gap. Missing rows at the ends of each result are removed.
-
-??? note "Details"
-
-    The calculation covers the entire combined span of the input data, requested output periods, and constraint series—not only the periods common to them. Results are then restricted to the requested output interval.
-
-    The filter balances squared distances from available observations against changes in the trend's slope, subject to the level and change constraints. Variants are filtered independently using the same constraints. A change constraint at the first calculation period is ignored because no preceding trend value is available.
-        """
-        pass
-
-    #[
-
-    @_dm.reference(category="filtering", )
-    def hpf(self, ):
-        r"""
-==Reserve the in-place trend-gap entry point==
-
-Calling `x.hpf()` raises `NotImplementedError`. Use `datapie.hpf` to obtain both components, or `hpf_trend` and `hpf_gap` to keep one component in place.
+There is no pair-returning method: `series.hpf()` raises `NotImplementedError`.
+Use the component methods to retain one component in place.
 
 #### See also
 
-[Hodrick-Prescott forms](#hodrick-prescott-forms)
+[`hpf_trend`](#hpf_trend), [`hpf_gap`](#hpf_gap)
         """
         raise NotImplementedError
 
     @_dm.reference(category="filtering", )
     def hpf_trend(self, *args, **kwargs):
         r"""
-==Replace the series with its Hodrick-Prescott trend==
+==Replace the series with the Hodrick-Prescott trend==
+
+#### Syntax
+
+    series.hpf_trend(
+        span=...,
+        smooth=None,
+        log=False,
+        level=None,
+        change=None,
+        information="two_sided",
+    )
+    result = datapie.hpf_trend(
+        series,
+        span=...,
+        smooth=None,
+        log=False,
+        level=None,
+        change=None,
+        information="two_sided",
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "span"
+
+    Output periods; `...` (default) selects the current span. Results cover
+    the full interval between the first and last requested periods.
+
+!!! input "smooth"
+
+    Smoothing strength; larger values favor a smoother trend. `None` (default)
+    selects `100` for yearly, `400` for half-yearly, `1600` for quarterly,
+    `14400` for monthly, and `1600` for other frequencies.
+
+!!! input "log"
+
+    `False` (default) filters levels, with gap equal to input minus trend.
+    `True` filters logarithms and exponentiates both components, with gap equal
+    to input divided by trend. Input and constraint values must then be positive.
+
+!!! input "level"
+
+    Optional series fixing trend levels; `None` (default) imposes no level
+    constraints. Only its first variant is used; missing values impose no constraint.
+
+!!! input "change"
+
+    Optional series fixing trend differences, or gross rates of change with
+    `log=True`; `None` (default) imposes no change constraints. Only its first
+    variant is used; missing values impose no constraint.
+
+!!! input "information"
+
+    `"two_sided"` (default) uses all observations. `"one_sided"` uses observations
+    only up to each output period but retains all constraints, including future ones.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the Hodrick-Prescott trend in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the Hodrick-Prescott trend; the input is unchanged.
+
+All filter options are keyword-only. Each variant is filtered independently using
+the same constraints. The filter balances squared observation errors against
+squared second differences of the trend. Missing observations do not enter the fit
+and remain missing in the gap. Missing rows at the ends of each result are removed.
+
+The calculation covers the combined span of input, requested output periods, and
+constraints, then restricts results to the requested output interval. A change
+constraint at the first calculation period is ignored. The linear system can fail
+if observations and constraints do not sufficiently determine a trend.
 
 #### See also
 
-[Hodrick-Prescott forms](#hodrick-prescott-forms)
+[`hpf`](#hpf), [`hpf_gap`](#hpf_gap)
         """
         start_date, trend_data, _ = _data_hpf(self, *args, **kwargs, )
         self._replace_start_and_values(start_date, trend_data, )
@@ -304,11 +377,90 @@ Calling `x.hpf()` raises `NotImplementedError`. Use `datapie.hpf` to obtain both
     @_dm.reference(category="filtering", )
     def hpf_gap(self, *args, **kwargs):
         r"""
-==Replace the series with its Hodrick-Prescott gap==
+==Replace the series with the Hodrick-Prescott gap==
+
+#### Syntax
+
+    series.hpf_gap(
+        span=...,
+        smooth=None,
+        log=False,
+        level=None,
+        change=None,
+        information="two_sided",
+    )
+    result = datapie.hpf_gap(
+        series,
+        span=...,
+        smooth=None,
+        log=False,
+        level=None,
+        change=None,
+        information="two_sided",
+    )
+
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "span"
+
+    Output periods; `...` (default) selects the current span. Results cover
+    the full interval between the first and last requested periods.
+
+!!! input "smooth"
+
+    Smoothing strength; larger values favor a smoother trend. `None` (default)
+    selects `100` for yearly, `400` for half-yearly, `1600` for quarterly,
+    `14400` for monthly, and `1600` for other frequencies.
+
+!!! input "log"
+
+    `False` (default) filters levels, with gap equal to input minus trend.
+    `True` filters logarithms and exponentiates both components, with gap equal
+    to input divided by trend. Input and constraint values must then be positive.
+
+!!! input "level"
+
+    Optional series fixing trend levels; `None` (default) imposes no level
+    constraints. Only its first variant is used; missing values impose no constraint.
+
+!!! input "change"
+
+    Optional series fixing trend differences, or gross rates of change with
+    `log=True`; `None` (default) imposes no change constraints. Only its first
+    variant is used; missing values impose no constraint.
+
+!!! input "information"
+
+    `"two_sided"` (default) uses all observations. `"one_sided"` uses observations
+    only up to each output period but retains all constraints, including future ones.
+
+#### Returns
+
+!!! returns "None"
+
+    The method replaces the series with the Hodrick-Prescott gap in place.
+
+!!! returns "result"
+
+    The function returns a new series containing the Hodrick-Prescott gap; the input is unchanged.
+
+All filter options are keyword-only. Each variant is filtered independently using
+the same constraints. The filter balances squared observation errors against
+squared second differences of the trend. Missing observations do not enter the fit
+and remain missing in the gap. Missing rows at the ends of each result are removed.
+
+The calculation covers the combined span of input, requested output periods, and
+constraints, then restricts results to the requested output interval. A change
+constraint at the first calculation period is ignored. The linear system can fail
+if observations and constraints do not sufficiently determine a trend.
 
 #### See also
 
-[Hodrick-Prescott forms](#hodrick-prescott-forms)
+[`hpf`](#hpf), [`hpf_trend`](#hpf_trend)
         """
         start_date, _, gap_data = _data_hpf(self, *args, **kwargs, )
         self._replace_start_and_values(start_date, gap_data, )
@@ -328,7 +480,7 @@ def hpf(self, *args, **kwargs, ) -> tuple[Series, Series]:
 #### Syntax
 
     trend, gap = datapie.hpf(
-        x,
+        series,
         span=...,
         smooth=None,
         log=False,
@@ -337,14 +489,67 @@ def hpf(self, *args, **kwargs, ) -> tuple[Series, Series]:
         information="two_sided",
     )
 
+#### Input arguments
+
+!!! input "series"
+
+    The series to filter.
+
+!!! input "span"
+
+    Output periods; `...` (default) selects the current span. Results cover
+    the full interval between the first and last requested periods.
+
+!!! input "smooth"
+
+    Smoothing strength; larger values favor a smoother trend. `None` (default)
+    selects `100` for yearly, `400` for half-yearly, `1600` for quarterly,
+    `14400` for monthly, and `1600` for other frequencies.
+
+!!! input "log"
+
+    `False` (default) filters levels, with gap equal to input minus trend.
+    `True` filters logarithms and exponentiates both components, with gap equal
+    to input divided by trend. Input and constraint values must then be positive.
+
+!!! input "level"
+
+    Optional series fixing trend levels; `None` (default) imposes no level
+    constraints. Only its first variant is used; missing values impose no constraint.
+
+!!! input "change"
+
+    Optional series fixing trend differences, or gross rates of change with
+    `log=True`; `None` (default) imposes no change constraints. Only its first
+    variant is used; missing values impose no constraint.
+
+!!! input "information"
+
+    `"two_sided"` (default) uses all observations. `"one_sided"` uses observations
+    only up to each output period but retains all constraints, including future ones.
+
 #### Returns
 
 !!! returns "trend, gap"
+
     Two new series containing the trend and gap. The input is unchanged.
+
+All filter options are keyword-only. Each variant is filtered independently using
+the same constraints. The filter balances squared observation errors against
+squared second differences of the trend. Missing observations do not enter the fit
+and remain missing in the gap. Missing rows at the ends of each result are removed.
+
+The calculation covers the combined span of input, requested output periods, and
+constraints, then restricts results to the requested output interval. A change
+constraint at the first calculation period is ignored. The linear system can fail
+if observations and constraints do not sufficiently determine a trend.
+
+There is no pair-returning method: `series.hpf()` raises `NotImplementedError`.
+Use the component methods to retain one component in place.
 
 #### See also
 
-[Hodrick-Prescott forms](#hodrick-prescott-forms) for the shared input arguments.
+[`hpf_trend`](#hpf_trend), [`hpf_gap`](#hpf_gap)
     """
     start_date, trend_data, gap_data = _data_hpf(self, *args, **kwargs, )
     trend = type(self)(start_date=start_date, values=trend_data, )
@@ -357,6 +562,7 @@ _functional_forms = {"hpf", }
 
 for n in ("hpf_trend", "hpf_gap", ):
     exec(FUNC_STRING.format(n=n, ), globals(), locals(), )
+    globals()[n].__doc__ = getattr(Mixin, n).__doc__
     _functional_forms.add(n, )
 
 

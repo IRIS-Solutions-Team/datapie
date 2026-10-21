@@ -58,7 +58,8 @@ _METHOD_TEMPLATE = r"""
 
         #### See also
 
-        [Statistical reductions](#statistical-reductions).
+        [Statistical reductions](#statistical-reductions) for syntax,
+        arguments, return values, and mutation behavior.
         '''
         num_periods = self.data.shape[0]
         self.data = _np.{n}(self.data, *args, axis=1, **kwargs, ).T.reshape(num_periods, -1, )
@@ -78,7 +79,8 @@ _CUM_METHOD_TEMPLATE = r"""
 
         #### See also
 
-        [Statistical cumulative operations](#statistical-cumulative-operations).
+        [Statistical cumulative operations](#statistical-cumulative-operations)
+        for syntax, arguments, return values, and mutation behavior.
         '''
         num_periods = self.data.shape[0]
         self.data = _np.{n}(self.data, *args, axis=1, **kwargs, )
@@ -276,45 +278,6 @@ _FUNCTION_TEMPLATE = r"""
         r'''
         ==Calculate `{n}` across variants or periods==
 
-        #### Syntax
-
-            result = datapie.{n}(
-                series,
-                *args,
-                axis=1,
-                unpack_singleton=True,
-                **kwargs,
-            )
-
-        The first positional argument is the input Series.
-
-        #### Input arguments
-
-        !!! input "*args"
-            Additional statistic inputs; omitted by default. Percentiles and
-            quantiles require q, as described under Statistical reductions.
-
-        !!! input "axis"
-            1 compares variants at each period; 0 compares periods for each variant.
-            The default is 1.
-
-        !!! input "unpack_singleton"
-            True by default. With axis=0, return a one-item result list as that item.
-            Ignored with axis=1.
-
-        !!! input "**kwargs"
-            Options for the chosen NumPy statistic; omitted by default.
-
-        #### Returns
-
-        !!! returns "new_series"
-            With axis=1, a new Series containing the statistic at each period.
-            Missing rows at either end are removed. The input series is unchanged.
-
-        !!! returns "values"
-            With axis=0, a scalar or list of values. Multiple requested percentiles
-            or quantiles can give nested lists.
-
         #### See also
 
         [Statistical reductions](#statistical-reductions).
@@ -343,35 +306,6 @@ _CUM_FUNCTION_TEMPLATE = r"""
     ) -> Self:
         r'''
         ==Return running `{n}` results across variants==
-
-        #### Syntax
-
-            new_series = datapie.{n}(
-                series,
-                *args,
-                axis=1,
-                **kwargs,
-            )
-
-        The first positional argument is the input Series.
-
-        #### Input arguments
-
-        !!! input "*args"
-            Additional NumPy inputs; omitted by default.
-
-        !!! input "axis"
-            Defaults to 1 and is currently ignored. The calculation always runs
-            across variants, not across time.
-
-        !!! input "**kwargs"
-            Additional NumPy options; omitted by default.
-
-        #### Returns
-
-        !!! returns "new_series"
-            A new Series containing the running results. Missing rows at either end
-            are removed. The input series is unchanged.
 
         #### See also
 

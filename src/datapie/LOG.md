@@ -256,6 +256,18 @@ and about fifteen module-level helpers.
     argument 'position'`. *(observed)* Its sibling `to_iso_strings` has the same
     signature and does forward a useful `position`, which makes the asymmetry
     easy to trip over.
+22. **`Period.shift` does not reject an unknown string.** Anything that is not
+    one of its codes falls through to `self + by`, so
+    `qq(2020,2).shift("nonsense")` raises `ValueError: invalid literal for
+    int() with base 10: 'nonsense'`, which names neither `shift` nor `by`.
+    *(observed)*
+23. **The named shift codes fail for integer periods.** `"soy"`, `"boy"`,
+    `"eopy"` and `"tty"` call `create_soy`, `create_eopy` and `create_tty`,
+    which `IntegerPeriod` does not define, so `ii(4).shift("soy")` raises
+    `AttributeError: 'IntegerPeriod' object has no attribute 'create_soy'`.
+    `"yoy"` does not raise but does nothing: it moves by the frequency's
+    value, which is 0 for integers, so `ii(4).shift("yoy")` returns `ii(4)`.
+    *(observed)*
 
 ---
 

@@ -296,10 +296,9 @@ passing between variants.
 
 Watch where `span` sits in the argument list. It comes first in
 `exp_smooth`, `decay_avg` and `cum_avg`, so in `x.exp_smooth(0.5)` the
-`0.5` is taken as `span` and the call fails with `TypeError: 'float'
-object is not iterable`. The functional forms hand their arguments
-straight to the method, so `dp.exp_smooth(x, 0.5)` fails the same way.
-Pass every argument by keyword.
+`0.5` is taken as `span`. The functional forms hand their arguments
+straight to the method, so `dp.exp_smooth(x, 0.5)` goes wrong the same
+way. Pass every argument by keyword.
 
 
 ### Returns

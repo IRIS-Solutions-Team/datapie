@@ -134,10 +134,6 @@ beginning with the same letter as a member resolves to that member, so
 
 The matching `Frequency` member.
 
-An unmatched letter raises a bare `StopIteration` carrying no message,
-rather than a `ValueError` naming the input. An empty string raises
-`IndexError` before the search starts.
-
 
 ### Examples
 

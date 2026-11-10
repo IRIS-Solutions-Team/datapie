@@ -1664,8 +1664,7 @@ That last sentence is the trap: with the default in force the method
 returns the *first variant only*, whatever the number of variants,
 because the check for a single variant is never actually made. On a
 multi-variant series the other columns disappear without warning. Always
-pass `unpack_singleton=False` unless you know there is one variant. See
-the log entry for this file.
+pass `unpack_singleton=False` unless you know there is one variant.
 
 
 ### Examples
@@ -2306,11 +2305,8 @@ the current one, so this cannot be used to pad a series out --
 Nothing; the series is modified in place and the discarded observations
 are gone. Copy it first if you need them.
 
-Two edge cases fail badly rather than loudly. Clipping an empty series
-raises an error about mismatched frequencies, because there is no current
-start to compare against. Clipping to a span that lies entirely outside
-the series leaves an object with no data whose `start` is after its
-`end`.
+Clipping to a span that lies entirely outside the series leaves an
+object with no data whose `start` is after its `end`.
 
 
 ### Examples
@@ -3304,8 +3300,8 @@ The plain-function form of the `hstack` method. Everything is handed to
 
 
 ???+ input "first"
-    Must be a `Series`, since the work is done by its method; a number in
-    that position raises `AttributeError`.
+    Must be a `Series`, not a number, since the work is done by its
+    method.
 
 ???+ input "*args"
     Each entry is either another `Series` or a plain number. The result

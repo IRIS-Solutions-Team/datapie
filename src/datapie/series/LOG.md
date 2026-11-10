@@ -118,6 +118,9 @@ wrong numbers rather than an error.
 1. The `Literal` annotation on `aggregate`'s `method` omits `"prod"` and
    `"geometric_mean"`, both of which `_AGGREGATION_METHOD_RESOLUTION` accepts
    and both of which work. A type checker would reject valid calls.
+2. `disaggregate(..., method="arip")` without a `model` raises `TypeError:
+   disaggregate_arip() missing 1 required positional argument: 'model'`,
+   naming the internal function rather than `disaggregate`. *(observed)*
 
 ---
 
@@ -252,6 +255,9 @@ None.
    5.209, 6.239]`, `hpf_gap` gives `[-0.096, 0.876, -1.152, 0.819, -1.209,
    0.761]`, they sum back to the input, and passing `information="two_sided"`
    explicitly changes nothing. *(observed)*
+3. **Every filter option is keyword-only, and the error for a positional one
+   names an internal function.** `dp.hpf(x, span)` raises `TypeError:
+   _data_hpf() takes 1 positional argument but 2 were given`. *(observed)*
 
 ---
 
@@ -304,6 +310,9 @@ None.
    checks that they agree. Writing with one and reading with the other's default
    raises `KeyError`. *(observed)* The asymmetry is in the API; documentation
    cannot remove it.
+3. Reading an ISO start such as `"2020-01-01"` with the default SDMX
+   `period_from_string` raises `ValueError: not enough values to unpack
+   (expected 2, got 1)`, which does not point at the parser. *(observed)*
 
 ---
 
@@ -928,3 +937,6 @@ below, the integer padding, which also comes from `6157dd3`.
     `iter_variants` repeats a tuple, so `Series(start=qq(2020,1),
     values=(1., 2.), num_variants=3)` gives three identical columns. Only a
     one-dimensional numpy array is forced to one column. *(observed)*
+24. The module-level `hstack` calls the method of its first argument, so a
+    number in first place raises `AttributeError: 'float' object has no
+    attribute 'hstack'`. *(observed)*

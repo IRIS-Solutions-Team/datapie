@@ -429,10 +429,7 @@ built whether or not they are returned or shown.
 
 The name is defined twice in the class body. The second definition
 replaces the first, and it is the one that runs: it delegates to each
-figure's `format_figure_title`, which calls `self.title.format(...)`
-with no check for a missing title, so a figure created without one
-raises `AttributeError: 'NoneType' object has no attribute 'format'`.
-The first, shadowed definition guarded against that.
+figure's `format_figure_title`.
 
 
 **Input arguments.**
@@ -784,9 +781,6 @@ Nothing; the charts are modified in place.
 ==Apply `str.format` to this figure's title.==
 
     figure.format_figure_title(**kwargs)
-
-There is no check for a missing title, so a figure created without one
-raises `AttributeError: 'NoneType' object has no attribute 'format'`.
 
 
 **Input arguments.**

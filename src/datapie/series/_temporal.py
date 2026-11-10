@@ -92,9 +92,8 @@ periods in a year at the frequency of the series:
     | `"eopy"`  | The last period of the previous year
     | `"tty"`   | As `-1`, except in the first period of each year, where the observation is left as it stands
 
-    Any other string reaches the shifting machinery and fails there
-    with `AttributeError: 'Series' object has no attribute
-    '_shift_nonsense'`, naming a method you never called.
+    Only these four spellings work, exactly as written, in lower case
+    and without spaces.
 
 ???+ input "func"
     Takes the current and the earlier value and returns the result.

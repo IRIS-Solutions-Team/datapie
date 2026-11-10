@@ -784,8 +784,8 @@ raising on the first one.
     be a sequence, not a bare function**, despite the `dict[str, Callable]`
     annotation on the parameter: the body reads `validators[key][0]` for the
     test and `validators[key][1]` for the message. So `{"n": (func,)}` and
-    `{"n": (func, "must be positive")}` both work, while `{"n": func}` raises
-    `TypeError: 'function' object is not subscriptable`.
+    `{"n": (func, "must be positive")}` both work, while `{"n": func}` does
+    not.
 
     The test is called with the item as its only argument and should return
     something truthy to pass. A value in the first position that is not
@@ -1913,17 +1913,6 @@ context.
 Shortcut syntax:
 
     result = self(expression, context=None)
-
-**Any expression containing an `=` character raises `TypeError: 'str' object
-cannot be interpreted as an integer`.** The helper that rewrites such
-expressions calls `expression.split(expression, "=")`, splitting the string by
-itself and passing `"="` where a maximum split count belongs. The guard above it
-is only `if "=" in expression`, so this reaches well past the intended `a=b`:
-comparisons such as `a==b` and `a<=b`, any call using a keyword argument such as
-`round(a, ndigits=2)`, and any default argument such as `lambda x=1: x` all
-fail. Positional calls, attribute access, list comprehensions and dict literals
-are unaffected, the last because they use `:` rather than `=`. The shortcut form
-`self(expression)` fails the same way.
 
 
 **Input arguments.**

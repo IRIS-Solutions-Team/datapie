@@ -67,9 +67,8 @@ to be entered as a negative one.
 ???+ input "func"
     Applied to the stacked windows with `axis=2`, so it has to accept
     an `axis` keyword. The `numpy` reductions do; a plain function of
-    one argument does not, and raises `TypeError: <lambda>() got an
-    unexpected keyword argument 'axis'`. Only `moving_window` takes
-    this argument; the four named methods supply it themselves.
+    one argument does not. Only `moving_window` takes this argument;
+    the four named methods supply it themselves.
 
 ???+ input "window"
     How many observations go into the window, written as a negative
@@ -90,8 +89,7 @@ to be entered as a negative one.
     The `DAILY` and `WEEKLY` defaults are fixed numbers and do not
     depend on the actual number of days or weeks in a calendar year.
 
-    Zero or a positive number raises `ValueError: index can't contain
-    negative values`, a message that names the opposite of the mistake.
+    Zero and positive numbers do not work; the window must be negative.
 
 
 The first periods have no full window behind them, so they come back

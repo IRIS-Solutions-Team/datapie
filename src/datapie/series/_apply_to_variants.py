@@ -88,10 +88,11 @@ periods earlier, padded with missing values, even though the call
 failed. Catching the exception does not undo it. Copy the series first
 if that matters.
 
-An integer-typed series cannot be extended at all: the padding is built
-with `numpy.nan` in the series' own dtype, which raises
-`ValueError: cannot convert float NaN to integer` after a
-`RuntimeWarning: invalid value encountered in cast`.
+An integer-typed series is extended with made-up values: the padding is
+built with `numpy.nan` in the series' own dtype, so it is cast to an
+arbitrary integer with no more than a `RuntimeWarning: invalid value
+encountered in cast`, and missing observations come back looking like
+real ones.
 
 
 ### Returns
@@ -216,8 +217,8 @@ caller never writes through to the series' own data by accident.
 
 Padding is filled with `numpy.nan` **in the series' own dtype**. For a
 float series that is what it appears to be; for an integer series the
-cast fails, raising `ValueError: cannot convert float NaN to integer`
-after a `RuntimeWarning: invalid value encountered in cast`.
+NaN is cast to an arbitrary integer with no more than a `RuntimeWarning:
+invalid value encountered in cast`, so the padding looks like real data.
 
 
 ### Returns

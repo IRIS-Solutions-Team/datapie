@@ -162,8 +162,7 @@ keyword-only.
 ???+ input "description_row"
     Says whether the file carries a second heading row of descriptions.
     It has to match the file, because nothing checks. A file that has
-    one, read without this set, fails inside the period reader with
-    `ValueError: not enough values to unpack (expected 2, got 1)`. A
+    one, read without this set, fails while its periods are read. A
     file that has none, read with it set, quietly loses its first row of
     data: those numbers are taken as the descriptions and the
     observations are gone.
@@ -186,7 +185,7 @@ keyword-only.
 ???+ input "numpy_reader_settings"
     Holds extra arguments for the numeric reader, `numpy.genfromtxt`.
     `delimiter`, `skip_header` and `usecols` are already supplied by the
-    method, so passing any of them here raises `TypeError`.
+    method, so leave them out of this dictionary.
 
 ???+ input "databox_settings"
     Not settings. It is handed to the `Databox` constructor, and a

@@ -240,9 +240,8 @@ rest missing.
     Handed on to the chosen method. `"arip"` requires a `model`
     argument, a pair naming the form of the process and the way the
     high-frequency values aggregate back to the observed ones --
-    `model=("rate", "mean")`, for instance. Omitting it raises
-    `TypeError: disaggregate_arip() missing 1 required positional
-    argument: 'model'`. The algorithm is set out under Algorithm below.
+    `model=("rate", "mean")`, for instance; there is no default. The
+    algorithm is set out under Algorithm below.
 
 
 ### Returns

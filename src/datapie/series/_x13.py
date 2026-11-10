@@ -116,8 +116,7 @@ This is the standard tool for taking the seasonal pattern out of
 monthly or quarterly data. The work is done by the bundled X13
 executable: the series is written to a spec file, the program is run,
 and one of its output tables is read back. Only monthly and quarterly
-series can be used; any other frequency raises `KeyError` naming the
-frequency, as in `KeyError: <Frequency.YEARLY: 1>`.
+series can be used.
 
 
 **Input arguments.** Every argument is keyword-only.

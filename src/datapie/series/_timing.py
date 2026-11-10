@@ -47,8 +47,8 @@ values; `"yoy"` is the exception and retimes like a number.
 
 
 ???+ input "by"
-    A whole number of periods, or one of four strings — a float takes
-    the string route and fails.
+    A whole number of periods, given as an `int` and not a float, or one
+    of four strings.
 
     A numeric `by` is subtracted from the start date, so the sign runs
     opposite to what you may expect: `by=-1` moves the series one
@@ -65,10 +65,8 @@ values; `"yoy"` is the exception and retimes like a number.
     | `"tty"`  | Replaces every observation with the one from the previous period, except in the first period of each year
 
     Because `"eopy"` reaches into the year before the data begins, a
-    series not already covering that year comes back empty. Any other
-    string is turned into a method name and looked up, so a misspelling
-    fails with `AttributeError: 'Series' object has no attribute
-    '_shift_nonsense'`.
+    series not already covering that year comes back empty. Only these
+    four spellings work, exactly as written.
 
 ???+ input "**kwargs"
     Passed on to the string forms. Only `"tty"` reads anything from

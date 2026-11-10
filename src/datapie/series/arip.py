@@ -66,10 +66,8 @@ means importing it from this module by name.
 
 ???+ input "model"
     A pair naming the form of the process and the way the high-frequency
-    values add back up. It has no default, and anything that is not a
-    pair raises `ValueError: too many values to unpack (expected 2)` --
-    including the bare string `"rate"`, which unpacks into its own
-    letters.
+    values add back up. It has no default, and it must be a pair: the
+    bare string `"rate"` is not enough.
 
     | Form | Suits a series that
     |------|---------------------
@@ -87,10 +85,7 @@ means importing it from this module by name.
 
     In place of a name the aggregation may be a tuple of weights, one
     for each high-frequency period inside a single low-frequency period
-    -- four of them going from annual to quarterly, not twelve. A tuple
-    of the wrong length raises `ValueError: could not broadcast input
-    array from shape (12,) into shape (4,)`. Anything that is neither a
-    string nor iterable, such as `5` or `None`, raises `TypeError`.
+    -- four of them going from annual to quarterly, not twelve.
 
 ???+ input "target"
     An optional high-frequency series of values to hold fixed, which is

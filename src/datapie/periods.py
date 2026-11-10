@@ -421,9 +421,6 @@ Subtracting another period counts the periods between the two and returns
 a plain integer. Both must be of the same frequency; otherwise
 `wrongdoings.Error` is raised.
 
-There is no `__rsub__` on `Period`, so `k - per` raises rather than
-producing anything.
-
 
 ### Returns
 
@@ -490,8 +487,7 @@ sit in the same set or dictionary without ever being compared.
     per = Period.from_iso_string(iso_string, frequency=Frequency.DAILY, )
 
 The string is split on `-` into exactly three parts, so it must carry the
-full `yyyy-mm-dd` form; a shorter string such as `"2020-05"` raises
-`ValueError`. The three parts are then handed to the `from_ymd` of the
+full `yyyy-mm-dd` form. The three parts are then handed to the `from_ymd` of the
 class for `frequency`, which for anything below daily keeps only what its
 own frequency can hold -- `"2020-05-17"` read as quarterly gives
 `qq(2020,2)`, the day silently dropped.
@@ -504,10 +500,7 @@ own frequency can hold -- `"2020-05-17"` read as quarterly gives
     A `yyyy-mm-dd` string.
 
 ???+ input "frequency"
-    The frequency of the period to build. Daily when left alone. Passing
-    `None` explicitly is *not* the same as leaving it alone: it raises
-    `KeyError: None`, since `None` is not a key of the frequency-to-class
-    table.
+    The frequency of the period to build. Daily when left alone.
 
 
 ### Returns
@@ -561,9 +554,7 @@ well as a `datetime.date` -- the time of day is simply not looked at.
     A `datetime.date` or `datetime.datetime`.
 
 ???+ input "frequency"
-    The frequency of the period to build. Daily when left alone. As with
-    `from_iso_string`, passing `None` explicitly raises `KeyError: None`
-    rather than falling back to daily.
+    The frequency of the period to build. Daily when left alone.
 
 
 ### Returns
@@ -609,11 +600,6 @@ shapes that method writes:
 | `2020-01`      | Monthly    | `mm(2020,1)`
 | `2020-01-15`   | Daily      | `dd(2020,1,15)`
 
-Integer periods are the exception. `ii(1).to_sdmx_string()` writes `(1)`,
-but the pattern this function matches against expects a trailing comma, so
-`(1)` is not recognised and raises as though it were nonsense. The string
-does not round-trip; see the `frequencies.py` log.
-
 
 **Input arguments.**
 
@@ -626,11 +612,9 @@ does not round-trip; see the `frequencies.py` log.
 ???+ input "frequency"
     Names the frequency instead of having it inferred, which saves the
     pattern match when you already know it. **It is not checked against
-    the string.** A frequency that disagrees is trusted and the parse
-    then fails inside the target class, so
-    `Period.from_sdmx_string("2020-Q1", Frequency.MONTHLY)` raises
-    `ValueError: invalid literal for int() with base 10: 'Q1'` rather
-    than saying the frequency was wrong.
+    the string.** A frequency that disagrees is trusted, and the parse
+    then fails inside the target class without saying that the
+    frequency was wrong.
 
 
 ### Returns
@@ -683,9 +667,8 @@ A regular period converts the month to its own segment through
 `month_to_segment` and ignores the day entirely, so
 `Period.from_ymd(Frequency.QUARTERLY, 2020, 5, 17)` gives `qq(2020,2)`.
 
-Only the six frequencies in the frequency-to-class table are accepted.
-`Frequency.WEEKLY` has no class of its own and raises `KeyError:
-<Frequency.WEEKLY: 52>`.
+Only the six frequencies in the frequency-to-class table are accepted;
+`Frequency.WEEKLY` has no class of its own.
 
 
 **Input arguments.**
@@ -789,9 +772,7 @@ the clock of the machine it runs on.
     `Period.today(Frequency.QUARTERLY)` give the same period.
 
     Only the calendar frequencies work. `Frequency.INTEGER` has no
-    calendar, and asking for it raises `KeyError` naming the current
-    year, because the integer period class has no `from_ymd`. `None`
-    raises `KeyError: None`.
+    calendar.
 
 
 ### Returns
@@ -993,9 +974,6 @@ February's last day is looked up per year, so `mm(2020,2).to_ymd("end")`
 gives 29. Note that yearly `"middle"` is June 30, not the 15th of the
 middle month as the other frequencies would suggest.
 
-`IntegerPeriod` has no `to_ymd` of its own, and the one on `Period` calls
-itself, so `ii(4).to_ymd()` ends in `RecursionError`.
-
 
 **Input arguments.**
 
@@ -1082,9 +1060,6 @@ Frequency-specific, and the form `Period.from_sdmx_string` reads back:
 This is also what `str()` and `repr()` of a period go through for the
 regular frequencies. There is no weekly row: no weekly period class
 exists.
-
-The implementation on `Period` calls itself, so a class that does not
-override it ends in `RecursionError`.
 
 
 ### Returns
@@ -1179,9 +1154,7 @@ choice.
 
 A `datetime.date`.
 
-Integer periods have no calendar at all. `ii(5).to_python_date()` does
-not raise a helpful error: it recurses until Python gives up with
-`RecursionError: maximum recursion depth exceeded`.
+Integer periods have no calendar at all.
 
 
 ### Examples
@@ -1526,13 +1499,7 @@ in place and does not return `None`: periods are never mutated, and
 
 The `"tty"` case is the one to watch: it returns `None` rather than a
 period whenever `self` is the first segment of its year, so the result
-cannot be used without checking. An unrecognised string is not rejected as
-such -- it falls through to `self + by`, where `int()` raises
-`ValueError`.
-
-The named codes lean on `create_soy`, `create_eopy` and `create_tty`,
-which `IntegerPeriod` does not define, so `ii(4).shift("soy")` raises
-`AttributeError`.
+cannot be used without checking.
 
 
 **Input arguments.**
@@ -1580,11 +1547,8 @@ compact form.
 
 Because there is no calendar, the class supplies none of the calendar
 machinery: `to_ymd`, `to_year_segment`, `get_year`, `create_soy`,
-`create_eopy`, `create_tty` and `to_daily` are all absent. Reaching for one of
-them fails in one of two ways -- `to_ymd`, and everything built on it such as
-`to_iso_string`, `to_python_date` and `refrequent`, ends in `RecursionError`
-through the self-calling stub on `Period`, while the rest raise
-`AttributeError`. The `year` and `segment` properties return `None`.
+`create_eopy`, `create_tty` and `to_daily` are all absent. The `year` and
+`segment` properties return `None`.
 
 ................................................................................
     """
@@ -1651,11 +1615,6 @@ arithmetic on days and leap years look after themselves. The origin is January
 
 Beyond the shared interface it adds `create_som` (start of month) and
 `create_eopm` (end of the previous month).
-
-`to_year_segment` does not work: it builds a `date` for the start of the year
-where it needs that date's ordinal, so subtracting it raises `TypeError`.
-Everything routed through it goes the same way -- the `segment` and `period`
-properties, and `create_tty`.
 
 ................................................................................
     """
@@ -2996,10 +2955,6 @@ The original is untouched:
 Returns a copy of the span carrying the given step; the endpoints are left
 alone. A **negative** step raises `ValueError("Step must be positive when
 using the >> operator.")`.
-
-The guard tests `step < 0`, so a step of `0` is not caught despite the
-message: it yields a span that raises `ValueError: range() arg 3 must not
-be zero` the first time its length or its contents are asked for.
 
 Note that this is a different operation from `>>` between two periods,
 which builds a span rather than restepping one.

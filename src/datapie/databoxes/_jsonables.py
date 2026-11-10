@@ -213,8 +213,8 @@ through.
 Those flags have to match the ones used when writing, and they are
 spelled differently at the two ends -- `include_frequency` going out
 against `frequency_included` coming back. Writing with
-`include_frequency=False` and reading with the default raises
-`KeyError: 'frequency'`, and the same goes for the description.
+`include_frequency=False` means reading with `frequency_included=False`,
+and the same goes for the description.
 
 
 ### Returns

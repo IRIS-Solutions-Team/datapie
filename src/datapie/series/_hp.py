@@ -239,9 +239,8 @@ The filter splits a series into a smooth trend and the gap around it,
 subject to any level and change constraints you impose.
 
 
-**Input arguments.** Every argument is keyword-only. Anything passed
-positionally raises `TypeError: _data_hpf() takes 1 positional argument
-but 2 were given`, naming an internal function you never called.
+**Input arguments.** Every argument is keyword-only, so pass each one
+by name.
 
 
 ???+ input "span"
@@ -291,9 +290,9 @@ but 2 were given`, naming an internal function you never called.
 
     **`"one_sided"` is unreliable and best avoided while this stands.**
     On perfectly ordinary series it fails with
-    `numpy.linalg.LinAlgError: Singular matrix` -- observed at 5, 6 and
-    7 quarterly periods under the default `smooth`, while 4 periods and
-    8 or more go through.
+    `numpy.linalg.LinAlgError: Singular matrix`. Whether it does depends
+    on the length of the series and on `smooth`, and a longer series is
+    not always safer than a shorter one.
 
 
 ### Returns
@@ -521,15 +520,14 @@ where the filter options are described.
     Forwarded unchanged to the internal `_data_hpf`, which is what
     actually declares the filter options: `span`, `smooth`, `log`,
     `level`, `change` and `information`. Every one of them is
-    keyword-only, so anything passed positionally raises `TypeError:
-    _data_hpf() takes 1 positional argument but 2 were given`, naming a
-    function you never called.
+    keyword-only, so pass each one by name.
 
     **`information="one_sided"` is unreliable and should be avoided
     while this stands.** On some perfectly ordinary series it fails with
-    `numpy.linalg.LinAlgError: Singular matrix` — observed at 5, 6 and 7
-    quarterly periods under the default `smooth`, while 4 periods and 8
-    or more go through. `"two_sided"`, the default, is unaffected.
+    `numpy.linalg.LinAlgError: Singular matrix`. Whether it does depends
+    on the length of the series and on `smooth`, and a longer series is
+    not always safer than a shorter one. `"two_sided"`, the default, is
+    unaffected.
 
 
 ### Returns

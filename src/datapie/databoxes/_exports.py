@@ -180,8 +180,7 @@ keyword-only.
     Restricts the periods written. It takes precedence over
     `frequency_span`, and it also decides the frequency, which is read
     off its first period -- so giving a span exports that one frequency
-    and silently drops every series of any other. An empty `span` raises
-    `IndexError: tuple index out of range` before any other check runs.
+    and silently drops every series of any other.
 
 ???+ input "frequency_span"
     Chooses the frequencies and the periods for each, as a dictionary
@@ -230,8 +229,8 @@ keyword-only.
 ???+ input "csv_writer_settings"
     A dictionary of extra arguments for the underlying `csv.writer`,
     such as a quoting rule. `delimiter` and `lineterminator` are already
-    supplied by the method, so passing either one here raises
-    `TypeError: _csv.writer() got multiple values for keyword argument`.
+    supplied by the method, so leave them out of this dictionary and use
+    the method's own `delimiter` argument instead.
 
 ???+ input "when_empty"
     Decides what happens when there is nothing to write: `"warning"`

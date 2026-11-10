@@ -206,15 +206,18 @@ A quarterly series, its span, and its values:
 
     self = Series(periods=periods, func=func)
 
-Every argument is keyword-only, and only three combinations are
+    self = Series(period_value_pairs=period_value_pairs)
+
+Every argument is keyword-only, and only four combinations are
 accepted. `start` together with `values` lays the values out from
 `start` onwards, one row per period. `periods` together with `values`
 time stamps the values one by one. `periods` together with `func` calls
 `func` once for every period and every variant and stores what it
-returns. Calling `Series()` with nothing at all gives you an empty
-series you can fill later with `set_data`. Every other combination,
-including `start` with `func`, raises `wrongdoings.Error("Invalid
-Series object constructor")`.
+returns. `period_value_pairs` on its own carries the periods and the
+values together, one pair per observation. Calling `Series()` with
+nothing at all gives you an empty series you can fill later with
+`set_data`. Every other combination, including `start` with `func`,
+raises `wrongdoings.Error("Invalid Series object constructor")`.
 
 
 **Input arguments.**
@@ -240,18 +243,34 @@ Series object constructor")`.
     separately for each period and each variant, so a random generator
     produces different draws in each cell.
 
+???+ input "period_value_pairs"
+    Any iterable of `(period, value)` two-tuples -- a list, a generator,
+    or the `items()` of a dictionary keyed by periods. The pairs may come
+    in any order and with gaps; the gaps are filled with missing values.
+    If a period appears twice, in practice the later pair wins, though
+    numpy does not promise which of two writes to the same row is kept.
+    An empty iterable leaves the series empty rather than raising.
+
+    Each pair carries one number. With `num_variants` above one, that
+    number is repeated in every variant; there is no way to give the
+    variants different values.
+
 ???+ input "num_variants"
     The number of columns, but only when the data cannot say otherwise.
-    With a one-dimensional array or a tuple in `values` the series comes
-    out with one column whatever you asked for; with `func`, or with a
-    list of tuples, `num_variants` is obeyed.
+    With a one-dimensional numpy array in `values` the series comes out
+    with one column whatever you asked for. A tuple in `values` is
+    repeated into every column, so `values=(1., 2.)` with
+    `num_variants=3` gives three identical variants. With `func`, or
+    with a list of tuples, `num_variants` is obeyed.
 
 ???+ input "data_type"
     The numpy element type of the stored data, `float64` unless you
     change it. Leave it alone. Missing observations are stored as `nan`,
-    which an integer array cannot hold, and an integer series raises
-    `ValueError: cannot convert float NaN to integer` the first time it
-    has to pad -- including inside a plain `get_data()`.
+    which an integer array cannot hold. When an integer series has to
+    pad -- reading beyond its ends, or extending it with `set_data` --
+    the padding is cast to an arbitrary integer with no more than a
+    `RuntimeWarning: invalid value encountered in cast`, so missing
+    observations come back looking like real ones.
 
 ???+ input "description"
     A free-text label carried with the series and compared by `same_as`.
@@ -269,12 +288,6 @@ Series object constructor")`.
 ???+ input "start_date, dates"
     Still accepted as old names for `start` and `periods`. They are used
     only when the new name is left out.
-
-???+ input "period_value_pairs"
-    An iterable of two-element tuples, each consisting of a time
-    [`Period`](periods.md) and the corresponding value, e.g. `[(qq(2020,1), 1),
-    (qq(2020,2), 2), ]`. This is a convenience alternative to supplying the
-    `periods` and the `values` separately.
 
 
 ### Returns
@@ -308,6 +321,13 @@ Leading missing values are trimmed away at construction:
     ...     values=np.array([np.nan, 2., 3.]))
     >>> x.start
     qq(2020,2)
+
+Period-value pairs need not be contiguous or sorted:
+
+    >>> x = dp.Series(period_value_pairs=[
+    ...     (dp.qq(2020,3), 3.), (dp.qq(2020,1), 1.), ])
+    >>> x.start, x.get_data().tolist()
+    (qq(2020,1), [[1.0], [nan], [3.0]])
 
 ················································································
         """
@@ -549,9 +569,9 @@ goes.
 Nothing; the series is modified in place.
 
 The description is also erased: `reset` rebuilds the object through the
-constructor, whose default description is an empty string. `trim` calls `reset` whenever
-every observation is missing, so an all-missing series loses its
-description too.
+constructor, whose default description is an empty string. `trim`
+calls `reset` whenever every observation is missing, so an all-missing
+series loses its description too.
 
 
 ### Examples
@@ -883,8 +903,9 @@ A `Period`, or `None` when the series holds no observations. It is
 
 The `_start` definition carrying this documentation raises
 `NotImplementedError` if it is ever reached. It exists to give the
-attribute an entry in the generated reference and is never called,
-because the attribute shadows it.
+attribute an entry in the generated reference. Nothing shadows it --
+the property is `_start`, the attribute `start` -- it simply goes
+unused.
 
 
 ### Examples
@@ -1194,8 +1215,7 @@ A tuple of `Period` objects, empty when nothing is missing.
 Only the no-argument form can be trusted. When you pass periods, the
 missing values are found in the data you asked for but the periods
 reported are counted from the start of the series, so the answers come
-back shifted by the distance between the two. See the log entry for this
-file.
+back shifted by the distance between the two.
 
 
 ### Examples
@@ -1284,8 +1304,7 @@ Combine it with `is_empty` if that distinction matters.
 the method. The count is computed and then passed through `bool`, so
 every non-zero count collapses to `True`. The method as written cannot
 tell you how many values are missing; use `len(x.where_missing())`, or
-count the `nan` entries in `x.get_data()` yourself. See the log entry
-for this file.
+count the `nan` entries in `x.get_data()` yourself.
 
 
 ### Examples
@@ -1577,7 +1596,7 @@ Nothing; the series is modified in place.
     column instead of doing nothing, because dropping "the last zero
     columns" is computed as keeping everything up to column zero. Go
     through `alter_num_variants`, which checks first and never reaches
-    this case. See the log entry for this file.
+    this case.
 
 
 ### Returns
@@ -1857,7 +1876,8 @@ two ends and returns everything in between, so the rows stay contiguous.
     series of different lengths are lined up before being combined.
 
     A pair given the wrong way round, with the later period first,
-    returns an empty array rather than raising.
+    returns an empty array rather than raising. So does `(None, None)`,
+    which is the `from_until` of an empty series.
 
 ???+ input "*args"
     Any further argument selects variants.
@@ -2991,42 +3011,41 @@ Iterating it consumes it; call the method again for a second pass.
 
 ## `Series.iter_variants`
 
-==Steps through the variants of the time series, giving each one back as a separate single-variant series.==
+==Steps through the variants of the time series, giving each one back as a separate single-variant series, and then repeats the last one for ever.==
 
     self.iter_variants()
+
+It runs over `iter_data_variants_from_until`, so once the variants are
+used up it keeps handing out the last one and never stops. That suits
+walking a series side by side with something that has more variants;
+to go through the variants once, use `iter_own_variants`, which stops
+after the last one.
 
 
 ### Returns
 
 
-A generator; the annotation names `Iterator`, which this file never
-imports.
+A generator of single-variant series that never stops. Do not write
+`for v in ...` over it or hand it to `list`; the loop will not end.
 
-The method does not work, and there are two faults behind that, not one.
-The data handed to each new series is a flat row of numbers rather than
-a column, and the trimming that follows expects two dimensions, so the
-first step raises `numpy.exceptions.AxisError: axis 1 is out of bounds
-for array of dimension 1`. This happens for a single-variant series as
-well as a multi-variant one, so there is no case in which it succeeds.
-Behind it, the loop runs over `iter_data_variants_from_until`, which
-repeats its last variant for ever, so with the shape fault repaired the
-method would yield series without end rather than stopping after the
-last variant. To split a series by variant, copy it and call
-`extract_variants` on each copy. See the log entry for this file.
+Each series is a copy of this one, description included, holding one
+variant and trimmed on its own, so its `start` can differ from this
+series' `start`. The copy shares its numbers with this series, so
+writing into its `data` changes this series too.
 
 
 ### Examples
 
 
+The second variant keeps coming back:
+
     >>> import numpy as np
     >>> import datapie as dp
     >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
     ...     values=np.array([[1., 2.], [3., 4.]]))
-    >>> try:
-    ...     next(x.iter_variants())
-    ... except Exception as error:
-    ...     type(error).__name__
-    'AxisError'
+    >>> it = x.iter_variants()
+    >>> [next(it).data[:, 0].tolist() for _ in range(3)]
+    [[1.0, 3.0], [2.0, 4.0], [2.0, 4.0]]
 
 ················································································
         """
@@ -3037,6 +3056,54 @@ last variant. To split a series by variant, copy it and call
 
     def iter_own_variants(self, ) -> Iterator[Self]:
         r"""
+················································································
+
+## `Series.iter_own_variants`
+
+==Steps through the variants of the time series, giving each one back as a separate single-variant series.==
+
+    self.iter_own_variants()
+
+This is the version of `iter_variants` that stops after the last
+variant, so it can be used in a plain `for` loop or handed to `list`.
+
+
+**Input arguments.**
+
+
+None.
+
+
+### Returns
+
+
+A generator of single-variant series, one per variant, in column order.
+
+Each series is a copy of this one, description included, holding one
+variant and trimmed on its own, so its `start` can differ from this
+series' `start` when a variant begins or ends with missing values. The
+copy shares its numbers with this series, so writing into its `data`
+changes this series too.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
+    ...     values=np.array([[1., 2.], [3., 4.]]))
+    >>> [v.data[:, 0].tolist() for v in x.iter_own_variants()]
+    [[1.0, 3.0], [2.0, 4.0]]
+
+Each variant is trimmed separately:
+
+    >>> x = dp.Series(num_variants=2, start=dp.qq(2020,1),
+    ...     values=np.array([[np.nan, 2.], [3., 4.]]))
+    >>> [v.start for v in x.iter_own_variants()]
+    [qq(2020,2), qq(2020,1)]
+
+················································································
         """
         for data in self.iter_own_data_variants_from_until(..., ):
             new = self.copy()
@@ -3053,8 +3120,8 @@ last variant. To split a series by variant, copy it and call
 
     self.iter_own_data_variants_from_until(from_until)
 
-Unlike `iter_variants` this hands you the raw numbers rather than series
-objects, and it works. It is what the routines that treat each variant
+Unlike `iter_own_variants` this hands you the raw numbers rather than
+series objects. It is what the routines that treat each variant
 separately -- filters, disaggregation -- iterate over.
 
 

@@ -7,6 +7,14 @@ Findings are anchored on method and function names, not line numbers.
 I am new to the codebase and have not judged which findings are intentional
 design and which are defects — everything observed is recorded.
 
+**Which commit the observations describe.** Outside the section "Introduced
+by `6157dd3`" under `main.py`, observations were made on `b864b44`, or on
+`6157dd3` with that section's items 1 and 2 patched in memory; the two give
+the same results. The docstrings follow the same rule. They describe the code
+with those two crashes repaired, since every documentation example passes
+then, but `main.py` bug 7 is documented as it now behaves, because it gives
+wrong numbers rather than an error.
+
 **Two code changes were made**, both outside the docstrings:
 
 1. `_timing.py` — `redate` tested `old_data` while the parameter is `old_date`,
@@ -35,10 +43,14 @@ design and which are defects — everything observed is recorded.
    starting 2019Q3 with two leading missing values. A wrong-shape return does
    the same. Catching the exception does not undo it.
 2. **NaN padding uses the series dtype.** The pad is built with `_np.full(...,
-   _np.nan, dtype=self.data.dtype)`, so an integer-typed series cannot be
-   extended. *(observed)*: an `int64` series given a wider span raised
-   `ValueError: cannot convert float NaN to integer`, preceded by
-   `RuntimeWarning: invalid value encountered in cast`.
+   _np.nan, dtype=self.data.dtype)`, which for an integer series casts the
+   NaN to an arbitrary integer (0 on the machine this was checked on) with
+   only `RuntimeWarning: invalid value encountered in cast`. *(observed)*: an
+   `int64` series of `[1, 2, 3, 4]` from 2020Q1, given `cum_avg` with a span
+   from 2019Q3, came back as `[0, 0, 0, 0, 1, 1]`. Before `6157dd3` the same
+   call raised `ValueError: cannot convert float NaN to integer`, but that
+   error came from `_np.pad` in `main.py`'s `_create_expanded_data`, not from
+   this file; see `main.py` bug 7.
 
 ### Notes
 
@@ -469,7 +481,10 @@ None.
 
 1. `shift("eopy")` empties a series that does not already cover the previous
    year. *(observed)* Given a year to reach back into it works: `[1..8]` from
-   2020Q1 came back starting 2021Q1 as `[4, 4, 4, 4]`. *(observed)*
+   2020Q1 came back starting 2021Q1 as `[4, 4, 4, 4]`. *(observed)* That is
+   the `b864b44` result. On `6157dd3` the call raises, and with only the
+   renamed call corrected it starts in 2020Q4; see `main.py` items 1 and 2
+   under "Introduced by `6157dd3`".
 2. **`"yoy"` moves the series one year later, not earlier.** `_shift_yoy` calls
    `_shift_by_number(-self.frequency.value)`, the numeric form with the inverted
    sign of bug 1, so a quarterly series starting 2020Q1 comes back starting
@@ -707,6 +722,77 @@ first.*
 
 ## `main.py`
 
+### Introduced by `6157dd3` (new `Series` constructor, `_replace_data` fix)
+
+Compared against `b864b44`, the last commit before it; everything below
+worked there unless stated otherwise. Items 1 and 2 together break most
+reads, and both need fixing: of the 1000 documentation examples in the
+package, 131 fail on this commit, 112 still fail with item 1 alone
+corrected, and none fail once item 2 is corrected too. The one change that
+gives wrong numbers without any error is not in this list: it is bug 7
+below, the integer padding, which also comes from `6157dd3`.
+
+1. **The merge left `get_data_and_periods` calling the old name.** `6157dd3`
+   renamed `_resolve_dates_and_positions` to `_resolve_periods_and_positions`,
+   but after the merge `00cfa7e` the call in `get_data_and_periods` still uses
+   the old name. `get_data` goes through it, so every read raises
+   `AttributeError: 'Series' object has no attribute
+   '_resolve_dates_and_positions'` -- with `...`, a span, a list, a single
+   period, anything. *(observed)* On its own this accounts for only 19 of
+   the 131 failing examples; item 2 accounts for the rest.
+2. **Periods are inspected before they are resolved.**
+   `_resolve_periods_and_positions` now tests `not periods or all(p is None
+   for p in periods)` first and calls `resolve_periods` only afterwards.
+   `get_data_from_until(...)` and the round-bracket call `x(...)` already
+   call the new name, so on this commit as it stands both raise `TypeError:
+   'ellipsis' object is not iterable`, and `x(None)` returns an empty series
+   instead of a copy of the whole one. *(observed)* With the name in item 1
+   corrected as well (tried in memory only, the file untouched):
+   - `...`, the default of `get_data`, `get_data_and_periods` and
+     `get_values`, raises `TypeError: 'ellipsis' object is not iterable`,
+     and so does `x[...]`. `slice(None)` raises `TypeError: 'slice' object
+     is not iterable`. *(observed)* Every method that reads the whole
+     series this way fails with it, including `where_missing()`,
+     `count_missing()` and the other `*_missing` methods.
+   - `None` and `Span(None, None)` return an empty array instead of the whole
+     series, although `resolve_periods` treats both as the entire span.
+     *(observed)*
+   - A generator loses its first period, because `all(...)` consumes it
+     before `resolve_periods` sees the rest: `get_data(p for p in [2020Q2,
+     2020Q3])` returns only the 2020Q3 row. *(observed)*
+   - The string shifts pass generators, and `_shift_soy` and `_shift_eopy`
+     hand the shorter result to `_replace_data` without moving `start`, so
+     every remaining value lands one period early. Silent. For `[1..8]` from
+     2020Q1, `shift("soy")` gives `[1, 1, 1, 5, 5, 5, 5]` from 2020Q1, so
+     2020Q4 holds 5 instead of 1, and `diff("soy")` inherits it as `[0, 1,
+     2, -1, 0, 1, 2]`. `shift("eopy")` gives `[4, 4, 4, 4]` starting 2020Q4
+     instead of 2021Q1. `shift("tty")` raises `ValueError: shape mismatch`.
+     *(observed)*
+
+   **A likely fix** is to swap the two steps: call `resolve_periods` first,
+   then run the emptiness test on its result. Tried in memory with item 1
+   corrected: all 1000 documentation examples pass, `...`, `None` and
+   generators give the whole or the requested periods again, the shifts
+   return the `b864b44` results, and `(None, None)` still returns an empty
+   array (note 20). *(observed)* Worth confirming against the intent of the
+   new test.
+3. **`period_value_pairs` cannot carry several variants.** The comment block
+   in `6157dd3` says a value that is itself a list is read as one entry per
+   variant. It is not: `_from_period_value_pairs` unzips the pairs into a
+   tuple, and a tuple of lists in `values` raises `ValueError: shape
+   mismatch: value array of shape (2,2) could not be broadcast to indexing
+   result of shape (2,)`, with or without `num_variants=2`. *(observed)* A
+   tuple or numpy array as the value fails the same way. The underlying
+   behaviour predates the commit -- `Series(periods=..., values=([1., 2.],
+   [3., 4.]))` fails identically on `b864b44` -- but the pairs form has no
+   way around it.
+4. **`iter_own_variants` hands out series that share memory with the
+   original.** Each yielded series is built by `copy()` and then
+   `_replace_data` with one row of `self.data.T`, which is a view onto the
+   original's column, so writing
+   `v.data[0, 0] = 99.` into the first one changed the original series.
+   *(observed)* `iter_variants` does the same.
+
 ### Bugs
 
 1. **A plain list in `values` is read as one entry per variant, not per
@@ -738,24 +824,25 @@ first.*
    column.** `remove` is 0 and `self.data[:, :-remove]` is `self.data[:, :0]`,
    giving shape `(n, 0)`. *(observed)* `alter_num_variants` never reaches this
    case.
-6. **`iter_variants` is broken twice over.** `iter_own_data_variants_from_until`
-   yields the rows of `data.T`, which are one-dimensional, and `_replace_data`
-   then calls `trim`, which indexes `axis=1`, so both single- and multi-variant
-   series raise `numpy.exceptions.AxisError: axis 1 is out of bounds for array
-   of dimension 1`. *(observed)* Behind that sits a second fault: the loop runs
-   over `iter_data_variants_from_until`, which is wrapped in `exhaust_then_last`
-   and never terminates. Repairing the shape alone would turn the crash into an
-   endless generator, so both need fixing together.
-7. **`clip` fails badly at two edges.** On an empty series the comparison
+6. **`clip` fails badly at two edges.** On an empty series the comparison
    against a `None` start raises `wrongdoings.Error: Cannot handle periods of
    different time frequencies in this context`. Clipped to a span lying entirely
    outside the series it leaves an object with no data whose `start` is later
    than its `end` — a 2020 series clipped to 2021Q1-2021Q2 came back with
    `start` 2021Q1 and `end` 2020Q4. *(observed)*
-8. **`data_type=int` produces a series that cannot be read.** Any padding path
-   calls `_np.pad(..., constant_values=_np.nan)` in `_create_expanded_data`, so
-   a plain `get_data()` raises `ValueError: cannot convert float NaN to
-   integer`. *(observed)*
+7. **`data_type=int` fills missing observations with a made-up integer.**
+   Since `6157dd3`, `_create_expanded_data` builds the padding with
+   `_np.full(..., _np.nan, dtype=self.data_type)` instead of `_np.pad`. The NaN
+   is cast to an arbitrary integer (0 on the arm64 Mac this was checked on)
+   with no more than `RuntimeWarning: invalid value encountered in cast`.
+   Reading beyond the ends of an `int64` series of `[1, 2]` from 2020Q1 gives
+   `[[0], [1]]` for 2019Q4-2020Q1, and `set_data` at 2020Q4 leaves `[[1], [2],
+   [0], [9]]`. *(observed)* Before `6157dd3` the same calls raised `ValueError:
+   cannot convert float NaN to integer`, so the series was unusable but never
+   wrong; now missing values look like real ones. The integer that NaN
+   becomes is unspecified and depends on the platform: on x86-64 it is
+   typically the smallest `int64`, -9223372036854775808 (not checked), so
+   the numbers above may not reproduce on another machine.
 
 ### Notes
 
@@ -766,7 +853,7 @@ first.*
    `_from_start_and_values` ends with `values.astype(self.data_type)`, which
    copies even when the type already matches; `from_start_and_array` assigns the
    reshaped array straight through and shares it. *(observed)* both ways.
-3. `Iterator` is used in three annotations and never imported; only `Iterable`
+3. `Iterator` is used in four annotations and never imported; only `Iterable`
    and `Callable` are. Survives on `from __future__ import annotations`, and the
    IDE flags it on sight.
 4. `_check_data_shape` is defined and called nowhere in the package.
@@ -792,9 +879,10 @@ first.*
     `iter_data_variants_from_until` wraps the same iterator in
     `exhaust_then_last`, so it never stops — `list()` over it hangs.
     *(observed)*
-12. The `_start` property raises `NotImplementedError` and never runs:
-    `start` is an ordinary slot attribute that shadows it. Assigning to the
-    attribute retimes the series.
+12. The `_start` property raises `NotImplementedError`. Nothing shadows it:
+    the property is `_start` and the slot attribute is `start`, two
+    different names. It never runs only because nothing reads `x._start`;
+    reading it raises. *(observed)* Assigning to `start` retimes the series.
 13. `set_start`, and assignment to `start`, do not check the frequency of the
     new period against the periods already in the series.
 14. FIXME comments left in place: `__pow__` on `1 ** nan`, and the empty
@@ -806,3 +894,37 @@ first.*
 16. **Copy-paste slips in the operator docstrings, left in place:**
     `__mul__` says "self + other", `__rmul__` "other + self", `__truediv__`
     "self - other", `__rtruediv__` "other - self".
+17. `iter_variants` works since `6157dd3`: `_replace_data` now reshapes the
+    flat row it is given into a column, which removes the `AxisError` it
+    used to raise on every call. It still runs over
+    `iter_data_variants_from_until`, so after the last variant it repeats
+    that one for ever and `list(x.iter_variants())` hangs. *(observed)* The
+    new `iter_own_variants` is the version that stops.
+18. `_replace_data` also flattens an array of more than two dimensions into
+    columns: `(2, 2, 3)` becomes `(2, 6)`. Before `6157dd3` it was stored
+    as it came. *(observed)*
+19. `period_value_pairs` accepts any iterable of pairs, including a
+    generator or a dictionary's `items()`, in any order and with gaps. A
+    period given twice keeps the later value in practice, but that is
+    numpy's behaviour for a repeated index in an assignment, which numpy
+    does not guarantee. An empty iterable gives an empty series. It cannot
+    be combined with `start`, `periods`, `values`, `func` or the legacy
+    `start_date`: each raises `wrongdoings.Error: Invalid Series object
+    constructor`. Periods given as strings raise `TypeError`, as they do
+    through `periods=`. *(observed)*
+20. `get_data_from_until((None, None))`, the `from_until` of an empty
+    series, now returns an empty array; before `6157dd3` it raised
+    `TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'`.
+    *(observed)*
+21. The type alias `Dates` is renamed `Periods`, but the parameters of
+    `set_data`, `get_data_and_periods` and `get_data_variant` are still
+    called `dates`.
+22. `periods` given with `func` must have a length: `_from_periods_and_func`
+    calls `len(periods)`, so a generator raises `TypeError: object of type
+    'generator' has no len()`. A single period, a `Span`, a tuple and a list
+    all work, and with `values` a generator works too. *(observed)*
+23. `num_variants` with a non-array `values`: `_from_start_and_values` zips
+    `iter_variants(values)` with `range(self.num_variants)`, and
+    `iter_variants` repeats a tuple, so `Series(start=qq(2020,1),
+    values=(1., 2.), num_variants=3)` gives three identical columns. Only a
+    one-dimensional numpy array is forced to one column. *(observed)*

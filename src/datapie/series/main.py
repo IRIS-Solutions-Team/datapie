@@ -2539,6 +2539,108 @@ reset also erases the description.
         if data.shape[1] != self.data.shape[1]:
             raise Exception("Time series data being assigned must preserve the number of variants")
 
+    @_dm.reference(
+        category=None,
+        call_name="Operators on time series",
+        call_name_is_code=False,
+        priority=20,
+    )
+    def operators(self, ) -> None:
+        r"""
+················································································
+
+==Carries the documentation shared by the operators of a time series -- arithmetic, comparisons, stacking and the built-ins `abs`, `round` and `bool`.==
+
+    self.operators()
+
+Calling it does nothing: the body is a single `pass`. It exists only to
+carry this overview in the reference documentation.
+
+Every operator returns a new series and leaves its operands alone.
+
+| Operator                             | Result
+|--------------------------------------|----------------------------------
+| `x + y`, `x - y`, `x * y`, `x / y`   | Sum, difference, product, quotient
+| `x // y`, `x % y`                    | Floor division and remainder
+| `x ** y`                             | Power
+| `-x`, `+x`                           | Negated copy, plain copy
+| `x == y`, `x != y`                   | Equal, not equal, per period
+| `x < y`, `x <= y`, `x > y`, `x >= y` | Ordering, per period
+| `x & y`, `x \| y`                    | Variants side by side, as `hstack`
+| `abs(x)`                             | `x.abs()` applied to a copy
+| `round(x, n)`                        | `x.round(n)` applied to a copy
+| `bool(x)`                            | `True` when there is any data
+
+**With a number**, arithmetic and comparisons apply it to every
+observation of every variant, and the number may stand on either side:
+`x + 1`, `1 - x` and `2 ** x` all work. A numpy array on the right is
+applied the same way. Missing observations stay missing.
+
+**Between two series**, both are first laid over the span covering the
+two of them, each padded with missing observations where it has none,
+and the operation runs period by period. In arithmetic a missing value
+makes the result missing, and the result is trimmed, so `x + y` keeps
+only the periods from the first to the last that both series cover.
+The two must have the same frequency; combining series of different
+frequencies raises `wrongdoings.Error`. A one-variant series is matched
+against every variant of the other; otherwise the two need the same
+number of variants, paired in column order.
+
+**Comparisons give a series of `True` and `False`, not a single
+answer.** To ask whether two series are the same, use `same_as`. Over
+the combined span, a period where either side is missing compares as
+not equal -- `==` gives `False` there and `!=` gives `True` -- and since
+those are not missing values, the result is not trimmed. Read with
+`get_data`, the values come back as `1.0` and `0.0`.
+
+**`&` and `|` both stack.** Neither is a logical "and" or "or": each
+puts the variants of `y` to the right of those of `x`, exactly as
+`x.hstack(y)` does, and `y` may also be a number.
+
+
+### Returns
+
+
+`None`, and the series is untouched.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> x = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3.]))
+    >>> y = dp.Series(start=dp.qq(2020, 2),
+    ...     values=np.array([10., 20., 30.]))
+
+Two series line up by period, and the result covers only the overlap:
+
+    >>> z = x + y
+    >>> z.start, z.get_data()[:, 0].tolist()
+    (qq(2020,2), [12.0, 23.0])
+
+A number applies to every observation, from either side:
+
+    >>> (1 - x).get_data()[:, 0].tolist()
+    [0.0, -1.0, -2.0]
+    >>> (2 ** x).get_data()[:, 0].tolist()
+    [2.0, 4.0, 8.0]
+
+A comparison gives a series of truth values, not a single one:
+
+    >>> (x > 1).data[:, 0].tolist()
+    [False, True, True]
+
+`&` stacks the variants of the two series side by side:
+
+    >>> (x & y).get_data().tolist()
+    [[1.0, nan], [2.0, 10.0], [3.0, 20.0], [nan, 30.0]]
+
+················································································
+        """
+        pass
+
     def __bool__(self, ):
         """
         """
@@ -2573,14 +2675,14 @@ reset also erases the description.
 
     def __mul__(self, other) -> Self|_np.ndarray:
         """
-        self + other
+        self * other
         """
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.mul, )
 
     def __rmul__(self, other):
         """
-        other + self
+        other * self
         """
         return self.apply(lambda data: data.__rmul__(other))
 
@@ -2613,14 +2715,14 @@ reset also erases the description.
 
     def __truediv__(self, other):
         """
-        self - other
+        self / other
         """
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.truediv, )
 
     def __rtruediv__(self, other):
         """
-        other - self
+        other / self
         """
         return self.apply(lambda data: data.__rtruediv__(other))
 

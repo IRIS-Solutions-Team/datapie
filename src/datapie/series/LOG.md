@@ -15,7 +15,7 @@ with those two crashes repaired, since every documentation example passes
 then, but `main.py` bug 7 is documented as it now behaves, because it gives
 wrong numbers rather than an error.
 
-**Two code changes were made**, both outside the docstrings:
+**Three code changes were made**, all outside the docstrings:
 
 1. `_timing.py` — `redate` tested `old_data` while the parameter is `old_date`,
    so every call raised `NameError`. Typo corrected; the function now works in
@@ -23,9 +23,15 @@ wrong numbers rather than an error.
 2. `_uv_filters.py` — a `univariate_filters` method with a `pass` body was
    added to carry the documentation shared by the four filters. No filtering
    logic touched.
+3. `_elementwise.py`, `_statistics.py` and `main.py` — methods named
+   `elementwise_functions`, `statistical_functions` and `operators`, each
+   with a `pass` body, were added to carry the documentation shared by the
+   generated functions and by the operators, together with the
+   `import documark as _dm` the first two files' decorators need. No
+   function or operator touched.
 
 **Files with no findings:** `_categories.py`, `_functionalize.py`,
-`functions.py`, `_views.py`, `_elementwise.py` and `_statistics.py`.
+`functions.py` and `_views.py`.
 
 ---
 
@@ -121,6 +127,26 @@ wrong numbers rather than an error.
 2. `disaggregate(..., method="arip")` without a `model` raises `TypeError:
    disaggregate_arip() missing 1 required positional argument: 'model'`,
    naming the internal function rather than `disaggregate`. *(observed)*
+
+---
+
+## `_elementwise.py`
+
+### Bugs
+
+None.
+
+### Notes
+
+1. **Three of the generated methods never run.** `abs`, `logistic` and
+   `round` are generated here, but `Series` defines methods of the same names
+   in `main.py`, and those come first in the lookup. *(observed)* The function
+   forms `dp.abs`, `dp.logistic` and `dp.round` therefore call the `main.py`
+   versions. The generated three are dead code.
+2. **The methods never trim.** Unlike the statistics in `_statistics.py`, the
+   template only replaces `self.data`. A series of negative numbers given
+   `log()` comes back all `nan` with its `start` unchanged, and `log()` of a
+   leading zero leaves `-inf` in the first period. *(observed)*
 
 ---
 
@@ -400,6 +426,31 @@ None.
    `n` is odd. *(observed for n = 2, 3, 4, 6, 7 → 1, 2, 2, 3, 4 traces.)*
 5. The `Literal` annotation for `chart_type` omits `"histogram"`, which the body
    handles and the error message advertises.
+
+---
+
+## `_statistics.py`
+
+### Bugs
+
+1. **`cumsum` and `cumprod` cumulate across the variants, not over time.**
+   Both the template and its `nan` twins call the numpy function with
+   `axis=1`. In each period the k-th variant becomes the running total of the
+   first k variants: a two-variant series `[[1, 4], [nan, 8], [3, 12]]` gives
+   `[[1, 5], [nan, nan], [3, 15]]`. *(observed)* Silent. A user expecting a
+   running total over time gets plausible numbers along the wrong axis.
+2. **The cumulative function forms accept `axis` and ignore it.**
+   `_CUM_FUNCTION_TEMPLATE` declares `axis: AxisType = 1` but never reads
+   it, so `dp.cumsum(x, axis=0)` returns the same across-variant result as
+   `dp.cumsum(x)`. *(observed)* The non-cumulative forms do honour `axis`.
+
+### Notes
+
+1. **The function forms take a time series only.** Each one starts with
+   `self.copy()`, so `dp.sum(4.0)` raises `AttributeError: 'float' object has
+   no attribute 'copy'`. *(observed)* The elementwise function forms in
+   `_elementwise.py` check `hasattr` first and pass plain numbers and arrays
+   to numpy, so `dp.sqrt(16.)` works while `dp.sum(4.0)` does not.
 
 ---
 
@@ -900,9 +951,10 @@ below, the integer padding, which also comes from `6157dd3`.
     `logistic` are `-> Self` and return `None`; `trim` is `-> None` and returns
     `self`; `get_data_and_periods` is `-> _np.ndarray` and returns a `(data,
     periods)` tuple; `_shift_eopy` is `-> Self` and returns `None`.
-16. **Copy-paste slips in the operator docstrings, left in place:**
-    `__mul__` says "self + other", `__rmul__` "other + self", `__truediv__`
-    "self - other", `__rtruediv__` "other - self".
+16. **Copy-paste slips in the operator docstrings, corrected:** `__mul__`
+    said "self + other", `__rmul__` "other + self", `__truediv__` "self -
+    other" and `__rtruediv__` "other - self". They now read "self * other",
+    "other * self", "self / other" and "other / self".
 17. `iter_variants` works since `6157dd3`: `_replace_data` now reshapes the
     flat row it is given into a column, which removes the `AxisError` it
     used to raise on every call. It still runs over
@@ -940,3 +992,29 @@ below, the integer padding, which also comes from `6157dd3`.
 24. The module-level `hstack` calls the method of its first argument, so a
     number in first place raises `AttributeError: 'float' object has no
     attribute 'hstack'`. *(observed)*
+25. **A numpy array on the left of an operator does not give a series.**
+    `np.array([1., 2., 3.]) + x` is claimed by numpy before
+    `Series.__radd__` is consulted, and comes back as an `object` array of
+    three series, one per element. *(observed)* With the array on the right,
+    `x + array` works as expected.
+26. **`|` is the same function as `&`.** `__or__ = __and__`, and both call
+    `hstack`, so `x | y` stacks the variants exactly like `x & y`.
+    *(observed)* Neither is a logical operator.
+27. **Comparisons treat a missing period as unequal, and the result is not
+    trimmed.** `_binop` lays both series over the combined span, so for `x`
+    covering 2020Q1-Q3 and `y` covering 2020Q2-Q4, `x == y` gives four
+    `False` and `x != y` four `True`, the two end periods included even though
+    one side has nothing there. *(observed)* Booleans are not missing values,
+    so `trim` keeps every row.
+28. **A comparison result reads back as floats.** The data are stored as
+    `bool`, but `get_data` goes through `_create_expanded_data`, whose padding
+    is built in the series' `float64` `data_type`, so `(x > 1).get_data()`
+    gives `[[0.0], [1.0], [1.0]]` while `.data` holds `False, True, True`.
+    *(observed)*
+29. **Adding an empty series empties the result.** `x + Series()` returns a
+    series with no data and `start` `None`, whatever `x` holds. *(observed)*
+    This is the "empty encompassing span" FIXME of note 14.
+30. **Two series with different numbers of variants, neither of them one,
+    fail inside numpy.** A two-variant series plus a three-variant one raises
+    `ValueError: operands could not be broadcast together with shapes (2,2)
+    (2,3)`, which names neither series. *(observed)*

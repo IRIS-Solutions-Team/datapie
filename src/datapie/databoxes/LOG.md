@@ -418,6 +418,23 @@ module. `series/_views.py` specialises the same base.
    missing from the category tables; it is now `evaluation`. `by_merging` in
    `_merge.py` had no decorator and is now `constructor`. No method body
    touched.
+8. **`iter_variants` does not split a time series into its variants.** The
+   default `_default_item_iterator` steps through anything that is an
+   `Iterable`, and a `Series` is not one, so it is wrapped in a one-element
+   list and the whole series, every variant together, comes back at every
+   step. *(observed)* Lists, tuples and numpy arrays are stepped through,
+   with their last element repeated once they run out. The iterator is a
+   `while True` loop and never ends, so `list(db.iter_variants())` hangs.
+   Documented on 2026-11-19, together with `has`, `max_abs` and
+   `Span.to_python_dates`, all of which had empty docstrings.
+9. **`has` does not accept a callable**, unlike the name arguments of
+   `copy`, `rename` and the rest: `db.has(lambda n: n == "a")` raises
+   `TypeError: 'function' object is not iterable`. *(observed)*
+10. **`max_abs` skips silently whatever it cannot compare.** Names held by
+    only one of the two Databoxes, strings, and mixed pairs such as a series
+    against a number leave no entry in the result and no warning, so a
+    missing entry cannot be told apart from a name that was never there.
+    *(observed)*
 
 ---
 

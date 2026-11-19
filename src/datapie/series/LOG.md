@@ -791,8 +791,8 @@ first.*
 
 Compared against `b864b44`, the last commit before it; everything below
 worked there unless stated otherwise. Items 1 and 2 together break most
-reads, and both need fixing: of the 1000 documentation examples in the
-package, 131 fail on this commit, 112 still fail with item 1 alone
+reads, and both need fixing: of the 1055 documentation examples in the
+package, 140 fail on this commit, 121 still fail with item 1 alone
 corrected, and none fail once item 2 is corrected too. The one change that
 gives wrong numbers without any error is not in this list: it is bug 7
 below, the integer padding, which also comes from `6157dd3`.
@@ -804,7 +804,7 @@ below, the integer padding, which also comes from `6157dd3`.
    `AttributeError: 'Series' object has no attribute
    '_resolve_dates_and_positions'` -- with `...`, a span, a list, a single
    period, anything. *(observed)* On its own this accounts for only 19 of
-   the 131 failing examples; item 2 accounts for the rest.
+   the 140 failing examples; item 2 accounts for the rest.
 2. **Periods are inspected before they are resolved.**
    `_resolve_periods_and_positions` now tests `not periods or all(p is None
    for p in periods)` first and calls `resolve_periods` only afterwards.
@@ -836,7 +836,7 @@ below, the integer padding, which also comes from `6157dd3`.
 
    **A likely fix** is to swap the two steps: call `resolve_periods` first,
    then run the emptiness test on its result. Tried in memory with item 1
-   corrected: all 1000 documentation examples pass, `...`, `None` and
+   corrected: all 1055 documentation examples pass, `...`, `None` and
    generators give the whole or the requested periods again, the shifts
    return the `b864b44` results, and `(None, None)` still returns an empty
    array (note 20). *(observed)* Worth confirming against the intent of the

@@ -372,13 +372,77 @@ one column per period, both in the order asked for.
             return self[name].get_values(periods, variant, )
         return _np.vstack([ retrieve_values(n, ) for n in names ])
 
+    @_dm.reference(category="retrieval", )
     def iter_variants(
         self,
         #
         item_iterator: Iterator[Any] | None = None,
         keys: Iterable[Any] | None = None,
     ) -> Iterator[dict]:
-        """
+        r"""
+................................................................................
+
+## `Databox.iter_variants`
+
+==Steps through the items in parallel, giving back one plain dictionary of values at each step, and never stops.==
+
+    iterator = self.iter_variants(
+        item_iterator=None,
+        keys=None,
+    )
+
+At every step each item contributes its next value. A list, tuple or
+numpy array is stepped through element by element -- a two-dimensional
+array row by row -- and once it runs out its last element keeps coming
+back. A single value, such as a number or
+a string, comes back unchanged at every step.
+
+**A time series is not split into its variants.** It is handed back
+whole, all variants together, at every step, so the name promises more
+than the default stepping delivers for series.
+
+The iterator never ends. Do not hand it to `list` or loop over it with
+a plain `for`; take as many steps as you need, for instance with
+`zip(self.iter_variants(), range(n))`.
+
+
+**Input arguments.**
+
+
+???+ input "item_iterator"
+    A function that takes one item and returns an iterator over its
+    values, used in place of the default stepping described above.
+
+???+ input "keys"
+    The names to include, in that order. Left as `None` it is every
+    name in the Databox. Names not in the Databox are skipped.
+
+
+### Returns
+
+
+An iterator of plain dictionaries, each mapping a name to that item's
+value at the current step. The values are the items themselves or
+their elements, not copies.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["shock"] = [10, 20]
+    >>> db["k"] = 5
+    >>> db["x"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.]))
+    >>> it = db.iter_variants()
+    >>> [(d["shock"], d["k"]) for d, _ in zip(it, range(3))]
+    [(10, 5), (20, 5), (20, 5)]
+    >>> next(it)["x"] is db["x"]
+    True
+
+................................................................................
         """
         if item_iterator is None:
             item_iterator = _default_item_iterator
@@ -649,11 +713,50 @@ A new Databox. The original is not changed.
         new_databox.keep(target_names, strict_names=strict_names, )
         return new_databox
 
+    @_dm.reference(category="information", )
     def has(
         self: Self,
         names: Iterable[str] | str,
     ) -> bool:
-        """
+        r"""
+................................................................................
+
+## `Databox.has`
+
+==Says whether the Databox holds an item, or every one of several items.==
+
+    answer = self.has(names)
+
+A single name is looked up directly. Several names count as present only
+when every one of them is there; `get_missing_names` tells you which are
+not.
+
+
+**Input arguments.**
+
+
+???+ input "names"
+    A single name, or a list, tuple or set of names. An empty collection
+    counts as present.
+
+
+### Returns
+
+
+`True` or `False`.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> db = dp.Databox()
+    >>> db["a"] = 1
+    >>> db["b"] = 2
+    >>> db.has("a"), db.has(["a", "b"]), db.has(["a", "x"])
+    (True, True, False)
+
+................................................................................
         """
         return (
             names in self if isinstance(names, str)
@@ -1245,11 +1348,67 @@ handled according to `when_fails`.
                 when_fails_stream.add(f"{s}: {repr(e)}", )
         when_fails_stream._raise()
 
+    @_dm.reference(category="multiple", )
     def max_abs(
         self,
         other: Self,
     ) -> Self:
-        """
+        r"""
+................................................................................
+
+## `Databox.max_abs`
+
+==Measures, item by item, the largest absolute difference between this Databox and another.==
+
+    differences = self.max_abs(other)
+
+Meant for checking two sets of results against each other: a value of
+zero means the two items agree everywhere.
+
+Only names held in both Databoxes are compared. For two time series the
+other is subtracted period by period over the periods both cover, every
+variant included, and the largest absolute difference is kept; missing
+observations are ignored. Two numbers or numpy arrays are compared the
+same way. Any other pair -- strings, a series against a number, and so
+on -- is skipped without a word, as are names held by only one of the
+two.
+
+
+**Input arguments.**
+
+
+???+ input "other"
+    The Databox to compare against.
+
+
+### Returns
+
+
+A new Databox with one number per compared name. A pair of series with
+no period in common gives `None` instead. Neither Databox is modified.
+
+
+### Examples
+
+
+    >>> import numpy as np
+    >>> import datapie as dp
+    >>> a = dp.Databox()
+    >>> b = dp.Databox()
+    >>> a["x"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2., 3.]))
+    >>> b["x"] = dp.Series(start=dp.qq(2020, 1),
+    ...     values=np.array([1., 2.5, 2.]))
+    >>> a["n"] = 10.
+    >>> b["n"] = 7.5
+    >>> a["only_in_a"] = 1.
+    >>> d = a.max_abs(b)
+    >>> float(d["x"]), float(d["n"])
+    (1.0, 2.5)
+    >>> "only_in_a" in d
+    False
+
+................................................................................
         """
         def _max_abs(x, ):
             return _np.nanmax(abs(_np.array(x)))
@@ -1955,7 +2114,8 @@ the expression can produce.
 
 Extra names can be supplied through `context`:
 
-    >>> db.evaluate_expression("a*k", context={"k": 10}).get_data()[:, 0].tolist()
+    >>> y = db.evaluate_expression("a*k", context={"k": 10})
+    >>> y.get_data()[:, 0].tolist()
     [10.0, 20.0]
 
 

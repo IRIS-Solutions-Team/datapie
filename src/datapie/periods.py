@@ -2264,6 +2264,7 @@ The ordinal as an integer.
         "arithmetics": "Arithmetic operations on time spans",
         "manipulation": "Manipulating time spans",
         "print": "Converting time spans to strings",
+        "conversion": "Converting time spans to different representations",
         "property": None,
     },
 )
@@ -2870,7 +2871,46 @@ A tuple of compact strings, in iteration order.
         """
         return tuple(t.to_compact_string(*args, **kwargs, ) for t in self)
 
+    @_dm.reference(category="conversion", )
     def to_python_dates(self, *args, **kwargs, ) -> tuple[_dt.date]:
+        r"""
+................................................................................
+
+## `Span.to_python_dates`
+
+==Converts every period of the span to a `datetime.date`.==
+
+    dates = self.to_python_dates(position="start")
+
+Calls `to_python_date` on each period in turn and collects the results,
+in the order the span runs, so a backward span gives the dates latest
+first. Integer spans have no calendar at all.
+
+
+**Input arguments.**
+
+
+???+ input "position"
+    Which day of each period to return, `"start"`, `"middle"` or
+    `"end"`, as in `Period.to_python_date`. Left alone it is `"start"`.
+
+
+### Returns
+
+
+A tuple of `datetime.date` objects, one per period.
+
+
+### Examples
+
+
+    >>> import datapie as dp
+    >>> span = dp.Span(dp.qq(2020, 1), dp.qq(2020, 3))
+    >>> [d.isoformat() for d in span.to_python_dates(position="end")]
+    ['2020-03-31', '2020-06-30', '2020-09-30']
+
+................................................................................
+        """
         return tuple(t.to_python_date(*args, **kwargs, ) for t in self)
 
     def __len__(self) -> int|None:

@@ -358,6 +358,7 @@ Period-value pairs need not be contiguous or sorted:
                 period_value_pairs=period_value_pairs,
             )
 
+    @_dm.reference(category="constructor", )
     def copy(self, ) -> Self:
         r"""
 ················································································
@@ -404,6 +405,7 @@ shifting or clipping it, leaves the original alone.
         return new
 
     @classmethod
+    @_dm.reference(category="constructor", )
     def void(
         klass,
         num_variants: int = 1,
@@ -549,6 +551,7 @@ The array is shared, and the default trims:
             self.trim()
         return self
 
+    @_dm.reference(category="manipulation", )
     def reset(self, ) -> None:
         r"""
 ················································································
@@ -712,6 +715,7 @@ A whole number. It stays what it was even when the series is emptied.
         return self.data.shape[1]
 
     @property
+    @_dm.reference(category="property", )
     def is_singleton(self, ) -> bool:
         r"""
 ················································································
@@ -929,6 +933,7 @@ Reading it, and re-dating with it:
         raise NotImplementedError
 
     @property
+    @_dm.reference(category="property", )
     def start_period(self, ):
         r"""
 ················································································
@@ -1134,6 +1139,7 @@ otherwise, and `False` for an empty series.
         """
         return bool((not self.is_empty) and _np.isnan(self.data).any())
 
+    @_dm.reference(category="information", )
     def any_missing(self, *args, ) -> bool:
         r"""
 ················································································
@@ -1184,6 +1190,7 @@ extra argument after that picks variants.
         """
         return self._func_missing(_np.any, *args, )
 
+    @_dm.reference(category="information", )
     def where_missing(self, *args, ) -> tuple[Period]:
         r"""
 ················································································
@@ -1234,6 +1241,7 @@ back shifted by the distance between the two.
         missing_mask = _np.isnan(data).any(axis=1, )
         return tuple(p for p, m in zip(self.span, missing_mask, ) if m)
 
+    @_dm.reference(category="information", )
     def all_missing(self, *args, ) -> bool:
         r"""
 ················································································
@@ -1278,6 +1286,7 @@ Combine it with `is_empty` if that distinction matters.
         """
         return self._func_missing(_np.all, *args, )
 
+    @_dm.reference(category="information", )
     def count_missing(self, *args, ) -> int:
         r"""
 ················································································
@@ -1328,6 +1337,7 @@ Two missing values, one answer:
         data = self.get_data(*args, )
         return bool(func(_np.isnan(data)))
 
+    @_dm.reference(category="manipulation", )
     def set_data(
         self,
         dates: Periods,
@@ -1458,6 +1468,7 @@ Writing before the start extends the series backwards:
             pos = (pos, )
         return periods, pos, variants, expanded_data,
 
+    @_dm.reference(category="variants", )
     def alter_num_variants(
         self,
         new_num: int,
@@ -1513,6 +1524,7 @@ New columns repeat the last one:
         elif new_num > self.num_variants:
             self.expand_num_variants(new_num, )
 
+    @_dm.reference(category="variants", )
     def expand_num_variants(
         self,
         new_num: int,
@@ -1568,6 +1580,7 @@ Nothing; the series is modified in place.
         data = _np.tile(self.data[:, (-1, )], (1, add, ))
         self.data = _np.hstack((self.data, data, ), )
 
+    @_dm.reference(category="variants", )
     def shrink_num_variants(
         self,
         new_num: int,
@@ -1625,6 +1638,7 @@ Asking for the count it already has wipes the data:
             raise ValueError("Use expand_num_variants to expand the number of variants")
         self.data = self.data[:, :-remove]
 
+    @_dm.reference(category="retrieval", )
     def get_values(
         self,
         *args,
@@ -1690,6 +1704,7 @@ Two variants in, one variant out:
             unpack_singleton=unpack_singleton,
         )
 
+    @_dm.reference(category="retrieval", )
     def get_data(self, *args, **kwargs, ) -> _np.ndarray:
         r"""
 ················································································
@@ -1741,6 +1756,7 @@ Out-of-span periods come back missing, and order is preserved:
         """
         return self.get_data_and_periods(*args, **kwargs, )[0]
 
+    @_dm.reference(category="retrieval", )
     def get_data_and_periods(
         self,
         dates: Iterable[Period] | None | EllipsisType = ...,
@@ -1793,6 +1809,7 @@ first entry.
         periods, pos, variants, expanded_values, = self._resolve_dates_and_positions(dates, *args, )
         return expanded_values[_np.ix_(pos, variants)], periods
 
+    @_dm.reference(category="retrieval", )
     def get_data_variant(
         self,
         dates: Periods,
@@ -1845,6 +1862,7 @@ An out-of-range variant is not an error:
         variant = variant if variant and variant<self.data.shape[1] else 0
         return self.get_data(dates, variant, )
 
+    @_dm.reference(category="retrieval", )
     def get_data_from_until(
         self,
         from_until,
@@ -1907,6 +1925,7 @@ Asking beyond the end pads instead of failing:
         from_pos, to_pos, = pos[0], pos[-1]+1,
         return expanded_data[from_pos:to_pos, variants]
 
+    @_dm.reference(category="retrieval", )
     def get_data_variant_from_until(
         self,
         from_until: Iterable[Period],
@@ -1961,6 +1980,7 @@ A two-dimensional numpy array with one column.
         variant = variant if variant and variant < self.data.shape[1] else 0
         return self.get_data_from_until(from_until, variant, )
 
+    @_dm.reference(category="variants", )
     def extract_variants(
         self,
         variants,
@@ -2016,6 +2036,7 @@ Reordering and duplicating in one call:
             variants = tuple(c for c in variants)
         self.data = self.data[:, variants]
 
+    @_dm.reference(category="timing", )
     def set_start(
         self,
         new_start: Period,
@@ -2063,6 +2084,7 @@ place all the same -- the original is not preserved.
         self.start = new_start
         return self
 
+    @_dm.reference(category="retrieval", )
     def resolve_periods(self, periods, ) -> tuple[Period]:
         r"""
 ················································································
@@ -2198,6 +2220,7 @@ The same answer three ways, and nothing on an empty series:
         self.set_data(periods, dty_values, )
         self.set_data(neutral_periods, neutral_value, )
 
+    @_dm.reference(category="multiple", )
     def hstack(self, *args, ):
         r"""
 ················································································
@@ -2337,6 +2360,7 @@ A wider request is ignored, a narrower one obeyed:
         self.start = new_start
 
 
+    @_dm.reference(category="manipulation", )
     def empty(
         self,
         *,
@@ -2758,6 +2782,7 @@ A comparison gives a series of truth values, not a single one:
         new.abs(*args, **kwargs, )
         return new
 
+    @_dm.reference(category="manipulation", )
     def abs(self, *args, **kwargs, ) -> None:
         r"""
 ················································································
@@ -2816,6 +2841,7 @@ In place against not in place:
         new.round(*args, **kwargs, )
         return new
 
+    @_dm.reference(category="manipulation", )
     def round(self, *args, **kwargs, ) -> None:
         r"""
 ················································································
@@ -2930,6 +2956,7 @@ The numbers agree, the labels do not:
             return False
         return True
 
+    @_dm.reference(category="manipulation", )
     def apply(self, func, *args, **kwargs, ):
         r"""
 ················································································
@@ -3047,6 +3074,7 @@ across time gives a bare array of two numbers:
         self.start = new_start
         self._replace_data(new_values, )
 
+    @_dm.reference(category="iteration", )
     def iter_dates_values(self, unpack_singleton=True, ):
         r"""
 ················································································
@@ -3103,6 +3131,7 @@ Iterating it consumes it; call the method again for a second pass.
         for date, data_row in zip(self.span, self.data, ):
             yield date, data_row_func(data_row.tolist(), )
 
+    @_dm.reference(category="iteration", )
     def iter_variants(self, ) -> Iterator[Self]:
         r"""
 ················································································
@@ -3152,6 +3181,7 @@ The second variant keeps coming back:
             new._replace_data(data, )
             yield new
 
+    @_dm.reference(category="iteration", )
     def iter_own_variants(self, ) -> Iterator[Self]:
         r"""
 ················································································
@@ -3208,6 +3238,7 @@ Each variant is trimmed separately:
             new._replace_data(data, )
             yield new
 
+    @_dm.reference(category="iteration", )
     def iter_own_data_variants_from_until(self, from_until, ) -> Iterator[_np.ndarray]:
         r"""
 ················································································
@@ -3264,6 +3295,7 @@ are freshly built and writing into them is harmless.
             data_from_until = self.get_data_from_until(from_until, )
         return iter(data_from_until.T, )
 
+    @_dm.reference(category="iteration", )
     def iter_data_variants_from_until(self, from_until, ) -> Iterator[_np.ndarray]:
         r"""
 ················································································
@@ -3316,6 +3348,7 @@ The second variant keeps coming back:
         """
         return _iterators.exhaust_then_last(self.iter_own_data_variants_from_until(from_until, ), )
 
+    @_dm.reference(category="manipulation", )
     def logistic(self, ) -> Self:
         r"""
 ················································································

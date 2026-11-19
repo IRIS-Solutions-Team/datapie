@@ -388,6 +388,7 @@ The method this block documents raises rather than filtering:
         """
         raise NotImplementedError
 
+    @_dm.reference(category="filtering", )
     def hpf_trend(self, *args, **kwargs):
         r"""
 ································································
@@ -435,6 +436,7 @@ Nothing; the series is modified in place.
         start_date, trend_data, _ = _data_hpf(self, *args, **kwargs, )
         self._replace_start_and_values(start_date, trend_data, )
 
+    @_dm.reference(category="filtering", )
     def hpf_gap(self, *args, **kwargs):
         r"""
 ································································

@@ -15,7 +15,7 @@ with those two crashes repaired, since every documentation example passes
 then, but `main.py` bug 7 is documented as it now behaves, because it gives
 wrong numbers rather than an error.
 
-**Three code changes were made**, all outside the docstrings:
+**Four code changes were made**, all outside the docstrings:
 
 1. `_timing.py` — `redate` tested `old_data` while the parameter is `old_date`,
    so every call raised `NameError`. Typo corrected; the function now works in
@@ -29,6 +29,11 @@ wrong numbers rather than an error.
    generated functions and by the operators, together with the
    `import documark as _dm` the first two files' decorators need. No
    function or operator touched.
+4. `@_dm.reference` decorators were added to 44 documented methods that had
+   none, so that they reach the reference page, and `_categories.py` gained
+   five categories for them: `retrieval`, `iteration`, `timing`, `variants`
+   and `plotting`. `_timing.py`, `_plotly.py` and `_broadcasts.py` gained the
+   `import documark as _dm` the decorators need. No method body touched.
 
 **Files with no findings:** `_categories.py`, `_functionalize.py`,
 `functions.py` and `_views.py`.

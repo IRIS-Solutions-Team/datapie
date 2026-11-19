@@ -68,6 +68,7 @@ _CHART_INPUT_STRING_PATTERN = _re.compile(
     categories={
         "constructor": "Creating new chartpacks",
         "information": "Getting information about chartpacks",
+        "manipulation": "Modifying chartpacks",
         "property": None,
         "plot": "Plotting chartpacks",
         "add": "Adding figures and charts to chartpacks",
@@ -198,6 +199,7 @@ A new `Chartpack` holding no figures.
         pass
 
 
+    @_dm.reference(category="constructor", )
     def copy(self, ) -> Self:
         r"""
 ················································································
@@ -234,6 +236,7 @@ A new `Chartpack`.
         return new
 
 
+    @_dm.reference(category="manipulation", )
     def set_span(
         self,
         span: Iterable[Period] | EllipsisType,
@@ -269,6 +272,7 @@ Nothing; the charts are modified in place.
             f.set_span(span, )
 
 
+    @_dm.reference(category="manipulation", )
     def set_highlight(
         self,
         highlight: Iterable[Period] | EllipsisType,
@@ -306,6 +310,7 @@ Nothing; the figures are modified in place.
             f.highlight = highlight
 
 
+    @_dm.reference(category="manipulation", )
     def modify_figure_titles(
         self,
         modifier: Callable[[str], str],
@@ -414,6 +419,7 @@ built whether or not they are returned or shown.
             }
 
 
+    @_dm.reference(category="manipulation", )
     def format_figure_titles(
         self,
         **kwargs,

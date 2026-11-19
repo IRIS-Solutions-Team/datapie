@@ -413,6 +413,11 @@ module. `series/_views.py` specialises the same base.
    `rename`, `remove`, `keep`, `generate`, `clip_series`, `evaluate_expression`
    (`"a+b"` on two series gave `[4.0, 6.0]`), `prepend` and `minus_control`.
    *(observed)*
+7. **Code change: reference decorators.** `validate` was decorated as
+   `validation`, a category the `Databox` class does not declare, so it was
+   missing from the category tables; it is now `evaluation`. `by_merging` in
+   `_merge.py` had no decorator and is now `constructor`. No method body
+   touched.
 
 ---
 

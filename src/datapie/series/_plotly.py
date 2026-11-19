@@ -16,6 +16,7 @@ import itertools as _it
 import functools as _ft
 import warnings as _wa
 import datetime as _dt
+import documark as _dm
 
 from ..periods import Period
 from .. import periods as _periods
@@ -80,6 +81,7 @@ def _area_constructor(style, **kwargs, ):
 class Mixin:
     #[
 
+    @_dm.reference(category="plotting", )
     def plot(
         self,
         chart_type: Literal["line", "bar", "bar_group", "bar_stack", "bar_relative", "bar_overlay", "area"] = "line",
@@ -150,6 +152,7 @@ Whatever the chosen method returns, which is `None` unless you pass
             raise ValueError(f"Invalid chart_type: {chart_type!r}, must be one of 'line', 'bar', 'bar_group', 'bar_stack', 'bar_relative', 'bar_overlay', 'area' or 'histogram'")
 
 
+    @_dm.reference(category="plotting", )
     def plot_line(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -230,6 +233,7 @@ Nothing comes back until you ask for it:
         return info
 
 
+    @_dm.reference(category="plotting", )
     def plot_bands(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -343,6 +347,7 @@ Three variants make one band and one midline:
         return info
 
 
+    @_dm.reference(category="plotting", )
     def plot_area(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -405,6 +410,7 @@ described there.
         return info
 
 
+    @_dm.reference(category="plotting", )
     def plot_bar(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -498,6 +504,7 @@ The ready-made version fixes it for you:
     plot_bar_relative = _ft.partialmethod(plot_bar, bar_mode="relative", )
 
 
+    @_dm.reference(category="plotting", )
     def plot_histogram(
         self,
         span: Iterable[Period] | EllipsisType = ...,

@@ -177,3 +177,8 @@ evaluated against a `Databox` at plot time.
     *(observed)* `_Figure.plot` then hands plotly `showlegend=None`, no
     instruction, and it falls back to its own rule. Passing `show_legend=True`
     to `add_figure` works and is the only way to set it. *(observed)*
+15. **Code change: reference decorators.** The class categories gained
+    `manipulation` ("Modifying chartpacks"), and `@_dm.reference` was added
+    to `set_span`, `set_highlight`, `modify_figure_titles` and the second,
+    effective definition of `format_figure_titles` under it, and to `copy`
+    as `constructor`. No method body touched.

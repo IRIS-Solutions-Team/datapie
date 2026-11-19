@@ -7,6 +7,7 @@ r"""
 from __future__ import annotations
 
 import textwrap as _tw
+import documark as _dm
 
 from ._functionalize import FUNC_STRING
 
@@ -21,6 +22,7 @@ from ._functionalize import FUNC_STRING
 class Mixin:
     #[
 
+    @_dm.reference(category="timing", )
     def shift(
         self,
         by: ShiftType = -1,
@@ -128,6 +130,7 @@ instead of an earlier observation:
             method_name = f"_shift_{by}"
             getattr(self, method_name)(**kwargs, )
 
+    @_dm.reference(category="timing", )
     def redate(
         self,
         new_date: Period,

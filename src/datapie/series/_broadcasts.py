@@ -8,6 +8,7 @@ Broadcast functionality for time series
 from __future__ import annotations
 
 import numpy as _np
+import documark as _dm
 from .. import wrongdoings as _wrongdoings
 
 from typing import TYPE_CHECKING
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
+    @_dm.reference(category="variants", )
     def broadcast_variants(self, num_variants, ) -> None:
         r"""
 ................................................................................

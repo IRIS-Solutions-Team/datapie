@@ -7,7 +7,11 @@ CATEGORIES = {
     "constructor": "Constructing new time series",
     "conversion": "Converting time series frequency",
     "information": "Getting information about time series",
+    "retrieval": "Retrieving time series data",
+    "iteration": "Iterating over periods and variants",
     "manipulation": "Manipulating time series values",
+    "timing": "Moving time series in time",
+    "variants": "Managing time series variants",
     "comparison": "Comparing time series",
     "multiple": "Combining multiple time series",
     "homogenizing": "Homogenizing and extrapolating time series",
@@ -18,5 +22,6 @@ CATEGORIES = {
     "temporal_cumulation": "Calculating temporal cumulation",
     "indexing": "Indexing time series",
     "serialization": "Serializing and deserializing time series",
+    "plotting": "Plotting time series",
 }
 

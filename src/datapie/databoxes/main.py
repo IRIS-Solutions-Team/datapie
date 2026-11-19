@@ -745,7 +745,7 @@ A new Databox sharing the original's items.
         print("\n".join(content_view, ))
         print()
 
-    @_dm.reference(category="validation", )
+    @_dm.reference(category="evaluation", )
     def validate(
         self: Self,
         validators: dict[str, Callable] | None,

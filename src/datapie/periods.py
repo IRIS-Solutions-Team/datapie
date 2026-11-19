@@ -368,6 +368,7 @@ returns a `Span` instead -- see the constructor entries themselves.
         """
         self.serial = int(serial)
 
+    @_dm.reference(category="constructor", )
     def copy(self, ) -> Self:
         r"""
 ................................................................................
@@ -803,6 +804,7 @@ The integer value of the frequency does just as well:
         return PERIOD_CLASS_FROM_FREQUENCY_RESOLUTION[freq].from_ymd(t.year, t.month, t.day, )
 
     @property
+    @_dm.reference(category="property", )
     def start(self, ) -> Self:
         r"""
 ................................................................................
@@ -824,6 +826,7 @@ that a period and a `Span` can be handed to the same code: both answer
     start_date = start
 
     @property
+    @_dm.reference(category="property", )
     def end(self, ) -> Self:
         r"""
 ................................................................................
@@ -1208,7 +1211,7 @@ A year is the exception to the "15th of the middle month" rule:
             "instant": self.to_python_date(position="middle", ),
         }[mode]
 
-    @_dm.reference(category="information", )
+    @_dm.reference(category="conversion", )
     def get_distance_from_origin(self, ) -> int:
         r"""
 ................................................................................
@@ -2450,6 +2453,7 @@ Shifting the copy leaves the original where it was:
         )
 
     @classmethod
+    @_dm.reference(category="constructor", )
     def encompassing(klass, *args, ) -> Self:
         r"""
 ................................................................................
@@ -2939,6 +2943,7 @@ The original is untouched:
 
     __radd__ = __add__
 
+    @_dm.reference(category="arithmetics", )
     def __rshift__(
         self,
         step: int,
@@ -2978,6 +2983,7 @@ A new `Span` with the same endpoints and the new step.
             raise ValueError("Step must be positive when using the >> operator.")
         return type(self)(self._start, self._end, step, )
 
+    @_dm.reference(category="arithmetics", )
     def __lshift__(
         self,
         step: int,

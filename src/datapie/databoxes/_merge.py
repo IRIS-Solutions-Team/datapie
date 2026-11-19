@@ -48,6 +48,7 @@ class Mixin:
     #[
 
     @classmethod
+    @_dm.reference(category="constructor", )
     def by_merging(
         klass,
         databoxes: Iterable[Self],

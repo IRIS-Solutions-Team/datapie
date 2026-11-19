@@ -268,6 +268,13 @@ and about fifteen module-level helpers.
     `"yoy"` does not raise but does nothing: it moves by the frequency's
     value, which is 0 for integers, so `ii(4).shift("yoy")` returns `ii(4)`.
     *(observed)*
+24. **Code change: reference decorators.** `@_dm.reference` was added to
+    `Period.copy` (`constructor`), the `start` and `end` properties of a
+    period (`property`), `Span.encompassing` (`constructor`) and the span
+    operators `>>` and `<<` (`arithmetics`). `get_distance_from_origin` was
+    decorated as `information`, a category `Period` does not declare, so it
+    was missing from the category tables; it is now `conversion`. No method
+    body touched.
 
 ---
 
@@ -347,3 +354,9 @@ re-exports of the members.
 7. `WEEKLY` is a full member here, with a value, a letter and an SDMX pattern,
    but `periods.py` has no weekly period class, so every route from a weekly
    frequency to a period raises `KeyError`. See `periods.py` "Docs vs code" 5.
+8. **The reference page for `Frequency` comes out empty.** Its methods carry
+   `@_dm.reference`, but the class decorator passes `categories=None`, and
+   documark finds methods through `dir()`, which on an enum lists the members
+   and not the methods: `"from_letter" in dir(Frequency)` is `False`.
+   *(observed)* Adding decorators cannot fix it; it needs a `categories`
+   dictionary on the class and a way for documark to see enum methods.

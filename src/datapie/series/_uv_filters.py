@@ -262,11 +262,13 @@ class Mixin:
 
     @_dm.reference(
         category="filtering",
-        call_name="Series.univariate_filters",
+        call_name="univariate_filters",
         anchor="univariate-time-series-filters",
     )
     def univariate_filters(self, ) -> None:
         r"""
+<a id="univariate_filters"></a>
+
 ==Retain the univariate-filter documentation placeholder==
 
 #### Syntax
@@ -331,11 +333,11 @@ Use a named filter to perform a calculation:
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the filtered values in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the filtered values; the input is unchanged.
 
@@ -412,11 +414,11 @@ Arguments may be passed positionally or by keyword in the order shown.
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the filtered values in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the filtered values; the input is unchanged.
 
@@ -492,11 +494,11 @@ Arguments may be passed positionally or by keyword in the order shown.
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the filtered values in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the filtered values; the input is unchanged.
 
@@ -558,11 +560,11 @@ Arguments may be passed positionally or by keyword in the order shown.
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the filtered values in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the filtered values; the input is unchanged.
 

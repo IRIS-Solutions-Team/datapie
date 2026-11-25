@@ -22,13 +22,15 @@ from ._functionalize import FUNC_STRING
 class Mixin:
     #[
 
-    @_dm.reference(category="timing", call_name="Series.shift", )
+    @_dm.reference(category="timing", call_name="shift", )
     def shift(
         self,
         by: ShiftType = -1,
         **kwargs,
     ) -> None:
         r"""
+<a id="seriesshift"></a>
+
 ==Move a series in time or use earlier calendar observations==
 
 #### Syntax
@@ -68,14 +70,12 @@ class Mixin:
     Additional keyword settings forwarded to the selected shift.
     The supplied shifts use only `neutral_value` for `"tty"`.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     No return value. The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new Series with the shift applied.
 
 #### Mutation
@@ -99,13 +99,15 @@ When a source observation is outside the series, the result is missing.
             method_name = f"_shift_{by}"
             getattr(self, method_name)(**kwargs, )
 
-    @_dm.reference(category="timing", call_name="Series.redate", )
+    @_dm.reference(category="timing", call_name="redate", )
     def redate(
         self,
         new_date: Period,
         old_date: Period | None = None,
     ) -> None:
         r"""
+<a id="seriesredate"></a>
+
 ==Give observations new dates without changing their values==
 
 #### Syntax
@@ -135,14 +137,12 @@ When a source observation is outside the series, the result is missing.
     The original Period to move to `new_date`. Default: `None`, the series'
     start. The distance between observations stays unchanged.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     No return value. The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new Series with the revised dates.
 
 #### Mutation

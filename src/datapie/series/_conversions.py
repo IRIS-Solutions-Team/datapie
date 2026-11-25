@@ -86,17 +86,15 @@ class Mixin:
 !!! input "to_freq"
     The frequency to convert the changes to, expressed as periods per year. Required and nonzero.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     The values are changed in place. Their periods, start and series frequency are unchanged; observations are not resampled.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form, Series input"
     With a series input, return a converted copy. The input is unchanged.
 
-!!! returns "new_value"
+!!! returns "new_value — function form, scalar input"
     With a number input, return a number. The rate raised to the ratio of source to target frequencies.
 
 Every variant is converted separately, and missing values remain missing. Both frequencies must be supplied explicitly; they are not inferred from the series.
@@ -154,17 +152,15 @@ Every variant is converted separately, and missing values remain missing. Both f
 !!! input "to_freq"
     The frequency to convert the changes to, expressed as periods per year. Required and nonzero.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     The values are changed in place. Their periods, start and series frequency are unchanged; observations are not resampled.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form, Series input"
     With a series input, return a converted copy. The input is unchanged.
 
-!!! returns "new_value"
+!!! returns "new_value — function form, scalar input"
     With a number input, return a number. The equivalent percentage change at the target frequency.
 
 Every variant is converted separately, and missing values remain missing. Both frequencies must be supplied explicitly; they are not inferred from the series.
@@ -222,17 +218,15 @@ Every variant is converted separately, and missing values remain missing. Both f
 !!! input "to_freq"
     The frequency to convert the changes to, expressed as periods per year. Required and nonzero.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     The values are changed in place. Their periods, start and series frequency are unchanged; observations are not resampled.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form, Series input"
     With a series input, return a converted copy. The input is unchanged.
 
-!!! returns "new_value"
+!!! returns "new_value — function form, scalar input"
     With a number input, return a number. The change multiplied by the ratio of source to target frequencies.
 
 Every variant is converted separately, and missing values remain missing. Both frequencies must be supplied explicitly; they are not inferred from the series.
@@ -293,14 +287,12 @@ Every variant is converted separately, and missing values remain missing. Both f
 !!! input "select"
     Optional positions within each target period; the default is `None`, using all values. Selection of several positions is not currently supported reliably.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new series with the result. The input series is unchanged.
 
 ??? note "Details"
@@ -398,14 +390,12 @@ Every variant is converted separately, and missing values remain missing. Both f
     fixed. The default is `None`. The first target variant is used for
     every input variant.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new series with the result. The input series is unchanged.
 
 ??? note "Details"

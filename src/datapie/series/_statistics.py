@@ -96,10 +96,9 @@ _CUM_METHOD_TEMPLATE = r"""
 class Mixin:
     #[
 
-    @staticmethod
-    @_dm.topic(title="Statistical reductions", anchor="statistical-reductions", priority=150)
-    def _reference_statistical_reductions():
-        r"""
+    _documark_topic__reference_statistical_reductions = r"""
+documark = {title = "Statistical reductions", anchor = "statistical-reductions", priority = 150}
+
 ==Calculate statistics across variants or periods==
 
 ### Syntax
@@ -119,6 +118,11 @@ class Mixin:
     new_series = datapie.std(series, axis=1, unpack_singleton=True)
     new_series = datapie.percentile(series, q, axis=1, unpack_singleton=True)
     new_series = datapie.quantile(series, q, axis=1, unpack_singleton=True)
+    values = datapie.mean(
+        series,
+        axis=0,
+        unpack_singleton=True,
+    )
 
 ### Input arguments
 
@@ -148,20 +152,18 @@ class Mixin:
     ddof=0 unless changed, and percentiles and quantiles use method="linear"
     unless changed.
 
-### Method form returns
+### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     No return value. The series is changed in place.
 
-### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form, axis=1"
 
     With axis=1, a new Series containing the statistic for each period. The
     input is unchanged.
 
-!!! returns "values"
+!!! returns "values — function form, axis=0"
 
     With axis=0, a scalar or list of values for the variants. Multiple requested
     percentiles or quantiles can give nested lists.
@@ -180,13 +182,11 @@ rows missing in every variant at either end; scalar and list results do not.
     The statistics use the corresponding NumPy functions. Methods use
     `axis=1`, which cannot be overridden through their extra options.
     An explicit NumPy `out` option can write to the supplied array.
-        """
-        pass
+    """
 
-    @staticmethod
-    @_dm.topic(title="Statistical cumulative operations", anchor="statistical-cumulative-operations", priority=140)
-    def _reference_statistical_cumulative_operations():
-        r"""
+    _documark_topic__reference_statistical_cumulative_operations = r"""
+documark = {title = "Statistical cumulative operations", anchor = "statistical-cumulative-operations", priority = 140}
+
 ==Calculate running sums or products across variants==
 
 ### Syntax
@@ -225,15 +225,13 @@ rows missing in every variant at either end; scalar and list results do not.
     Additional NumPy options; omitted by default. dtype and out use their usual
     defaults of None. A method's axis is fixed and cannot be overridden.
 
-### Method form returns
+### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     No return value. The series is changed in place.
 
-### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
 
     A new Series containing the result. The input series is left unchanged.
 
@@ -247,8 +245,7 @@ either end are removed.
 
     Options are passed to the matching NumPy function. An explicit `out`
     option can write to the supplied array even in a function form.
-        """
-        pass
+    """
 
     for n in _ALL_FUNCTIONS:
         code = _METHOD_TEMPLATE.format(n=n, )
@@ -271,7 +268,8 @@ _FUNCTION_TEMPLATE = r"""
     def {n}(
         self: Series,
         *args,
-        axis: AxisType = 1,
+        accross: AcrossType | None = "variants",
+        axis: AxisType | None = None,
         unpack_singleton: bool = True,
         **kwargs,
     ) -> Real | list[Real] | Series:

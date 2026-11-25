@@ -78,10 +78,9 @@ return values, and mutation behavior.
 class Mixin:
     #[
 
-    @staticmethod
-    @_dm.topic(title="Elementwise functions", anchor="elementwise-functions", priority=160)
-    def _reference_elementwise_functions():
-        r"""
+    _documark_topic__reference_elementwise_functions = r"""
+documark = {title = "Elementwise functions", anchor = "elementwise-functions", priority = 160}
+
 ==Apply mathematical functions to each observation==
 
 ### Syntax
@@ -103,6 +102,9 @@ class Mixin:
     new_series = datapie.round(series, decimals=0)
     new_series = datapie.maximum(series, other)
     new_series = datapie.minimum(series, other)
+    values = datapie.log(
+        value,
+    )
 
 ### Input arguments
 
@@ -110,6 +112,11 @@ class Mixin:
 
     The series to transform. Function forms also accept a number, array,
     or another object with a matching method.
+
+!!! input "value"
+
+    A non-Series input to a function form: a number, array, or another object
+    with a matching method.
 
 !!! input "*args"
 
@@ -123,20 +130,18 @@ class Mixin:
     Additional options for the chosen NumPy or SciPy function; omitted by
     default. Options keep their usual defaults.
 
-### Method form returns
+### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     No return value. The series is changed in place.
 
-### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form, Series input"
 
     For a Series input, a new Series containing the result. The input series is
     unchanged.
 
-!!! returns "values"
+!!! returns "values — function form, non-Series input"
 
     For a scalar or array input, the numerical result. For another object with a
     matching method, a transformed copy of that object.
@@ -161,8 +166,7 @@ the normal distribution defaults to location `0` and scale `1`.
     Additional arguments are passed through unchanged. An explicit `out`
     option can write to the supplied array even in a function form.
     The concrete `Series.logistic` method takes no additional arguments.
-        """
-        pass
+    """
 
     for k, v in ELEMENTWISE_FUNCTION_DISPATCH.items():
         code = _tw.dedent(_TEMPLATE.format(k=k, v=v, ))

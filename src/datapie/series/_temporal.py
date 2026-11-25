@@ -27,10 +27,9 @@ from ._functionalize import FUNC_STRING
 class Mixin:
     #[
 
-    @staticmethod
-    @_dm.topic(title="Temporal changes", anchor="temporal-changes", priority=200)
-    def _reference_temporal_changes():
-        r"""
+    _documark_topic__reference_temporal_changes = r"""
+documark = {title = "Temporal changes", anchor = "temporal-changes", priority = 200}
+
 ==Measure changes between periods==
 
 ### Syntax
@@ -71,15 +70,13 @@ class Mixin:
     previous period within the same year. Available on diff, diff_log, pct and
     roc.
 
-### Method form returns
+### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     No return value. The series is changed in place.
 
-### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
 
     A new Series containing the result. The input series is left unchanged.
 
@@ -108,14 +105,12 @@ missing rows at either end are removed.
     for differences and log differences, `1` for gross rates, and a missing
     value for percent changes. Logarithms and division follow NumPy's
     usual rules for missing or invalid values.
-        """
-        pass
+    """
 
 
-    @staticmethod
-    @_dm.topic(title="Temporal change conversions", anchor="temporal-change-conversions", priority=180)
-    def _reference_temporal_change_conversions():
-        r"""
+    _documark_topic__reference_temporal_change_conversions = r"""
+documark = {title = "Temporal change conversions", anchor = "temporal-change-conversions", priority = 180}
+
 ==Convert between measures of change==
 
 ### Syntax
@@ -142,15 +137,13 @@ missing rows at either end are removed.
 
     The series containing the change measure to convert.
 
-### Method form returns
+### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     No return value. The series is changed in place.
 
-### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
 
     A new Series containing the result. The input series is left unchanged.
 
@@ -169,14 +162,12 @@ the series frequency to recover a per-period rate.
     | `pct_from_apct` | `100*((1 + x/100)**(1/a) - 1)` |
     | `roc_from_apct` | `(1 + x/100)**(1/a)` |
     | `roc_from_aroc` | `x**(1/a)` |
-        """
-        pass
+    """
 
 
-    @staticmethod
-    @_dm.topic(title="Temporal cumulations", anchor="temporal-cumulations", priority=190)
-    def _reference_temporal_cumulations():
-        r"""
+    _documark_topic__reference_temporal_cumulations = r"""
+documark = {title = "Temporal cumulations", anchor = "temporal-cumulations", priority = 190}
+
 ==Rebuild levels from changes==
 
 ### Syntax
@@ -221,15 +212,13 @@ the series frequency to recover a per-period rate.
     span, the requested dates are the levels to recover, using changes from the
     corresponding later dates.
 
-### Method form returns
+### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     No return value. The series is changed in place.
 
-### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
 
     A new Series containing the result. The input series is left unchanged.
 
@@ -254,8 +243,7 @@ Missing rows at either end are removed.
     Backward cumulation reverses these operations. The reconstruction range
     is filled with `initial` before the requested periods are processed in
     span order. Dates without a calculation keep their initial levels.
-        """
-        pass
+    """
 
 
     @_dm.reference(category="temporal_change", )

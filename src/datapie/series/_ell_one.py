@@ -70,9 +70,13 @@ class Mixin:
 
 #### Returns
 
-!!! returns "trend, gap"
+!!! returns "trend"
 
-    Two new series containing the trend and gap. The input is unchanged.
+    A new Series containing the estimated trend. The input is unchanged.
+
+!!! returns "gap"
+
+    A new Series containing input minus trend. The input is unchanged.
 
 The filter penalizes first or second differences using their L1 norm, favoring
 piecewise-flat or piecewise-linear trends. The gap is input minus trend. Results
@@ -135,11 +139,11 @@ Use the component methods to retain one component in place.
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the L1-filter trend in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the L1-filter trend; the input is unchanged.
 
@@ -202,11 +206,11 @@ can be passed positionally or by keyword.
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the L1-filter gap in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the L1-filter gap; the input is unchanged.
 
@@ -274,9 +278,13 @@ def lonf(
 
 #### Returns
 
-!!! returns "trend, gap"
+!!! returns "trend"
 
-    Two new series containing the trend and gap. The input is unchanged.
+    A new Series containing the estimated trend. The input is unchanged.
+
+!!! returns "gap"
+
+    A new Series containing input minus trend. The input is unchanged.
 
 The filter penalizes first or second differences using their L1 norm, favoring
 piecewise-flat or piecewise-linear trends. The gap is input minus trend. Results

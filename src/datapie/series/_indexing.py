@@ -26,11 +26,13 @@ class Mixin:
 
     @_dm.reference(
         category="indexing",
-        call_name="Series.indexing",
+        call_name="indexing",
         call_name_is_code=True,
     )
     def indexing(self, /, ) -> None:
         r"""
+<a id="seriesindexing"></a>
+
 ==Refer to the available indexing forms==
 
 #### Syntax
@@ -49,10 +51,9 @@ Use the indexing forms linked below to work with data.
         raise NotImplementedError
 
 
-    @staticmethod
-    @_dm.topic(title="Indexing forms", anchor="indexing-forms", priority=210)
-    def _indexing_forms():
-        r"""
+    _documark_topic__indexing_forms = r"""
+documark = {title = "Indexing forms", anchor = "indexing-forms", priority = 210}
+
 ==Read or assign observations, or create a shifted or restricted series==
 
 ### Syntax
@@ -95,14 +96,19 @@ Use the indexing forms linked below to work with data.
 
 ### Returns
 
-!!! returns "data or new_series"
+!!! returns "data — square brackets with dates"
 
-    Square brackets with dates return an independent two-dimensional NumPy
-    array: periods run down rows and variants across columns. Requested
-    dates outside the series contain missing values.
+    Independent two-dimensional NumPy array: periods run down rows and
+    variants across columns. Requested dates outside the series contain
+    missing values.
 
-    An integer in square brackets returns a shifted copy. Round brackets
-    return a new Series with the selected data and data type, but an empty
+!!! returns "new_series — square brackets with an integer shift"
+
+    A shifted copy of the series, with unchanged observations.
+
+!!! returns "new_series — round-bracket call"
+
+    A new Series with the selected data and data type, but an empty
     description. Missing rows at either end are trimmed.
 
 ### Mutation
@@ -114,10 +120,9 @@ and selecting with round brackets leave it unchanged.
 ### See also
 
 `get_data`, `set_data`, `shift`, `reverse_variants`, `reverse_periods`.
-        """
-        pass
+    """
 
-    @_dm.reference(category="indexing", call_name="Series.__getitem__", )
+    @_dm.no_reference
     def __getitem__(
         self,
         index: int | tuple,
@@ -142,7 +147,7 @@ and selecting with round brackets leave it unchanged.
                 dates, variants = index, None
             return self.get_data(dates, variants, )
 
-    @_dm.reference(category="indexing", call_name="Series.__setitem__", )
+    @_dm.no_reference
     def __setitem__(
         self,
         index: int | tuple,
@@ -159,7 +164,7 @@ and selecting with round brackets leave it unchanged.
             index = (index, None, )
         return self.set_data(index[0], data, index[1], )
 
-    @_dm.reference(category="indexing", call_name="Series.__call__", )
+    @_dm.no_reference
     def __call__(
         self,
         *index,
@@ -194,14 +199,12 @@ and selecting with round brackets leave it unchanged.
         series,
     )
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     No return value. The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new Series with the reversed observations.
 
 #### Mutation
@@ -240,14 +243,12 @@ The function form returns a changed copy and leaves the input unchanged.
         series,
     )
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     No return value. The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new Series with the reversed observations.
 
 #### Mutation

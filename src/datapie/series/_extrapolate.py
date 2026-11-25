@@ -78,14 +78,12 @@ class Mixin:
 !!! input "log"
     Whether to apply the rule to logarithms and convert the generated values back afterwards. The default is `False`. This option is keyword-only.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new series with the result. The input series is unchanged.
 
 ??? note "Details"

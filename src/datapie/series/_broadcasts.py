@@ -27,9 +27,11 @@ if TYPE_CHECKING:
 class Mixin:
     #[
 
-    @_dm.reference(category="multiple", call_name="Series.broadcast_variants", )
+    @_dm.reference(category="multiple", call_name="broadcast_variants", )
     def broadcast_variants(self, num_variants, ) -> None:
         r"""
+<a id="seriesbroadcast_variants"></a>
+
 ==Repeat a single variant to match a requested variant count==
 
 #### Syntax

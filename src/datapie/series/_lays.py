@@ -70,10 +70,10 @@ Function form:
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     Method form: no return value; the receiving series is changed in place.
 
-!!! returns "new_series"
+!!! returns "new_series — function form"
     Function form: a combined copy of `series`, leaving `series` unchanged.
 
 #### Mutation
@@ -139,10 +139,10 @@ Function form:
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     Method form: no return value; the receiving series is changed in place.
 
-!!! returns "new_series"
+!!! returns "new_series — function form"
     Function form: a combined copy of `series`, leaving `series` unchanged.
     The function can still change `other` as described below.
 
@@ -240,10 +240,10 @@ Function form:
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     Method form: no return value; the receiving series is changed in place.
 
-!!! returns "new_series"
+!!! returns "new_series — function form"
     Function form: a combined copy of `series`, leaving `series` unchanged.
 
 #### Mutation
@@ -307,10 +307,10 @@ Function form:
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     Method form: no return value; the receiving series is changed in place.
 
-!!! returns "new_series"
+!!! returns "new_series — function form"
     Function form: a combined copy of `series`, leaving `series` unchanged.
 
 #### Mutation

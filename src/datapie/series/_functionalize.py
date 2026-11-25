@@ -23,7 +23,7 @@ def {n}(self, *args, **kwargs, ) -> Series:
 
 !!! input "*args, **kwargs"
 
-    The same options as [`Series.{n}`](#{n}).
+    The same options as [`{n}`](#{n}).
 
 #### Returns
 
@@ -34,7 +34,7 @@ def {n}(self, *args, **kwargs, ) -> Series:
 
 #### See also
 
-[`Series.{n}`](#{n}).
+[`{n}`](#{n}).
     '''
     new = self.copy()
     out = new.{n}(*args, **kwargs, )

@@ -260,9 +260,14 @@ class Mixin:
 
 #### Returns
 
-!!! returns "trend, gap"
+!!! returns "trend"
 
-    Two new series containing the trend and gap. The input is unchanged.
+    A new Series containing the estimated trend. The input is unchanged.
+
+!!! returns "gap"
+
+    A new Series containing input minus trend, or input divided by trend
+    with `log=True`. The input is unchanged.
 
 All filter options are keyword-only. Each variant is filtered independently using
 the same constraints. The filter balances squared observation errors against
@@ -349,11 +354,11 @@ Use the component methods to retain one component in place.
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the Hodrick-Prescott trend in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the Hodrick-Prescott trend; the input is unchanged.
 
@@ -440,11 +445,11 @@ if observations and constraints do not sufficiently determine a trend.
 
 #### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     The method replaces the series with the Hodrick-Prescott gap in place.
 
-!!! returns "result"
+!!! returns "result — function form"
 
     The function returns a new series containing the Hodrick-Prescott gap; the input is unchanged.
 
@@ -530,9 +535,14 @@ def hpf(self, *args, **kwargs, ) -> tuple[Series, Series]:
 
 #### Returns
 
-!!! returns "trend, gap"
+!!! returns "trend"
 
-    Two new series containing the trend and gap. The input is unchanged.
+    A new Series containing the estimated trend. The input is unchanged.
+
+!!! returns "gap"
+
+    A new Series containing input minus trend, or input divided by trend
+    with `log=True`. The input is unchanged.
 
 All filter options are keyword-only. Each variant is filtered independently using
 the same constraints. The filter balances squared observation errors against

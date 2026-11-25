@@ -26,10 +26,9 @@ from ._functionalize import FUNC_STRING
 class Mixin:
     #[
 
-    @staticmethod
-    @_dm.topic(title="Moving windows", anchor="moving-windows", priority=170)
-    def _reference_moving_windows():
-        r"""
+    _documark_topic__reference_moving_windows = r"""
+documark = {title = "Moving windows", anchor = "moving-windows", priority = 170}
+
 ==Calculate sums, averages or products over moving windows==
 
 ### Syntax
@@ -62,15 +61,13 @@ class Mixin:
     monthly, -52 weekly or -365 daily. For a non-calendar or unknown frequency
     it uses -4.
 
-### Method form returns
+### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
 
     No return value. The series is changed in place.
 
-### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
 
     A new Series containing the result. The input series is left unchanged.
 
@@ -79,8 +76,7 @@ or product for each variant separately. A missing observation makes every
 window containing it missing. The first `k-1` periods have no complete
 window and are missing too. Missing rows at either end are removed; a
 window longer than the data can leave an empty series.
-        """
-        pass
+    """
 
 
     @_dm.reference(category="moving", )
@@ -122,14 +118,12 @@ window longer than the data can leave an empty series.
     monthly, -52 weekly or -365 daily. For a non-calendar or unknown frequency
     it uses -4.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     No return value. The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new Series containing the result. The input series is left unchanged.
 
 Missing rows at either end of the result are removed. Whether a missing

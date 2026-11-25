@@ -16,7 +16,6 @@ import itertools as _it
 import functools as _ft
 import warnings as _wa
 import datetime as _dt
-import documark as _dm
 
 from ..periods import Period
 from .. import periods as _periods
@@ -73,6 +72,13 @@ def _area_constructor(style, **kwargs, ):
     )
 
 
+_CHART_TYPE_DISPATCH = {
+    "line": _line_constructor,
+    "bar": _bar_constructor,
+    "area": _area_constructor,
+}
+
+
 #-------------------------------------------------------------------------------
 # Mixin methods
 #-------------------------------------------------------------------------------
@@ -81,13 +87,14 @@ def _area_constructor(style, **kwargs, ):
 class Mixin:
     #[
 
-    @_dm.reference(category="plotting", call_name="Series.plot", )
     def plot(
         self,
         chart_type: Literal["line", "bar", "bar_group", "bar_stack", "bar_relative", "bar_overlay", "area"] = "line",
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
+documark = {category = "plotting"}
+
 ==Plot a series using the selected chart type==
 
 #### Syntax
@@ -128,32 +135,14 @@ Leaves the series unchanged. A supplied figure is updated in place.
 
 #### See also
 
-[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
-[`plot_histogram`](#seriesplot_histogram), [`plot_bands`](#seriesplot_bands),
+[`plot_line`](#plot_line), [`plot_area`](#plot_area), [`plot_bar`](#plot_bar),
+[`plot_histogram`](#plot_histogram), [`plot_bands`](#plot_bands),
 [Plot settings](#plot-settings).
         """
-        if chart_type == "line":
-            trace_constructor=_line_constructor,
-            return self.plot_line(**kwargs, )
-        elif chart_type in "bar":
-            return self.plot_bar(**kwargs, )
-        elif chart_type in "bar_group":
-            return self.plot_bar_group(**kwargs, )
-        elif chart_type == "bar_stack":
-            return self.plot_bar_stack(**kwargs, )
-        elif chart_type == "bar_overlay":
-            return self.plot_bar_overlay(**kwargs, )
-        elif chart_type == "bar_relative":
-            return self.plot_bar_relative(**kwargs, )
-        elif chart_type == "area":
-            return self.plot_area(**kwargs, )
-        elif chart_type == "histogram":
-            return self.plot_histogram(**kwargs, )
-        else:
-            raise ValueError(f"Invalid chart_type: {chart_type!r}, must be one of 'line', 'bar', 'bar_group', 'bar_stack', 'bar_relative', 'bar_overlay', 'area' or 'histogram'")
+        attr_name = "plot_" + chart_type
+        func = getattr(self, attr_name, )
+        return func(**kwargs, )
 
-
-    @_dm.reference(category="plotting", call_name="Series.plot_line", )
     def plot_line(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -161,6 +150,8 @@ Leaves the series unchanged. A supplied figure is updated in place.
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
+documark = {category = "plotting"}
+
 ==Draw each variant as a line with markers==
 
 #### Syntax
@@ -205,7 +196,7 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
+[`plot_line`](#plot_line), [`plot_area`](#plot_area), [`plot_bar`](#plot_bar),
 [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
@@ -223,7 +214,6 @@ to suppress display. This is a method only, not a standalone function.
         return info
 
 
-    @_dm.reference(category="plotting", call_name="Series.plot_bands", )
     def plot_bands(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -236,6 +226,8 @@ to suppress display. This is a method only, not a standalone function.
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
+documark = {category = "plotting"}
+
 ==Draw variants as shaded bands around an optional middle line==
 
 #### Syntax
@@ -310,8 +302,8 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area),
-[`plot_bar`](#seriesplot_bar), [Plot settings](#plot-settings).
+[`plot_line`](#plot_line), [`plot_area`](#plot_area),
+[`plot_bar`](#plot_bar), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_band_traces,
@@ -335,7 +327,6 @@ to suppress display. This is a method only, not a standalone function.
         return info
 
 
-    @_dm.reference(category="plotting", call_name="Series.plot_area", )
     def plot_area(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -343,7 +334,9 @@ to suppress display. This is a method only, not a standalone function.
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
-==Draw each variant as a line filled down to zero==
+documark = {category = "plotting"}
+
+==Draw each variant as an area filled down to zero==
 
 #### Syntax
 
@@ -387,7 +380,7 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
+[`plot_line`](#plot_line), [`plot_area`](#plot_area), [`plot_bar`](#plot_bar),
 [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
@@ -406,7 +399,6 @@ to suppress display. This is a method only, not a standalone function.
         return info
 
 
-    @_dm.reference(category="plotting", call_name="Series.plot_bar", )
     def plot_bar(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -414,6 +406,8 @@ to suppress display. This is a method only, not a standalone function.
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
+documark = {category = "plotting"}
+
 ==Draw each variant as bars==
 
 #### Syntax
@@ -461,9 +455,9 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
+[`plot_bar`](#plot_bar), [`plot_bar_stack`](#plot_bar_stack),
+[`plot_bar_group`](#plot_bar_group), [`plot_bar_overlay`](#plot_bar_overlay),
+[`plot_bar_relative`](#plot_bar_relative),
 [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
@@ -482,8 +476,15 @@ to suppress display. This is a method only, not a standalone function.
         return info
 
 
-    plot_bar_stack = _ft.partialmethod(plot_bar, bar_mode="stack", )
-    plot_bar_stack.__doc__ = """
+    def plot_bar_stack(
+        self,
+        span: Iterable[Period] | EllipsisType = ...,
+        update_traces: Iterable[dict] | dict | None = None,
+        **kwargs,
+    ) -> dict[str, Any] | None:
+        r"""
+documark = {category = "plotting"}
+
 ==Draw variants as stacked bars==
 
 #### Syntax
@@ -529,14 +530,28 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
+[`plot_bar`](#plot_bar), [`plot_bar_stack`](#plot_bar_stack),
+[`plot_bar_group`](#plot_bar_group), [`plot_bar_overlay`](#plot_bar_overlay),
+[`plot_bar_relative`](#plot_bar_relative),
 [Plot settings](#plot-settings).
         """
+        kwargs.setdefault("bar_mode", "stack")
+        return Mixin.plot_bar(
+            self,
+            span=span,
+            update_traces=update_traces,
+            **kwargs,
+        )
 
-    plot_bar_group = _ft.partialmethod(plot_bar, bar_mode="group", )
-    plot_bar_group.__doc__ = """
+    def plot_bar_group(
+        self,
+        span: Iterable[Period] | EllipsisType = ...,
+        update_traces: Iterable[dict] | dict | None = None,
+        **kwargs,
+    ) -> dict[str, Any] | None:
+        r"""
+documark = {category = "plotting"}
+
 ==Draw variants as side-by-side bars==
 
 #### Syntax
@@ -582,14 +597,28 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
+[`plot_bar`](#plot_bar), [`plot_bar_stack`](#plot_bar_stack),
+[`plot_bar_group`](#plot_bar_group), [`plot_bar_overlay`](#plot_bar_overlay),
+[`plot_bar_relative`](#plot_bar_relative),
 [Plot settings](#plot-settings).
         """
+        kwargs.setdefault("bar_mode", "group")
+        return Mixin.plot_bar(
+            self,
+            span=span,
+            update_traces=update_traces,
+            **kwargs,
+        )
 
-    plot_bar_overlay = _ft.partialmethod(plot_bar, bar_mode="overlay", )
-    plot_bar_overlay.__doc__ = """
+    def plot_bar_overlay(
+        self,
+        span: Iterable[Period] | EllipsisType = ...,
+        update_traces: Iterable[dict] | dict | None = None,
+        **kwargs,
+    ) -> dict[str, Any] | None:
+        r"""
+documark = {category = "plotting"}
+
 ==Draw variants as overlapping bars==
 
 #### Syntax
@@ -636,14 +665,28 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
+[`plot_bar`](#plot_bar), [`plot_bar_stack`](#plot_bar_stack),
+[`plot_bar_group`](#plot_bar_group), [`plot_bar_overlay`](#plot_bar_overlay),
+[`plot_bar_relative`](#plot_bar_relative),
 [Plot settings](#plot-settings).
         """
+        kwargs.setdefault("bar_mode", "overlay")
+        return Mixin.plot_bar(
+            self,
+            span=span,
+            update_traces=update_traces,
+            **kwargs,
+        )
 
-    plot_bar_relative = _ft.partialmethod(plot_bar, bar_mode="relative", )
-    plot_bar_relative.__doc__ = """
+    def plot_bar_relative(
+        self,
+        span: Iterable[Period] | EllipsisType = ...,
+        update_traces: Iterable[dict] | dict | None = None,
+        **kwargs,
+    ) -> dict[str, Any] | None:
+        r"""
+documark = {category = "plotting"}
+
 ==Stack positive and negative bars separately==
 
 #### Syntax
@@ -690,15 +733,21 @@ to suppress display. This is a method only, not a standalone function.
 
 #### See also
 
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
+[`plot_bar`](#plot_bar), [`plot_bar_stack`](#plot_bar_stack),
+[`plot_bar_group`](#plot_bar_group), [`plot_bar_overlay`](#plot_bar_overlay),
+[`plot_bar_relative`](#plot_bar_relative),
 [Plot settings](#plot-settings).
         """
+        kwargs.setdefault("bar_mode", "relative")
+        return Mixin.plot_bar(
+            self,
+            span=span,
+            update_traces=update_traces,
+            **kwargs,
+        )
 
 
 
-    @_dm.reference(category="plotting", call_name="Series.plot_histogram", )
     def plot_histogram(
         self,
         span: Iterable[Period] | EllipsisType = ...,
@@ -707,6 +756,8 @@ to suppress display. This is a method only, not a standalone function.
         **kwargs,
     ) -> dict[str, Any] | None:
         r"""
+documark = {category = "plotting"}
+
 ==Draw the distribution of each variant's observations==
 
 #### Syntax
@@ -761,8 +812,8 @@ not a standalone function.
 
 #### See also
 
-[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area),
-[`plot_bar`](#seriesplot_bar), [Plot settings](#plot-settings).
+[`plot_line`](#plot_line), [`plot_area`](#plot_area),
+[`plot_bar`](#plot_bar), [Plot settings](#plot-settings).
         """
         generate_traces = _ft.partial(
             _generate_histogram_traces,
@@ -782,236 +833,9 @@ not a standalone function.
         return info
 
 
-    @staticmethod
-    @_dm.reference(category="plotting", call_name="Series.plot_bar_stack", )
-    def _plot_bar_stack_reference():
-        r"""
-==Draw variants as stacked bars==
+    _documark_topic__plot_settings = r"""
+documark = {title = "Plot settings", priority = 70}
 
-#### Syntax
-
-    info = series.plot_bar_stack(
-        span=...,
-        update_traces=None,
-        **kwargs,
-    )
-
-#### Input arguments
-
-!!! input "span"
-    A period, span, or selection of periods. Default: `...`, the series' full
-    span. The first and last selected periods define a continuous plotting
-    interval. The selection must not be empty. Values outside the stored span
-    are missing.
-
-!!! input "update_traces"
-    A Plotly settings dictionary, or dictionaries cycled across variants.
-    Default: `None`, no updates. An empty sequence produces no traces.
-
-!!! input "**kwargs"
-    Additional keyword settings described in [Plot settings](#plot-settings).
-
-#### Returns
-
-!!! returns "info"
-    `None` by default. With `return_info=True`, a dictionary containing
-    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
-
-#### Mutation
-
-Leaves the series unchanged. A supplied figure is updated in place.
-
-#### Details
-
-Each variant normally produces one Bar trace. Bars are stacked vertically.
-This method supplies `bar_mode="stack"`; an explicit `bar_mode` overrides it.
-The arrangement applies to the whole figure, including existing bar traces.
-A new figure is created and displayed by default; set `show_figure=False`
-to suppress display. This is a method only, not a standalone function.
-
-#### See also
-
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
-[Plot settings](#plot-settings).
-        """
-        pass
-
-    @staticmethod
-    @_dm.reference(category="plotting", call_name="Series.plot_bar_group", )
-    def _plot_bar_group_reference():
-        r"""
-==Draw variants as side-by-side bars==
-
-#### Syntax
-
-    info = series.plot_bar_group(
-        span=...,
-        update_traces=None,
-        **kwargs,
-    )
-
-#### Input arguments
-
-!!! input "span"
-    A period, span, or selection of periods. Default: `...`, the series' full
-    span. The first and last selected periods define a continuous plotting
-    interval. The selection must not be empty. Values outside the stored span
-    are missing.
-
-!!! input "update_traces"
-    A Plotly settings dictionary, or dictionaries cycled across variants.
-    Default: `None`, no updates. An empty sequence produces no traces.
-
-!!! input "**kwargs"
-    Additional keyword settings described in [Plot settings](#plot-settings).
-
-#### Returns
-
-!!! returns "info"
-    `None` by default. With `return_info=True`, a dictionary containing
-    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
-
-#### Mutation
-
-Leaves the series unchanged. A supplied figure is updated in place.
-
-#### Details
-
-Each variant normally produces one Bar trace. Bars are placed side by side.
-This method supplies `bar_mode="group"`; an explicit `bar_mode` overrides it.
-The arrangement applies to the whole figure, including existing bar traces.
-A new figure is created and displayed by default; set `show_figure=False`
-to suppress display. This is a method only, not a standalone function.
-
-#### See also
-
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
-[Plot settings](#plot-settings).
-        """
-        pass
-
-    @staticmethod
-    @_dm.reference(category="plotting", call_name="Series.plot_bar_overlay", )
-    def _plot_bar_overlay_reference():
-        r"""
-==Draw variants as overlapping bars==
-
-#### Syntax
-
-    info = series.plot_bar_overlay(
-        span=...,
-        update_traces=None,
-        **kwargs,
-    )
-
-#### Input arguments
-
-!!! input "span"
-    A period, span, or selection of periods. Default: `...`, the series' full
-    span. The first and last selected periods define a continuous plotting
-    interval. The selection must not be empty. Values outside the stored span
-    are missing.
-
-!!! input "update_traces"
-    A Plotly settings dictionary, or dictionaries cycled across variants.
-    Default: `None`, no updates. An empty sequence produces no traces.
-
-!!! input "**kwargs"
-    Additional keyword settings described in [Plot settings](#plot-settings).
-
-#### Returns
-
-!!! returns "info"
-    `None` by default. With `return_info=True`, a dictionary containing
-    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
-
-#### Mutation
-
-Leaves the series unchanged. A supplied figure is updated in place.
-
-#### Details
-
-Each variant normally produces one Bar trace. Bars overlap, so later traces
-can obscure earlier traces; use `update_traces` to set opacity if needed.
-This method supplies `bar_mode="overlay"`; an explicit `bar_mode` overrides it.
-The arrangement applies to the whole figure, including existing bar traces.
-A new figure is created and displayed by default; set `show_figure=False`
-to suppress display. This is a method only, not a standalone function.
-
-#### See also
-
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
-[Plot settings](#plot-settings).
-        """
-        pass
-
-    @staticmethod
-    @_dm.reference(category="plotting", call_name="Series.plot_bar_relative", )
-    def _plot_bar_relative_reference():
-        r"""
-==Stack positive and negative bars separately==
-
-#### Syntax
-
-    info = series.plot_bar_relative(
-        span=...,
-        update_traces=None,
-        **kwargs,
-    )
-
-#### Input arguments
-
-!!! input "span"
-    A period, span, or selection of periods. Default: `...`, the series' full
-    span. The first and last selected periods define a continuous plotting
-    interval. The selection must not be empty. Values outside the stored span
-    are missing.
-
-!!! input "update_traces"
-    A Plotly settings dictionary, or dictionaries cycled across variants.
-    Default: `None`, no updates. An empty sequence produces no traces.
-
-!!! input "**kwargs"
-    Additional keyword settings described in [Plot settings](#plot-settings).
-
-#### Returns
-
-!!! returns "info"
-    `None` by default. With `return_info=True`, a dictionary containing
-    `"figure"` (the Plotly figure) and `"traces"` (the added traces).
-
-#### Mutation
-
-Leaves the series unchanged. A supplied figure is updated in place.
-
-#### Details
-
-Each variant normally produces one Bar trace. Positive and negative values
-are stacked on opposite sides of zero. This method supplies
-`bar_mode="relative"`; an explicit `bar_mode` overrides it. The arrangement
-applies to the whole figure, including existing bar traces.
-A new figure is created and displayed by default; set `show_figure=False`
-to suppress display. This is a method only, not a standalone function.
-
-#### See also
-
-[`plot_bar`](#seriesplot_bar), [`plot_bar_stack`](#seriesplot_bar_stack),
-[`plot_bar_group`](#seriesplot_bar_group), [`plot_bar_overlay`](#seriesplot_bar_overlay),
-[`plot_bar_relative`](#seriesplot_bar_relative),
-[Plot settings](#plot-settings).
-        """
-        pass
-
-    @staticmethod
-    @_dm.topic(title="Plot settings", anchor="plot-settings", priority=70)
-    def _plot_settings():
-        r"""
 ==Set chart titles, axes, legends, and display options==
 
 ### Input arguments
@@ -1137,12 +961,11 @@ Vertical lines and highlights do not follow the `subplot` selection.
 
 ### See also
 
-[`plot_line`](#seriesplot_line), [`plot_area`](#seriesplot_area), [`plot_bar`](#seriesplot_bar),
-[`plot_bar_stack`](#seriesplot_bar_stack), [`plot_bar_group`](#seriesplot_bar_group),
-[`plot_bar_overlay`](#seriesplot_bar_overlay), [`plot_bar_relative`](#seriesplot_bar_relative),
-[`plot_bands`](#seriesplot_bands), [`plot_histogram`](#seriesplot_histogram).
-        """
-        pass
+[`plot_line`](#plot_line), [`plot_area`](#plot_area), [`plot_bar`](#plot_bar),
+[`plot_bar_stack`](#plot_bar_stack), [`plot_bar_group`](#plot_bar_group),
+[`plot_bar_overlay`](#plot_bar_overlay), [`plot_bar_relative`](#plot_bar_relative),
+[`plot_bands`](#plot_bands), [`plot_histogram`](#plot_histogram).
+    """
 
     #]
 

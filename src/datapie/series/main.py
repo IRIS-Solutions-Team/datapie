@@ -80,10 +80,6 @@ def _get_date_positions(dates, base, num_periods, ):
     return pos_adjusted, add_before, add_after
 
 
-@_dm.reference(
-    path=("data_management", "time_series.md", ),
-    categories=CATEGORIES,
-)
 class Series(
     _indexing.Mixin,
     _elementwise.Mixin,
@@ -122,23 +118,26 @@ alongside their methods and leave the input series unchanged.
 
 #### Attributes
 
-| Name | Type | Access | Meaning |
-| --- | --- | --- | --- |
-| `start` | `Period` or `None` | Writable | Period of the first row. Assigning a new start moves the time axis without changing values. |
-| `data` | NumPy array | Writable | Values arranged as period rows and variant columns. Direct writes do not automatically trim missing rows. |
-| `data_type` | NumPy dtype | Writable | Data type used when creating or converting observations. Assigning it does not convert existing values. |
-| `shape` | Pair of integers | Read-only | Number of periods and variants. |
-| `num_periods` | Integer | Read-only | Number of rows, including internal missing rows. |
-| `num_variants` | Integer | Read-only | Number of columns. |
-| `is_singleton` | Boolean | Read-only | Whether there is exactly one variant. |
-| `start_period`, `start_date` | `Period` or `None` | Read-only | Other names for reading `start`. |
-| `end`, `end_period`, `end_date` | `Period` or `None` | Read-only | Last period, calculated from the start and row count. |
-| `span`, `range` | `Span` or empty tuple | Read-only | Inclusive start-to-end span; empty tuple when no start is set. |
-| `periods`, `dates` | Tuple of periods | Read-only | All periods in the span. |
-| `from_until` | Pair of periods or `None` values | Read-only | Start and end together. |
-| `frequency` | `Frequency` | Read-only | Frequency of the start period, or `Frequency.UNKNOWN` without a start. |
-| `is_empty` | Boolean | Read-only | Whether there are no data entries, including a series with zero variants. |
-| `has_missing` | Boolean | Read-only | Whether any stored value is missing. |
+| Name | Type | Meaning |
+| --- | --- | --- |
+| `start` | `Period` or `None` | Period of the first row. |
+| `data` | NumPy array | Observations arranged as period rows and variant columns. |
+| `data_type` | NumPy dtype | Data type used when creating or converting observations. |
+| `shape` | Pair of integers | Number of periods and variants. |
+| `num_periods` | Integer | Number of rows, including internal missing rows. |
+| `num_variants` | Integer | Number of columns. |
+| `is_singleton` | Boolean | Whether there is exactly one variant. |
+| `start_period`, `start_date` | `Period` or `None` | Other names for `start`. |
+| `end`, `end_period`, `end_date` | `Period` or `None` | Last period, calculated from the start and row count. |
+| `span`, `range` | `Span` or empty tuple | Inclusive start-to-end span; empty tuple when no start is set. |
+| `periods`, `dates` | Tuple of periods | All periods in the span. |
+| `from_until` | Pair of periods or `None` values | Start and end together. |
+| `frequency` | `Frequency` | Frequency of the start period, or `Frequency.UNKNOWN` without a start. |
+| `is_empty` | Boolean | Whether there are no data entries, including a series with zero variants. |
+| `has_missing` | Boolean | Whether any stored value is missing. |
+
+Use methods such as [`set_data`](#set_data), [`set_start`](#set_start),
+and [`alter_num_variants`](#alter_num_variants) to change the series.
 
 The description is read and changed using `get_description` and `set_description`.
 
@@ -146,25 +145,26 @@ The description is read and changed using `get_description` and `set_description
 
 `trim` removes rows missing in every variant from the two ends (leading and
 trailing missing observations), not from the middle. Several methods trim after
-writing data, but direct attribute writes and some transformations do not.
+writing data; other transformations leave missing edge rows for `trim` to remove.
 `reset` clears the start and description; `empty` retains them. If the start is
 retained with no rows, `end` is the period before the start.
 
-#### See also
-
-[Arithmetic operations](#arithmetic-protocols),
-[Comparisons](#comparison-protocols),
-[Iteration, combination, and display](#container-protocols),
-[`extract_variants`](#extract_variants), [`iter_own_variants`](#iter_own_variants)
     """
     #[
 
-    __slots__ = (
-        "start",
-        "data",
-        "data_type",
-        "_description",
-    )
+    __slots__ = {
+        "start":
+            r"""
+            --- documark: true category: property ---
+            Period of the first observation, or None for an empty series
+            """,
+
+        "data": "Two-dimensional NumPy array of observations, with period in rows and variants in columns",
+
+        "data_type": "NumPy data type used for the observations",
+
+        "_description": "Text description of the series, defaulting to empty string",
+    }
 
     _numeric_format: str = "15g"
     _short_str_format: str = ">15"
@@ -172,6 +172,9 @@ retained with no rows, `end` is the period before the start.
     _missing = _np.nan
     _missing_str: str = "⋅"
     _test_missing_period = staticmethod(lambda x: _np.all(_np.isnan(x)))
+
+    _documark_path = "data_management/time_series.md"
+    _documark_categories = CATEGORIES
 
     @_dm.reference(
         category="constructor",
@@ -391,7 +394,7 @@ retained with no rows, `end` is the period before the start.
     @classmethod
     @_dm.reference(
         category="constructor",
-        call_name="Series.from_start_and_array",
+        call_name="from_start_and_array",
     )
     def from_start_and_array(
         klass,
@@ -401,6 +404,8 @@ retained with no rows, `end` is the period before the start.
         trim: bool = True,
     ) -> Self:
         r"""
+<a id="seriesfrom_start_and_array"></a>
+
 ==Create a series from a start period and a NumPy array==
 
 #### Syntax
@@ -480,7 +485,7 @@ retained with no rows, `end` is the period before the start.
         )
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def shape(self, ) -> tuple[int, int]:
         r"""
 ==Read the period and variant counts==
@@ -502,7 +507,7 @@ retained with no rows, `end` is the period before the start.
         return self.data.shape
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def num_periods(self, ) -> int:
         r"""
 ==Read the number of stored periods==
@@ -524,7 +529,7 @@ retained with no rows, `end` is the period before the start.
         return self.data.shape[0]
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def num_variants(self, ) -> int:
         r"""
 ==Read the number of variants==
@@ -546,7 +551,7 @@ retained with no rows, `end` is the period before the start.
         return self.data.shape[1]
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def is_singleton(self, ) -> bool:
         r"""
 ==Test whether there is one variant==
@@ -568,7 +573,7 @@ retained with no rows, `end` is the period before the start.
         return self.data.shape[1] == 1
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def span(self, ):
         r"""
 ==Read the stored time span==
@@ -592,7 +597,7 @@ retained with no rows, `end` is the period before the start.
     range = span
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def from_until(self, ):
         r"""
 ==Read the start and end together==
@@ -614,7 +619,7 @@ retained with no rows, `end` is the period before the start.
         return self.start, self.end
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def periods(self, ) -> tuple[Period, ...]:
         r"""
 ==Read all periods in the span==
@@ -638,10 +643,10 @@ retained with no rows, `end` is the period before the start.
     dates = periods
 
     @property
-    @_dm.reference(category="property", call_name="start", )
+    @_dm.no_reference
     def _start(self):
         r"""
-==Read or assign the first period==
+==Read the first period==
 
 #### Syntax
 
@@ -651,7 +656,8 @@ retained with no rows, `end` is the period before the start.
 
 !!! returns "value"
 
-    `Period` or `None`. The public `start` attribute is writable; assigning a new period changes the time axis, not the values.
+    `Period` or `None` for the first row. Use `set_start` or `redate` to move
+    the series in time.
 
 #### See also
 
@@ -660,7 +666,7 @@ retained with no rows, `end` is the period before the start.
         raise NotImplementedError
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def start_period(self, ):
         r"""
 ==Read the first period==
@@ -684,7 +690,7 @@ retained with no rows, `end` is the period before the start.
     start_date = start_period
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def end(self):
         r"""
 ==Read the last period==
@@ -712,7 +718,7 @@ retained with no rows, `end` is the period before the start.
     end_date = end
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def frequency(self, ):
         r"""
 ==Read the time frequency==
@@ -738,7 +744,7 @@ retained with no rows, `end` is the period before the start.
         )
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def is_empty(self, ) -> bool:
         r"""
 ==Test whether the series has no data entries==
@@ -760,7 +766,7 @@ retained with no rows, `end` is the period before the start.
         return not self.data.size
 
     @property
-    @_dm.reference(category="property", )
+    @_dm.no_reference
     def has_missing(self, ):
         r"""
 ==Test whether any stored observation is missing==
@@ -1272,11 +1278,15 @@ There is no top-level function form.
 
 #### Returns
 
-!!! returns "data, periods"
+!!! returns "data"
 
-    Pair of an independent two-dimensional NumPy array and the tuple of
-    resolved periods. Rows correspond to periods; columns correspond to variants.
-    Out-of-span observations contain NaN.
+    Independent two-dimensional NumPy array. Rows correspond to the resolved
+    periods; columns correspond to variants. Out-of-span observations contain NaN.
+
+!!! returns "periods"
+
+    Tuple of resolved periods in request order, including duplicates. Its
+    entries correspond to the rows of `data`.
 
 Reading does not change or extend the series. Use a data type supporting NaN
 for out-of-span requests.
@@ -1799,7 +1809,7 @@ There is no top-level function form.
         for n in ("start", "data", "data_type", ):
             setattr(self, n, getattr(other, n, ))
 
-    @_dm.reference(category="information", )
+    @_dm.no_reference
     def __iter__(self, ):
         r"""
 ==Read each variant once==
@@ -1810,7 +1820,7 @@ There is no top-level function form.
         """
         return self.iter_own_variants()
 
-    @_dm.reference(category="information", )
+    @_dm.no_reference
     def __and__(self, other, ):
         r"""
 ==Combine series as additional variants==
@@ -1865,18 +1875,18 @@ There is no top-level function form.
         if data.shape[1] != self.data.shape[1]:
             raise Exception("Time series data being assigned must preserve the number of variants")
 
-    @_dm.reference(category="information", )
+    @_dm.no_reference
     def __bool__(self, ):
         r"""
 ==Test whether the series contains data entries==
 
 #### See also
 
-[Iteration, combination, and display](#container-protocols)
+[Truth-value testing](#truth-value-testing)
         """
         return self.data.size > 0
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __neg__(self):
         r"""
 ==Negate observations in a copy==
@@ -1889,7 +1899,7 @@ There is no top-level function form.
         output.data = -output.data
         return output
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __pos__(self):
         r"""
 ==Return a copy==
@@ -1900,7 +1910,7 @@ There is no top-level function form.
         """
         return self.copy()
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __add__(self, other, ) -> Self | _np.ndarray | Real:
         r"""
 ==Add aligned observations==
@@ -1912,7 +1922,7 @@ There is no top-level function form.
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.add, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __radd__(self, other):
         r"""
 ==Add the series to a left operand==
@@ -1923,7 +1933,7 @@ There is no top-level function form.
         """
         return self.apply(lambda data: data.__radd__(other))
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __mul__(self, other) -> Self|_np.ndarray:
         r"""
 ==Multiply aligned observations==
@@ -1935,7 +1945,7 @@ There is no top-level function form.
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.mul, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __rmul__(self, other):
         r"""
 ==Multiply a left operand by the series==
@@ -1946,7 +1956,7 @@ There is no top-level function form.
         """
         return self.apply(lambda data: data.__rmul__(other))
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __sub__(self, other):
         r"""
 ==Subtract aligned observations==
@@ -1958,7 +1968,7 @@ There is no top-level function form.
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.sub, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __rsub__(self, other):
         r"""
 ==Subtract observations from a left operand==
@@ -1969,7 +1979,7 @@ There is no top-level function form.
         """
         return self.apply(lambda data: data.__rsub__(other))
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __pow__(self, other):
         r"""
 ==Raise aligned observations to powers==
@@ -1982,7 +1992,7 @@ There is no top-level function form.
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.pow, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __rpow__(self, other):
         r"""
 ==Raise a left operand to series powers==
@@ -1993,7 +2003,7 @@ There is no top-level function form.
         """
         return self.apply(lambda data: data.__rpow__(other))
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __truediv__(self, other):
         r"""
 ==Divide aligned observations==
@@ -2005,7 +2015,7 @@ There is no top-level function form.
         # arg = other.data if isinstance(other, type(self)) else other
         return self._binop(other, _op.truediv, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __rtruediv__(self, other):
         r"""
 ==Divide a left operand by observations==
@@ -2016,7 +2026,7 @@ There is no top-level function form.
         """
         return self.apply(lambda data: data.__rtruediv__(other))
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __floordiv__(self, other):
         r"""
 ==Floor-divide aligned observations==
@@ -2027,7 +2037,7 @@ There is no top-level function form.
         """
         return self._binop(other, _op.floordiv, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __rfloordiv__(self, other):
         r"""
 ==Floor-divide a left operand by observations==
@@ -2038,7 +2048,7 @@ There is no top-level function form.
         """
         return self.apply(lambda data: data.__rfloordiv__(other))
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __mod__(self, other):
         r"""
 ==Calculate aligned remainders==
@@ -2049,7 +2059,7 @@ There is no top-level function form.
         """
         return self._binop(other, _op.mod, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __rmod__(self, other, ):
         r"""
 ==Calculate left-operand remainders==
@@ -2060,7 +2070,7 @@ There is no top-level function form.
         """
         return self.apply(lambda data: data.__rmod__(other))
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __abs__(self, *args, **kwargs, ) -> Self:
         r"""
 ==Return a copy with absolute observations==
@@ -2085,7 +2095,7 @@ return values, and mutation behavior.
         """
         self.data = _np.abs(self.data, *args, **kwargs, )
 
-    @_dm.reference(category="manipulation", )
+    @_dm.no_reference
     def __round__(self, *args, **kwargs, ) -> Self:
         r"""
 ==Return a copy with rounded observations==
@@ -2120,7 +2130,7 @@ return values, and mutation behavior.
             "#### See also\n\n"
             "[Comparisons](#comparison-protocols)"
         )
-        _dm.reference(category="comparison", )(_comparison_method)
+        _dm.no_reference(_comparison_method)
 
 
     @_dm.reference(category="comparison", )
@@ -2470,25 +2480,24 @@ return values, and mutation behavior.
 
 
 
-    @staticmethod
-    @_dm.topic(title="Arithmetic operations", anchor="arithmetic-protocols", priority=30)
-    def _document_arithmetic_protocols():
-        r"""
+    _documark_topic__document_arithmetic_protocols = r"""
+documark = {title = "Arithmetic operations", anchor = "arithmetic-protocols", priority = 30}
+
 ==Calculate arithmetic results from series observations==
 
 ### Syntax
 
-    +series
-    -series
-    series + other
-    series - other
-    series * other
-    series / other
-    series // other
-    series % other
-    series ** other
-    abs(series)
-    round(series, ndigits)
+    new_series = +series
+    new_series = -series
+    new_series = series + other
+    new_series = series - other
+    new_series = series * other
+    new_series = series / other
+    new_series = series // other
+    new_series = series % other
+    new_series = series ** other
+    new_series = abs(series)
+    new_series = round(series, ndigits)
 
 ### Input arguments
 
@@ -2517,23 +2526,21 @@ return values, and mutation behavior.
 ### See also
 
 [`apply`](#apply), [Comparisons](#comparison-protocols)
-        """
-        pass
+    """
 
-    @staticmethod
-    @_dm.topic(title="Comparisons", anchor="comparison-protocols", priority=20)
-    def _document_comparison_protocols():
-        r"""
+    _documark_topic__document_comparison_protocols = r"""
+documark = {title = "Comparisons", anchor = "comparison-protocols", priority = 20}
+
 ==Compare observations period by period==
 
 ### Syntax
 
-    series == other
-    series != other
-    series < other
-    series <= other
-    series > other
-    series >= other
+    new_series = series == other
+    new_series = series != other
+    new_series = series < other
+    new_series = series <= other
+    new_series = series > other
+    new_series = series >= other
 
 ### Input arguments
 
@@ -2549,24 +2556,67 @@ return values, and mutation behavior.
 
 ### See also
 
-[`same_as`](#same_as), [Iteration, combination, and display](#container-protocols)
-        """
-        pass
+[`same_as`](#same_as), [Truth-value testing](#truth-value-testing),
+[Iteration, combination, and display](#container-protocols)
+    """
 
-    @staticmethod
-    @_dm.topic(title="Iteration, combination, and display", anchor="container-protocols", priority=10)
-    def _document_container_protocols():
-        r"""
-==Iterate, test, combine and display a series==
+    _documark_topic__document_truth_value_testing = r"""
+documark = {title = "Truth-value testing", anchor = "truth-value-testing", priority = 15}
+
+==Test whether a series contains data entries==
 
 ### Syntax
 
-    iter(series)
-    bool(series)
-    series & other
-    series | other
-    repr(series)
-    str(series)
+    result = bool(series)
+    is_empty = not series
+    if series: ...
+    if not series: ...
+
+### Input arguments
+
+!!! input "series"
+
+    The series to test.
+
+### Returns
+
+!!! returns "result — bool(series)"
+
+    Boolean: `True` when the data array has at least one entry, otherwise `False`.
+    A series with no periods or no variants is false, even if it retains
+    a start period.
+
+!!! returns "is_empty — not series"
+
+    Boolean: the opposite of `bool(series)`, and equivalent to `series.is_empty`.
+
+Missing observations, zeros, and false comparison results still count as
+entries. This tests whether data entries exist, not whether any observation
+is nonmissing or true. In particular, using a comparison series in an `if`
+statement does not test whether its comparisons succeeded.
+
+### Mutation
+
+Truth-value testing does not change the series.
+
+### See also
+
+[`is_empty`](#attributes), [`any_missing`](#any_missing),
+[`same_as`](#same_as), [Comparisons](#comparison-protocols)
+    """
+
+    _documark_topic__document_container_protocols = r"""
+documark = {title = "Iteration, combination, and display", anchor = "container-protocols", priority = 10}
+
+==Iterate, combine and display a series==
+
+### Syntax
+
+    iterator = iter(series)
+    new_series = series & other
+    new_series = series | other
+    text = repr(series)
+    text = str(series)
     ~series
 
 ### Input arguments
@@ -2577,25 +2627,21 @@ return values, and mutation behavior.
 
 ### Returns
 
-!!! returns "iter(series)"
+!!! returns "iterator — iter(series)"
 
     Finite iterator of single-variant series, not individual observations.
 
-!!! returns "bool(series)"
-
-    Boolean: whether the series contains any data entries. Missing values and false comparison results still count as entries.
-
-!!! returns "series & other, series | other"
+!!! returns "new_series — series & other, series | other"
 
     New combined series from `hstack`. These operators are not logical AND and OR.
 
-!!! returns "repr(series), str(series)"
+!!! returns "text — repr(series), str(series)"
 
     Text displaying the frequency, span, dimensions, description and observations. Missing values are shown as `⋅`.
 
-!!! returns "~series"
+### Details
 
-    Short-display operation, currently unavailable.
+The short-display operation `~series` is currently unavailable.
 
 ### Mutation
 
@@ -2603,9 +2649,9 @@ These operations do not change the receiver. Iterated series can share data with
 
 ### See also
 
-[`hstack`](#hstack), [`extract_variants`](#extract_variants), [`iter_own_variants`](#iter_own_variants), [`iter_periods_and_values`](#iter_periods_and_values)
-        """
-        pass
+[`hstack`](#hstack), [`extract_variants`](#extract_variants), [`iter_own_variants`](#iter_own_variants), [`iter_periods_and_values`](#iter_periods_and_values),
+[Truth-value testing](#truth-value-testing)
+    """
 
 
     #]
@@ -2661,7 +2707,7 @@ def hstack(first, *args) -> Self:
 
 #### See also
 
-[`Series.hstack`](#hstack)
+[`hstack`](#hstack)
     """
     return first.hstack(*args)
 

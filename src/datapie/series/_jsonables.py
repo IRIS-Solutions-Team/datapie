@@ -82,7 +82,7 @@ conversion may be needed for strict JSON.
 
 #### See also
 
-`Series.from_jsonable`.
+[`from_jsonable`](#from_jsonable).
         """
         if allow_multiple_variants:
             raise NotImplementedError("allow_multiple_variants=True is not implemented yet.")
@@ -111,7 +111,7 @@ conversion may be needed for strict JSON.
     @classmethod
     @_dm.reference(
         category="constructor",
-        call_name="Series.from_jsonable",
+        call_name="from_jsonable",
     )
     def from_jsonable(
         klass,
@@ -123,6 +123,8 @@ conversion may be needed for strict JSON.
         allow_multiple_variants: bool = False,
     ) -> Self:
         r"""
+<a id="seriesfrom_jsonable"></a>
+
 ==Create a series from a dictionary of saved observations==
 
 #### Syntax

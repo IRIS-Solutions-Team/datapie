@@ -89,14 +89,12 @@ class Mixin:
 !!! input "span"
     The periods to fill; the default, `None`, means the current span. The requested span can extend beyond the current data.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
+!!! returns "None — method form"
     The series is changed in place.
 
-#### Function form returns
-
-!!! returns "new_series"
+!!! returns "new_series — function form"
     A new series with the result. The input series is unchanged.
 
 ??? note "Details"

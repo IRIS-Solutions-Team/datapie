@@ -2135,6 +2135,30 @@ are all passed straight through.
             raise ValueError("The 'deviation' argument is not allowed for the Databox.zero method")
         return klass.steady(steady_databoxable, span, deviation=True, **kwargs, )
 
+    @classmethod
+    def by_executing_file(
+        klass,
+        *args,
+        **kwargs,
+    ) -> Self:
+        r"""
+        """
+        self = klass()
+        self.execute_file(*args, **kwargs, )
+        return self
+
+    @classmethod
+    def by_executing_string(
+        klass,
+        *args,
+        **kwargs,
+    ) -> Self:
+        r"""
+        """
+        self = klass()
+        self.execute_string(*args, **kwargs, )
+        return self
+
     @_dm.reference(category="manipulation", )
     def minus_control(
         self,

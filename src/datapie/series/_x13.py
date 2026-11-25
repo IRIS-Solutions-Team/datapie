@@ -170,21 +170,21 @@ class Mixin:
 !!! input "version"
     The bundled X13 version: `"1.1.39"` or `"1.1.62"`. The default is `"1.1.62"`.
 
-#### Method form returns
+#### Returns
 
-!!! returns "None"
-    With `return_info=False`, the series is changed in place and nothing is returned.
+!!! returns "None — method form, return_info=False"
+    No return value. The series is changed in place.
 
-!!! returns "info"
-    With `return_info=True`, the series is changed in place and information about the run is returned: a dictionary for a single variant or a list of dictionaries for several variants. With `unpack_singleton=False`, the result is always a list.
+!!! returns "new_series — function form"
+    A new Series containing the selected adjustment component. Returned alone
+    with `return_info=False`, or as the first output of `(new_series, info)`
+    with `return_info=True`. The input series is unchanged.
 
-#### Function form returns
-
-!!! returns "new_series"
-    With `return_info=False`, return the adjusted copy. The input series is unchanged.
-
-!!! returns "new_series, info"
-    With `return_info=True`, return `(new_series, info)`, using the same information format as the method form. The input series is unchanged.
+!!! returns "info — method and function forms, return_info=True"
+    Information about the run: a dictionary for a single variant or a list of
+    dictionaries for several variants. With `unpack_singleton=False`, this
+    output is always a list. The method returns `info` directly; the function
+    returns it as the second output of `(new_series, info)`.
 
 All options are keyword-only. Only monthly and quarterly data are supported. The method clips the input before running X13; a later error does not restore removed observations. If X13 fails and the error policy allows continuation, its result is missing and may leave the series empty.
 

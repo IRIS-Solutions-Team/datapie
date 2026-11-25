@@ -59,7 +59,7 @@ class Mixin:
     @_dm.reference(category="information", )
     def set_description(
             self: HasDescriptionProtocol,
-            description: str,
+            description: str | None,
         ) -> None:
         r"""
 ==Set the object's description==

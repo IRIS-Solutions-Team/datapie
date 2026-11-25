@@ -45,6 +45,11 @@ _NAN_CUM_FUNCTIONS = tuple( f"nan{n}" for n in _NANABLE_CUM_FUNCTIONS )
 
 _ALL_CUM_FUNCTIONS = _NANABLE_CUM_FUNCTIONS + _NAN_CUM_FUNCTIONS
 
+_AXIS_FROM_ACROSS = {
+    "variants": 1,
+    "periods": 0,
+}
+
 
 _METHOD_TEMPLATE = r"""
     @_dm.reference(category="statistics", )
@@ -268,7 +273,7 @@ _FUNCTION_TEMPLATE = r"""
     def {n}(
         self: Series,
         *args,
-        accross: AcrossType | None = "variants",
+        across: AcrossType | None = "variants",
         axis: AxisType | None = None,
         unpack_singleton: bool = True,
         **kwargs,
@@ -280,6 +285,8 @@ _FUNCTION_TEMPLATE = r"""
 
         [Statistical reductions](#statistical-reductions).
         '''
+        if axis is None:
+            axis = _AXIS_FROM_ACROSS[across]
         if axis == 0:
             result = _np.{n}(self.data, *args, axis=0, **kwargs, ).T.tolist()
             if unpack_singleton and len(result) == 1:
